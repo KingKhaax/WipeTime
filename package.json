@@ -1,0 +1,52 @@
+{
+  "name": "wipetime",
+  "productName": "WipeTime",
+  "version": "0.3.7",
+  "description": "WipeTime: visor, replay y analizador local de reportes de Warcraft Logs",
+  "main": "main.js",
+  "author": "Rafael García",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.rafael.wipetime",
+    "productName": "WipeTime",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build",
+        "to": ".",
+        "filter": [
+          "secrets.json",
+          "proxy.json"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "WipeTime v${version} Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "WipeTime v${version}.${ext}"
+    }
+  }
+}

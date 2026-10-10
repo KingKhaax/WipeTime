@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: wcicon: wcmap: wcmedia: https://assets.rpglogs.com; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>WipeTime</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="boot.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <button class="brand" id="brandHome" title="Inicio"><img class="brand-logo" src="logo.png" alt="">WipeTime</button>
+    <button class="btn ghost home-btn" id="homeBtn" aria-label="Inicio / Home"><img class="wi" src="wcicon://i/inv_misc_rune_01" width="20" height="20" alt=""><span id="homeLabel">Inicio</span></button>
+    <button class="btn ghost home-btn" id="cmpBtn"><img class="wi" src="wcicon://i/spell_holy_crusade" width="20" height="20" alt=""><span id="cmpLabel">Comparar logs</span></button>
+    <button class="btn ghost home-btn" id="guildBtn" title="Guilds"><img class="wi" src="wcicon://i/inv_shirt_guildtabard_01" width="20" height="20" alt=""><span id="guildLabel">Guilds</span></button>
+    <form id="loadForm" class="load">
+      <input id="urlInput" type="text" spellcheck="false" autocomplete="off">
+      <button id="loadBtn" type="submit" class="btn primary"></button>
+    </form>
+    <div class="top-actions">
+      <button id="langBtn" class="btn ghost" title="Idioma / Language"></button>
+      <button id="exportBtn" class="btn ghost home-btn" title="Exportar / compartir"><img class="wi" src="wcicon://i/inv_letter_15" width="20" height="20" alt=""><span id="exportLabel">Exportar</span></button>
+      <button id="verBadge" class="ver-badge" title="Versión" onclick="openSettings('version')"></button>
+      <button id="settingsBtn" class="btn ghost icon" aria-label="Settings"><img class="wi" src="wcicon://i/trade_engineering" width="22" height="22" alt=""></button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside id="sidebar" class="sidebar" hidden></aside>
+    <main id="main" class="main"></main>
+  </div>
+
+  <dialog id="settings" class="modal"></dialog>
+  <dialog id="whoami" class="modal wide"></dialog>
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="data.js"></script>
+  <script src="i18n.js"></script>
+  <script src="bossmaps.js"></script>
+  <script src="app.js"></script>
+  <script src="replay.js"></script>
+  <script src="extras.js"></script>
+  <script src="extras2.js"></script>
+  <script src="mechanics.js"></script>
+  <script src="mechicons.js"></script>
+  <script src="mechguide.js"></script>
+  <script src="analysis.js"></script>
+  <script src="compare.js"></script>
+  <script src="settings.js"></script>
+  <script src="cards.js"></script>
+  <script src="guilds.js"></script>
+  <script src="patch115.js"></script>
+  <script src="rankings.js"></script>
+  <script src="tooltip.js"></script>
+  <script src="update.js"></script>
+</body>
+</html>
