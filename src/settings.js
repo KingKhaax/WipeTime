@@ -27,7 +27,7 @@ async function openSettings(tab) {
       ${row(LL('Fuente', 'Font'), `<select data-font>${fonts}</select><div class="font-prev" id="fontPrev">${LL('Así se ve el texto: Zul’jan 261,2 k · Cénit', 'This is how text looks: Zul’jan 261.2 k · Zenith')}</div>`)}
       ${row(LL('Densidad', 'Density'), seg('density', [['comfortable', LL('Cómoda', 'Comfortable')], ['compact', LL('Compacta', 'Compact')]]), LL('Compacta muestra más datos en pantalla', 'Compact shows more data on screen'))}
       ${row(LL('Animaciones', 'Animations'), seg('motion', [['full', LL('Normales', 'Normal')], ['reduced', LL('Reducidas', 'Reduced')]]))}
-      ${row(LL('Idioma', 'Language'), seg('lang', [['es', 'Español'], ['en', 'English']]))}
+      ${row(LL('Idioma', 'Language'), seg('lang', LANGS.map((l) => [l.code, l.name])))}
       ${toggle('spellTips', LL('Tooltips de habilidades', 'Ability tooltips'), LL('Al pasar el ratón por una habilidad o pasiva, muestra qué hace', 'Hover an ability or passive to see what it does'))}`,
     replay: `
       ${row(LL('Velocidad por defecto', 'Default speed'), seg('rpSpeed', [[0.5, '0,5×'], [1, '1×'], [2, '2×'], [4, '4×']]))}
@@ -107,7 +107,7 @@ document.addEventListener('click', async (ev) => {
     let v = el.dataset.v;
     if (key === 'rpSpeed') v = Number(v);
     if (key === 'lang') {
-      if (S.lang !== v) $('#langBtn').click();
+      setLang(v);
       await new Promise((r) => setTimeout(r, 60));
       openSettings('look');
       return;
@@ -118,7 +118,7 @@ document.addEventListener('click', async (ev) => {
   }
   const act = el.dataset.setAct;
   if (act === 'zoom-reset') { WCSettings.set('zoom', 100); openSettings(); }
-  else if (act === 'clear-icons') { const n = await window.api.clearIcons(); toastSet(LL(`Caché de iconos borrada (${n} archivos)`, `Icon cache cleared (${n} files)`)); }
+  else if (act === 'clear-icons') { const n = await window.api.clearIcons(); toastSet(LL(`Caché de iconos borrada (${n} archivos)`, `Icon cache cleared (${n} files)`, `Symbol-Cache geleert (${n} Dateien)`, `Cache des icônes vidé (${n} fichiers)`)); }
   else if (act === 'bnet-save') {
     await window.api.bnetSet({ clientId: $('#bnId').value, clientSecret: $('#bnSecret').value });
     toastSet(LL('Datos de Blizzard guardados', 'Blizzard settings saved'));
@@ -126,14 +126,14 @@ document.addEventListener('click', async (ev) => {
   } else if (act === 'bnet-region') { await window.api.bnetSet({ region: el.dataset.v }); openSettings('blizzard'); }
   else if (act === 'check-update') { await WCUpdate.check(true); openSettings('version'); }
   else if (act === 'do-update') WCUpdate.install();
-  else if (act === 'clear-spells') { const n = await window.api.clearSpells(); toastSet(LL(`Descripciones borradas (${n})`, `Descriptions cleared (${n})`)); }
-  else if (act === 'clear-qcache') { const n = await window.api.clearQueryCache(); toastSet(LL(`Caché de logs vaciada (${n} archivos)`, `Log cache cleared (${n} files)`)); }
-  else if (act === 'clear-bossmaps') { const n = await window.api.clearBossMaps(); toastSet(LL(`Mapas de jefes borrados (${n})`, `Boss maps cleared (${n})`)); }
+  else if (act === 'clear-spells') { const n = await window.api.clearSpells(); toastSet(LL(`Descripciones borradas (${n})`, `Descriptions cleared (${n})`, `Beschreibungen gelöscht (${n})`, `Descriptions effacées (${n})`)); }
+  else if (act === 'clear-qcache') { const n = await window.api.clearQueryCache(); toastSet(LL(`Caché de logs vaciada (${n} archivos)`, `Log cache cleared (${n} files)`, `Log-Cache geleert (${n} Dateien)`, `Cache des logs vidé (${n} fichiers)`)); }
+  else if (act === 'clear-bossmaps') { const n = await window.api.clearBossMaps(); toastSet(LL(`Mapas de jefes borrados (${n})`, `Boss maps cleared (${n})`, `Bosskarten gelöscht (${n})`, `Cartes de boss effacées (${n})`)); }
   else if (act === 'clear-recent') { try { localStorage.removeItem('recent'); } catch { /* nada */ } toastSet(LL('Reportes recientes borrados', 'Recent reports cleared')); if (S.home && !S.cmpOpen) renderWelcome(); }
   else if (act === 'clear-arena') {
     let n = 0;
     try { for (const k of Object.keys(localStorage)) if (k.startsWith('arena:') || k.startsWith('bench:') || k.startsWith('dist:')) { localStorage.removeItem(k); n++; } } catch { /* nada */ }
-    toastSet(LL(`Mapas generados y comparativas borrados (${n})`, `Generated maps and benchmarks cleared (${n})`));
+    toastSet(LL(`Mapas generados y comparativas borrados (${n})`, `Generated maps and benchmarks cleared (${n})`, `Erzeugte Karten und Vergleiche gelöscht (${n})`, `Cartes générées et comparatifs effacés (${n})`));
   } else if (act === 'open-data') window.api.openDataFolder();
   else if (act === 'reset-all') {
     WCSettings.reset();

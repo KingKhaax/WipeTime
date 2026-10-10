@@ -2,7 +2,7 @@
 
 // ============================================================ state
 const S = {
-  lang: lsGet('lang') || 'es',
+  lang: ['es', 'en', 'de', 'fr'].includes(lsGet('lang')) ? lsGet('lang') : 'es',
   me: '',
   hasCreds: false,
   code: null,
@@ -44,7 +44,7 @@ function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* sin almace
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ============================================================ formato
-const locale = () => (S.lang === 'es' ? 'es-ES' : 'en-US');
+const locale = () => langInfo().locale;
 function num(n, digits = 1) {
   return new Intl.NumberFormat(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
 }
@@ -80,10 +80,11 @@ function playerInfo(id, entry) {
   return { id, name: entry?.name || a.name || '?', cls, spec, icon };
 }
 const classColor = (cls) => CLASSES[cls]?.color || '#9aa3b2';
-const className = (cls) => CLASSES[cls]?.[S.lang] || cls || '';
+const className = (cls) => CLASSES[cls]?.[S.lang] || CLASSES[cls]?.en || cls || '';
 function specName(spec) {
   if (!spec) return '';
-  return S.lang === 'es' ? SPECS_ES[spec] || spec : spec.replace(/([a-z])([A-Z])/g, '$1 $2');
+  const table = { es: SPECS_ES, de: SPECS_DE, fr: SPECS_FR }[S.lang];
+  return table ? table[spec] || spec : spec.replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 function isPlayer(id, entry) {
   const a = S.actors.get(id);
@@ -117,8 +118,9 @@ document.addEventListener('error', (e) => {
 }, true);
 
 // ============================================================ API
-async function gql(query, variables) {
-  const res = await window.api.query(query, variables, S.lang, S.liveReport);
+// fresh = true salta la caché en disco (rankings públicos, que cambian de un momento a otro)
+async function gql(query, variables, fresh = false) {
+  const res = await window.api.query(query, variables, S.lang, fresh || S.liveReport);
   if (res.error) throw new Error(res.error);
   if (!res.data && res.errors) throw new Error(res.errors.map((e) => e.message).join(' · '));
   if (res.errors) console.warn('GraphQL', res.errors);
@@ -622,7 +624,7 @@ function fightLabel(f) {
   const p = pctOf(f.fightPercentage ?? f.bossPercentage);
   return p != null ? t('tryOfPct', { n: f.tryNo, p: num(p, 1) }) : t('tryN', { n: f.tryNo });
 }
-const diffName = (d) => DIFFICULTY[d]?.[S.lang] || '';
+const diffName = (d) => DIFFICULTY[d]?.[S.lang] || DIFFICULTY[d]?.en || '';
 // Nombre de la zona en el idioma de la app (Warcraft Logs la devuelve en inglés)
 function zoneName(n) {
   if (!n || S.lang !== 'es') return n || '';
@@ -650,7 +652,7 @@ function renderSidebar() {
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
     <div class="rep-sub">${esc(zoneName(r.zone?.name))}${r.owner?.name ? ' · ' + esc(r.owner.name) : ''}<br>${new Date(r.startTime).toLocaleString(locale())}</div>
-    <div class="combine-bar"><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`)}</small>` : ''}</div>`;
+    <div class="combine-bar"><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
@@ -707,7 +709,7 @@ async function render() {
   const rkBtn = S.player ? '' : `<button class="rank-btn ${S.tab === 'rankings' ? 'active' : ''}" data-action="tab" data-tab="rankings"><img class="wi" src="wcicon://i/achievement_bg_winwsg" width="22" height="22" alt="">${t('tabs.rankings')}</button>`;
   const nav = S.player ? '' : `${rkBtn}<nav class="tabs">${TABS.filter((k) => !window.tabHidden?.(k)).map((k) =>
     `<button class="tab ${S.tab === k ? 'active' : ''}" data-action="tab" data-tab="${k}">${t('tabs.' + k)}</button>`).join('')}</nav>`;
-  const banner = S.combine.length > 1 ? `<div class="combine-banner"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL(`Combinando ${S.combine.length} pulls`, `Combining ${S.combine.length} pulls`)}${combined ? '' : ` · <span class="muted">${LL('esta pestaña muestra solo el pull seleccionado', 'this tab only shows the selected pull')}</span>`}<span class="grow"></span><button class="chip" data-action="combine-clear">${LL('Salir', 'Exit')}</button></div>` : '';
+  const banner = S.combine.length > 1 ? `<div class="combine-banner"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL(`Combinando ${S.combine.length} pulls`, `Combining ${S.combine.length} pulls`, `${S.combine.length} Versuche kombinieren`, `Combinaison de ${S.combine.length} essais`)}${combined ? '' : ` · <span class="muted">${LL('esta pestaña muestra solo el pull seleccionado', 'this tab only shows the selected pull')}</span>`}<span class="grow"></span><button class="chip" data-action="combine-clear">${LL('Salir', 'Exit')}</button></div>` : '';
   main.innerHTML = `${nav}${banner}${combined ? '' : raw.encounterID || fightDur(raw) > 20000 ? rangeBar(raw) : ''}<section id="view">${loadingHTML()}</section>`;
   S.post = null;
   try {
@@ -738,7 +740,7 @@ function eyebrow(f) {
   const real = S.fight;
   if (f.encounterID && !f.combined) parts.push(fightLabel(real));
   if (!f.kill) parts.push(clock(fightDur(f.combined ? f : real)));
-  if (f.combined) parts.push(LL(`${f.ids.length} pulls combinados`, `${f.ids.length} pulls combined`));
+  if (f.combined) parts.push(LL(`${f.ids.length} pulls combinados`, `${f.ids.length} pulls combined`, `${f.ids.length} Versuche kombiniert`, `${f.ids.length} essais combinés`));
   if (!f.full) parts.push(`${f.rangeLabel ? f.rangeLabel + ' ' : ''}${clock(f.startTime - f.fightStart)}–${clock(f.endTime - f.fightStart)}`);
   return esc(parts.filter(Boolean).join(' · '));
 }
@@ -818,7 +820,7 @@ function leaderSub(rows, f) {
 }
 
 // ============================================================ motivo del wipe
-const LL = (es, en) => (S.lang === 'es' ? es : en);
+const LL = tr;
 const WIPE_CLUSTER = 8; // 8+ muertes en 10 s (o el 40 % de la banda) = muerte masiva
 const WIPE_WINDOW_MS = 10000;
 
@@ -878,10 +880,10 @@ function wipeAnalysis(f, deaths, raidSize) {
 function wipeCauseText(w) {
   const nm = (c) => `<b>${esc(ability(c.abilityId).name)}</b>`;
   const src = (c) => (c.killerId != null && c.killerId !== -1 ? LL(' de ', ' from ') + esc(actorName(c.killerId)) : '');
-  if (w.kind === 'burst') return LL(`Muerte masiva por ${nm(w.causes[0])}${src(w.causes[0])}`, `Mass death caused by ${nm(w.causes[0])}${src(w.causes[0])}`);
-  if (w.kind === 'mixed') return LL(`Varias habilidades a la vez: ${nm(w.causes[0])} y ${nm(w.causes[1])}`, `Several abilities at once: ${nm(w.causes[0])} and ${nm(w.causes[1])}`);
+  if (w.kind === 'burst') return LL(`Muerte masiva por ${nm(w.causes[0])}${src(w.causes[0])}`, `Mass death caused by ${nm(w.causes[0])}${src(w.causes[0])}`, `Massensterben durch ${nm(w.causes[0])}${src(w.causes[0])}`, `Mort de masse due à ${nm(w.causes[0])}${src(w.causes[0])}`);
+  if (w.kind === 'mixed') return LL(`Varias habilidades a la vez: ${nm(w.causes[0])} y ${nm(w.causes[1])}`, `Several abilities at once: ${nm(w.causes[0])} and ${nm(w.causes[1])}`, `Mehrere Fähigkeiten gleichzeitig: ${nm(w.causes[0])} und ${nm(w.causes[1])}`, `Plusieurs capacités à la fois : ${nm(w.causes[0])} et ${nm(w.causes[1])}`);
   if (w.kind === 'attrition') return LL('Desgaste: fueron muriendo jugadores durante la pelea', 'Attrition: players kept dying through the fight');
-  return LL(`Muerte masiva por varias causas, sobre todo ${nm(w.causes[0])}`, `Mass death from several causes, mostly ${nm(w.causes[0])}`);
+  return LL(`Muerte masiva por varias causas, sobre todo ${nm(w.causes[0])}`, `Mass death from several causes, mostly ${nm(w.causes[0])}`, `Massensterben durch mehrere Ursachen, vor allem ${nm(w.causes[0])}`, `Mort de masse due à plusieurs causes, surtout ${nm(w.causes[0])}`);
 }
 
 function wipeCardHTML(w) {
@@ -893,7 +895,7 @@ function wipeCardHTML(w) {
   const names = w.first.map((d) => `<b style="color:${classColor(playerInfo(d.targetID).cls)}">${esc(playerInfo(d.targetID).name)}</b>`).join(', ');
   const body = w.kind === 'attrition'
     ? LL(`Murieron <b>${w.n}</b> de ${w.raid} jugadores a lo largo del intento; la primera muerte fue a los <b>${clock(w.rel)}</b>.`,
-      `<b>${w.n}</b> of ${w.raid} players died over the attempt; the first death was at <b>${clock(w.rel)}</b>.`)
+      `<b>${w.n}</b> of ${w.raid} players died over the attempt; the first death was at <b>${clock(w.rel)}</b>.`, `Im Laufe des Versuchs starben <b>${w.n}</b> von ${w.raid} Spielern; der erste Tod war bei <b>${clock(w.rel)}</b>.`, `<b>${w.n}</b> joueurs sur ${w.raid} sont morts au cours de l’essai ; la première mort a eu lieu à <b>${clock(w.rel)}</b>.`)
     : LL(`<b>${w.n} de ${w.raid}</b> jugadores murieron en ${num(w.span, 0)} s a los <b>${clock(w.rel)}</b>${w.before ? `. Antes ya habían muerto ${w.before}` : ''}.`,
       `<b>${w.n} of ${w.raid}</b> players died within ${num(w.span, 0)} s at <b>${clock(w.rel)}</b>${w.before ? `. ${w.before} had already died before` : ''}.`);
   return `<div class="wipe-card"><div class="wipe-ic">☠</div><div class="wipe-body">
@@ -1482,10 +1484,11 @@ function applyStaticText() {
   document.documentElement.lang = S.lang;
   $('#urlInput').placeholder = t('urlPlaceholder');
   $('#loadBtn').textContent = t('load');
-  $('#langBtn').textContent = t('langButton');
+  $('#langLabel').textContent = t('langButton');
+  renderLangList();
   $('#homeLabel').textContent = t('home');
   $('#cmpLabel').textContent = t('cmpOpen');
-  $('#exportLabel').textContent = S.lang === 'es' ? 'Exportar' : 'Export';
+  $('#exportLabel').textContent = tr('Exportar', 'Export', 'Exportieren', 'Exporter');
   $('#brandHome').title = t('home');
 }
 
@@ -1700,8 +1703,30 @@ $('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; Compare.open
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);
 
-$('#langBtn').addEventListener('click', () => {
-  S.lang = S.lang === 'es' ? 'en' : 'es';
+// Menú «Idiomas»: el idioma en uso va resaltado
+function renderLangList() {
+  $('#langList').innerHTML = LANGS.map((l) =>
+    `<button type="button" role="menuitemradio" aria-checked="${l.code === S.lang}" class="lang-item ${l.code === S.lang ? 'on' : ''}" data-lang="${l.code}"><span class="lang-dot"></span>${l.name}</button>`).join('');
+}
+function toggleLangMenu(open) {
+  const list = $('#langList');
+  const show = open ?? list.hidden;
+  list.hidden = !show;
+  $('#langBtn').setAttribute('aria-expanded', String(show));
+}
+$('#langBtn').addEventListener('click', (ev) => { ev.stopPropagation(); toggleLangMenu(); });
+$('#langList').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-lang]');
+  if (!b) return;
+  toggleLangMenu(false);
+  setLang(b.dataset.lang);
+});
+document.addEventListener('click', (ev) => { if (!ev.target.closest('.lang-menu')) toggleLangMenu(false); });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') toggleLangMenu(false); });
+
+function setLang(code) {
+  if (!LANGS.some((l) => l.code === code) || code === S.lang) return;
+  S.lang = code;
   lsSet('lang', S.lang);
   applyStaticText();
   // Recarga para obtener nombres de habilidades y encuentros en el nuevo idioma
@@ -1709,7 +1734,7 @@ $('#langBtn').addEventListener('click', () => {
   else if (S.cmpOpen) Compare.render();
   else if (S.code && !S.home) loadReport(S.code, { keepView: true, fightId: S.fight?.id });
   else renderWelcome();
-});
+}
 
 (async function init() {
   applyStaticText();

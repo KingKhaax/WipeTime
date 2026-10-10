@@ -231,7 +231,7 @@ const Extras2 = (() => {
     S.post = async (seq) => { await prev?.(seq); mplusOverall(seq, raw); await mplusBest(seq, raw); };
     const i = html.indexOf('</div></div>') + 12;
     const overall = `<h3 class="sec">${LL('Overall de la mítica', 'Key overall')}</h3><div id="mpOverall"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
-    return `${i >= 12 ? html.slice(0, i) + overall + html.slice(i) : html + overall}<h3 class="sec">${LL(`Compararte con los mejores de +${raw.keystoneLevel}`, `Compare with the best at +${raw.keystoneLevel}`)}</h3><div id="mpBest"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
+    return `${i >= 12 ? html.slice(0, i) + overall + html.slice(i) : html + overall}<h3 class="sec">${LL(`Compararte con los mejores de +${raw.keystoneLevel}`, `Compare with the best at +${raw.keystoneLevel}`, `Mit den Besten bei +${raw.keystoneLevel} vergleichen`, `Te comparer aux meilleurs à +${raw.keystoneLevel}`)}</h3><div id="mpBest"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
   };
 
   async function mplusOverall(seq, raw) {
@@ -281,7 +281,7 @@ const Extras2 = (() => {
       const metric = sel.role === 'healer' ? 'hps' : 'dps';
       const zb = (await gql(`{worldData{encounter(id:${Number(raw.encounterID)}){zone{brackets{min bucket type}}}}}`).catch(() => null))?.worldData?.encounter?.zone?.brackets;
       const idx = zb ? Math.floor((raw.keystoneLevel - zb.min) / (zb.bucket || 1)) + 1 : 0;
-      const q = (args) => gql(`{worldData{encounter(id:${Number(raw.encounterID)}){p:characterRankings(className:"${pi.cls}",specName:"${spec}",${args}metric:${metric},page:1)}}}`);
+      const q = (args) => gql(`{worldData{encounter(id:${Number(raw.encounterID)}){p:characterRankings(className:"${pi.cls}",specName:"${spec}",${args}metric:${metric},page:1)}}}`, undefined, true);
       let list = idx > 0 ? (await q(`bracket:${idx},`)).worldData?.encounter?.p?.rankings || [] : [];
       let exact = list.length > 0;
       if (!list.length) list = (await q('')).worldData?.encounter?.p?.rankings || [];
@@ -302,7 +302,7 @@ const Extras2 = (() => {
           ${stat(LL('Mediana del top', 'Top median'), plain(med), `${amounts.length} ${LL('jugadores', 'players')}`)}
           ${stat(LL('Tu posición', 'Your position'), amounts.length ? `${better + 1} / ${amounts.length}` : '–', myRate >= med ? LL('por encima de la mediana', 'above median') : LL('por debajo de la mediana', 'below median'))}
         </div>
-        <p class="foot">${exact ? LL(`Ranking de ${esc(specName(spec))} ${esc(className(pi.cls))} en esta mazmorra con llaves de +${raw.keystoneLevel}.`, `Ranking of ${esc(specName(spec))} ${esc(className(pi.cls))} in this dungeon with +${raw.keystoneLevel} keys.`)
+        <p class="foot">${exact ? LL(`Ranking de ${esc(specName(spec))} ${esc(className(pi.cls))} en esta mazmorra con llaves de +${raw.keystoneLevel}.`, `Ranking of ${esc(specName(spec))} ${esc(className(pi.cls))} in this dungeon with +${raw.keystoneLevel} keys.`, `Rangliste für ${esc(specName(spec))} ${esc(className(pi.cls))} in diesem Dungeon mit +${raw.keystoneLevel}-Schlüsseln.`, `Classement des ${esc(specName(spec))} ${esc(className(pi.cls))} dans ce donjon avec des clés +${raw.keystoneLevel}.`)
           : LL('No hay ranking de tu nivel exacto: se usa el ranking general de la mazmorra.', 'No ranking for your exact level: using the dungeon-wide ranking.')}</p>
         <button class="btn primary" data-action="player" data-id="${sel.id}" data-ptab="analyze">${LL('Ver exactamente qué mejorar (analizar contra los mejores)', 'See exactly what to improve (analyze vs the best)')}</button>`;
     } catch (e) {
@@ -375,7 +375,7 @@ const Extras2 = (() => {
         return `<div class="bc-row"><span class="ab" data-spell="${x.id}">${iconImg(ab.icon, 20)}${esc(ab.name)}</span><b>${x.a}</b><b>${x.b}</b>${delta(x.a, x.b, (v) => v)}</div>`;
       }).join('')}</div>`;
     }
-    return headerHTML(f, t('tabs.bestcmp'), LL(`Comparado con tu mejor intento: <b>${esc(fightLabel(best))}</b>`, `Compared with your best attempt: <b>${esc(fightLabel(best))}</b>`))
+    return headerHTML(f, t('tabs.bestcmp'), LL(`Comparado con tu mejor intento: <b>${esc(fightLabel(best))}</b>`, `Compared with your best attempt: <b>${esc(fightLabel(best))}</b>`, `Verglichen mit deinem besten Versuch: <b>${esc(fightLabel(best))}</b>`, `Comparé à ton meilleur essai : <b>${esc(fightLabel(best))}</b>`))
       + `<div class="bc-table">${summary}</div>
         <h3 class="sec">${LL('DPS por jugador', 'DPS per player')}</h3><div class="bc-table">${players}</div>
         <h3 class="sec">${LL('Muertes lado a lado', 'Deaths side by side')}</h3>${deaths}${rot}
@@ -476,7 +476,7 @@ const Extras2 = (() => {
       const d = await nightTopsData();
       if (seq !== S.seq || !document.getElementById('nightTops')) return;
       box.innerHTML = topCard(LL('Quién ha muerto más', 'Who died the most'), LL('Solo las 2 primeras muertes de cada intento', 'Only the first 2 deaths of each pull'), d.died, (v) => `${v} ${v === 1 ? LL('muerte', 'death') : LL('muertes', 'deaths')}`)
-        + topCard(LL('Top 5 DPS de la noche', 'Top 5 DPS of the night'), LL(`Daño medio por segundo en ${d.pulls} intentos`, `Average damage per second over ${d.pulls} pulls`), d.dps, (v) => plain(v))
+        + topCard(LL('Top 5 DPS de la noche', 'Top 5 DPS of the night'), LL(`Daño medio por segundo en ${d.pulls} intentos`, `Average damage per second over ${d.pulls} pulls`, `Durchschnittlicher Schaden pro Sekunde über ${d.pulls} Versuche`, `Dégâts moyens par seconde sur ${d.pulls} essais`), d.dps, (v) => plain(v))
         + topCard(LL('Top 3 sanadores de la noche', 'Top 3 healers of the night'), LL('Sanación media por segundo', 'Average healing per second'), d.heal, (v) => plain(v))
         + topCard(LL('Top 5 cortes de la noche', 'Top 5 interrupts of the night'), LL('Hechizos enemigos interrumpidos en todos los intentos', 'Enemy spells interrupted across every pull'), d.ints, (v) => `${v} ${v === 1 ? LL('corte', 'interrupt') : LL('cortes', 'interrupts')}`);
     } catch (e) {

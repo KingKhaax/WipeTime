@@ -1757,7 +1757,7 @@ const Replay = (() => {
       body = `<span class="fi">${iconImg(a.icon, 20, '', e.e.extraAbilityGameID ?? e.e.abilityGameID)}</span><div>${t(e.kind === 'dispel' ? 'rpDispel' : 'rpInterrupt', { a: who(e.e.sourceID) })}<br><small>${esc(a.name)}</small></div>`;
     } else if (e.kind === 'mech') {
       const a = ability(e.m.aid);
-      body = `<span class="fi red">◉</span><div>${LL(`${who(e.m.id)} recibió una mecánica evitable`, `${who(e.m.id)} took an avoidable mechanic`)}<br><small><span data-spell="${e.m.aid}">${iconImg(a.icon, 14)} ${esc(a.name)}</span> · ${plain(e.m.amount)}</small></div>`;
+      body = `<span class="fi red">◉</span><div>${LL(`${who(e.m.id)} recibió una mecánica evitable`, `${who(e.m.id)} took an avoidable mechanic`, `${who(e.m.id)} wurde von einer vermeidbaren Mechanik getroffen`, `${who(e.m.id)} a subi une mécanique évitable`)}<br><small><span data-spell="${e.m.aid}">${iconImg(a.icon, 14)} ${esc(a.name)}</span> · ${plain(e.m.amount)}</small></div>`;
     } else if (e.kind === 'wipe') {
       body = `<span class="fi red">☠</span><div><b>WIPE</b><br><small>${wipeCauseText(e.w)}</small></div>`;
     } else if (e.kind === 'add') {

@@ -12,15 +12,15 @@ var WCSettings = (function () {
     orange: ['#f0a23b', '#d17f12'], pink: ['#ef5f9a', '#d03a78'], red: ['#ef5f6b', '#d6384a'],
   };
   var FONTS = {
-    default: { label: 'Inter / Segoe UI', css: 'Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif' },
-    segoe: { label: 'Segoe UI', css: '"Segoe UI", system-ui, sans-serif' },
-    arial: { label: 'Arial', css: 'Arial, Helvetica, sans-serif' },
-    verdana: { label: 'Verdana', css: 'Verdana, Geneva, sans-serif' },
-    tahoma: { label: 'Tahoma', css: 'Tahoma, Verdana, sans-serif' },
-    calibri: { label: 'Calibri', css: 'Calibri, "Segoe UI", sans-serif' },
-    georgia: { label: 'Georgia', css: 'Georgia, "Times New Roman", serif' },
-    consolas: { label: 'Consolas', css: 'Consolas, "Cascadia Mono", monospace' },
-    comic: { label: 'Comic Sans', css: '"Comic Sans MS", "Chalkboard SE", cursive' },
+    default: { label: 'Inter / Segoe UI', css: 'Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    segoe: { label: 'Segoe UI', css: '"Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    arial: { label: 'Arial', css: 'Arial, Helvetica, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    verdana: { label: 'Verdana', css: 'Verdana, Geneva, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    tahoma: { label: 'Tahoma', css: 'Tahoma, Verdana, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    calibri: { label: 'Calibri', css: 'Calibri, "Segoe UI", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    georgia: { label: 'Georgia', css: 'Georgia, "Times New Roman", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", serif' },
+    consolas: { label: 'Consolas', css: 'Consolas, "Cascadia Mono", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", monospace' },
+    comic: { label: 'Comic Sans', css: '"Comic Sans MS", "Chalkboard SE", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", cursive' },
   };
   var data = {};
   try { data = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { data = {}; }

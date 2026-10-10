@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('api', {
   bnetLogout: () => ipcRenderer.invoke('bnet:logout'),
   bnetGuilds: (lang) => ipcRenderer.invoke('bnet:guilds', lang),
   bnetChar: (realm, name, lang) => ipcRenderer.invoke('bnet:char', realm, name, lang),
+  bnetArmory: (realm, name, lang) => ipcRenderer.invoke('bnet:armory', realm, name, lang),
   bnetCrest: (realm, guild) => ipcRenderer.invoke('bnet:crest', realm, guild),
   bnetRoster: (realm, guild) => ipcRenderer.invoke('bnet:roster', realm, guild),
   talentMap: () => ipcRenderer.invoke('talents:map'),

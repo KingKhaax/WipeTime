@@ -105,6 +105,11 @@ async function getToken() {
   return token;
 }
 
+// Idiomas de la app: subdominio de Warcraft Logs, locale de Wowhead y de Blizzard
+const WCL_SUBDOMAIN = { es: 'es', de: 'de', fr: 'fr' };
+const WOWHEAD_LOCALE = { es: 6, en: 0, de: 3, fr: 2 };
+const BNET_LOCALE = { es: 'es_ES', en: 'en_US', de: 'de_DE', fr: 'fr_FR' };
+
 // The localized subdomain returns translated fight/ability names; fall back to www if it fails.
 async function query(gql, variables, lang) {
   if (useWclProxy()) {
@@ -114,7 +119,8 @@ async function query(gql, variables, lang) {
     return res.json();
   }
   const bearer = await getToken();
-  const hosts = lang === 'es' ? ['https://es.warcraftlogs.com', WCL] : [WCL];
+  const sub = WCL_SUBDOMAIN[lang];
+  const hosts = sub ? [`https://${sub}.warcraftlogs.com`, WCL] : [WCL];
   let lastError;
   for (const host of hosts) {
     try {
@@ -162,7 +168,7 @@ ipcMain.handle('wcl:query', async (_e, gql, variables, lang, noCache) => {
   try {
     const ttl = noCache ? 0 : qcacheTtl(gql);
     if (!ttl) return await query(gql, variables, lang);
-    const key = require('crypto').createHash('sha1').update(JSON.stringify([gql, variables, lang === 'es' ? 'es' : 'en', useWclProxy() ? 'p' : 'd'])).digest('hex');
+    const key = require('crypto').createHash('sha1').update(JSON.stringify([gql, variables, WCL_SUBDOMAIN[lang] ? lang : 'en', useWclProxy() ? 'p' : 'd'])).digest('hex');
     const file = path.join(qcacheDir(), key + '.json.gz');
     try {
       const st = fs.statSync(file);
@@ -639,7 +645,7 @@ const spellDir = () => path.join(app.getPath('userData'), 'spells');
 ipcMain.handle('spell:tip', async (_e, id, lang) => {
   id = Number(id);
   if (!Number.isInteger(id) || id < 1 || id > 99999999) return { error: 'BAD_ID' };
-  const loc = lang === 'es' ? 6 : 0;
+  const loc = WOWHEAD_LOCALE[lang] ?? 0;
   const file = path.join(spellDir(), `${loc}-${id}.json`);
   try {
     const st = fs.statSync(file);
@@ -930,7 +936,7 @@ ipcMain.handle('bnet:login', async (e) => {
 // Datos de un personaje (nivel, raza, clase, facción, guild y foto) con la API de perfil
 async function charInfo(realmSlug, name, lang, token) {
   const ns = `profile-${bnetRegion()}`;
-  const loc = lang === 'es' ? 'es_ES' : 'en_US';
+  const loc = BNET_LOCALE[lang] || 'en_US';
   const base = `/profile/wow/character/${encodeURIComponent(String(realmSlug).toLowerCase())}/${encodeURIComponent(String(name).toLowerCase())}`;
   const [p, md] = await Promise.all([bnetApi(`${base}?namespace=${ns}&locale=${loc}`, token), bnetApi(`${base}/character-media?namespace=${ns}`, token).catch(() => null)]);
   return {
@@ -940,6 +946,58 @@ async function charInfo(realmSlug, name, lang, token) {
     avatar: md?.assets?.find((x) => x.key === 'avatar')?.value || md?.assets?.[0]?.value || '',
   };
 }
+
+// Armería: equipo, estadísticas (valor y %) y datos básicos de un personaje con la API de perfil de Blizzard
+const itemIconCache = new Map();
+async function itemIcon(id, token) {
+  if (!id) return '';
+  if (!itemIconCache.has(id)) {
+    itemIconCache.set(id, bnetApi(`/data/wow/media/item/${Number(id)}?namespace=static-${bnetRegion()}`, token)
+      .then((j) => j.assets?.find((a) => a.key === 'icon')?.value || '').catch(() => { itemIconCache.delete(id); return ''; }));
+  }
+  return itemIconCache.get(id);
+}
+
+async function armory(realmSlug, name, lang) {
+  const token = await bnetAppToken();
+  const ns = `profile-${bnetRegion()}`;
+  const loc = BNET_LOCALE[lang] || 'en_US';
+  const base = `/profile/wow/character/${encodeURIComponent(String(realmSlug).toLowerCase())}/${encodeURIComponent(String(name).toLowerCase())}`;
+  const get = (sub) => bnetApi(`${base}${sub}?namespace=${ns}&locale=${loc}`, token);
+  const [sum, eq, st, md] = await Promise.all([get(''), get('/equipment').catch(() => null), get('/statistics').catch(() => null), get('/character-media').catch(() => null)]);
+  const equipped = eq?.equipped_items || [];
+  const icons = await Promise.all(equipped.map((i) => itemIcon(i.item?.id, token)));
+  const items = equipped.map((i, k) => ({
+    slot: i.slot?.type || '', slotName: i.slot?.name || '', id: i.item?.id, name: i.name || '', ilvl: i.level?.value || 0,
+    quality: i.quality?.type || 'COMMON', icon: icons[k], binding: i.binding?.name || '',
+    enchant: (i.enchantments || []).map((e) => e.display_string).filter(Boolean),
+    gems: (i.sockets || []).map((sk) => ({ name: sk.item?.name || '', stat: sk.display_string || '' })),
+    set: i.set?.item_set?.name || '', armorType: i.item_subclass?.name || '',
+  }));
+  const pct = (o) => (o ? { rating: o.rating ?? 0, value: o.value ?? 0 } : null);
+  const stats = st ? {
+    health: st.health, power: st.power, powerType: st.power_type?.name || '',
+    strength: st.strength?.effective ?? 0, agility: st.agility?.effective ?? 0, intellect: st.intellect?.effective ?? 0, stamina: st.stamina?.effective ?? 0,
+    armor: st.armor?.effective ?? 0, attackPower: st.attack_power ?? 0, spellPower: st.spell_power ?? 0,
+    crit: (st.spell_crit?.value ?? 0) >= (st.melee_crit?.value ?? 0) ? pct(st.spell_crit) : pct(st.melee_crit),
+    haste: (st.spell_haste?.value ?? 0) >= (st.melee_haste?.value ?? 0) ? pct(st.spell_haste) : pct(st.melee_haste),
+    mastery: pct(st.mastery),
+    versatility: { rating: st.versatility ?? 0, value: st.versatility_damage_done_bonus ?? 0, taken: st.versatility_damage_taken_bonus ?? 0 },
+    leech: pct(st.lifesteal), avoidance: pct(st.avoidance), speed: pct(st.speed),
+    dodge: pct(st.dodge), parry: pct(st.parry), block: pct(st.block),
+  } : null;
+  return {
+    name: sum.name, level: sum.level, race: sum.race?.name, cls: sum.character_class?.name, classId: sum.character_class?.id,
+    spec: sum.active_spec?.name || '', faction: sum.faction?.type, guild: sum.guild?.name || '', realmName: sum.realm?.name || realmSlug,
+    ilvlAvg: sum.average_item_level || 0, ilvlEquipped: sum.equipped_item_level || 0, achievements: sum.achievement_points || 0,
+    render: md?.assets?.find((a) => a.key === 'main-raw')?.value || md?.assets?.find((a) => a.key === 'inset')?.value || '',
+    items, stats, at: Date.now(),
+  };
+}
+
+ipcMain.handle('bnet:armory', async (_e, realmSlug, name, lang) => {
+  try { return await armory(realmSlug, name, lang); } catch (err) { return { error: String(err.message || err) }; }
+});
 
 ipcMain.handle('bnet:char', async (_e, realmSlug, name, lang) => {
   try { return await charInfo(realmSlug, name, lang, await bnetAppToken()); } catch (err) { return { error: String(err.message || err) }; }
@@ -987,7 +1045,7 @@ ipcMain.handle('bnet:guilds', async (_e, lang) => {
     cards.sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
     const guilds = [...found.values()];
     const cfg = readConfig();
-    cfg.bnetGuilds = { at: Date.now(), region: bnetRegion(), list: guilds, chars: cards, lang: lang === 'es' ? 'es' : 'en' };
+    cfg.bnetGuilds = { at: Date.now(), region: bnetRegion(), list: guilds, chars: cards, lang: BNET_LOCALE[lang] ? lang : 'en' };
     writeConfig(cfg); // la sesión caduca a las 24 h: guilds y personajes se recuerdan
     return { guilds, chars: cards, region: bnetRegion() };
   } catch (err) { return { error: String(err.message || err) }; }

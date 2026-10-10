@@ -38,7 +38,7 @@ function limited(ip) {
 }
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
-const BNET_PATH = /^\/(profile\/wow\/character\/[a-z0-9-]+\/[^/?#]+(\/(character-media|appearance))?|data\/wow\/(guild\/[a-z0-9-]+\/[^/?#]+(\/roster)?|guild-crest\/[^?#]+|media\/guild-crest\/[^?#]+|realm\/[^?#]+|connected-realm\/[^?#]+))(\?.*)?$/i;
+const BNET_PATH = /^\/(profile\/wow\/character\/[a-z0-9-]+\/[^/?#]+(\/(character-media|appearance|equipment|statistics))?|data\/wow\/(guild\/[a-z0-9-]+\/[^/?#]+(\/roster)?|guild-crest\/[^?#]+|media\/guild-crest\/[^?#]+|media\/item\/\d+|realm\/[^?#]+|connected-realm\/[^?#]+))(\?.*)?$/i;
 
 export default {
   async fetch(request, env) {
@@ -52,7 +52,7 @@ export default {
         const { query, variables, lang } = JSON.parse(raw);
         if (typeof query !== 'string' || /\bmutation\b/i.test(query)) return json({ error: 'bad query' }, 400);
         const bearer = await token('wcl', env);
-        const host = lang === 'es' ? 'https://es.warcraftlogs.com' : WCL;
+        const host = ['es', 'de', 'fr'].includes(lang) ? `https://${lang}.warcraftlogs.com` : WCL;
         const res = await fetch(`${host}/api/v2/client`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json', Accept: 'application/json' },

@@ -195,7 +195,7 @@ const Compare = (() => {
       const profiles = [];
       const failed = [];
       for (let i = 0; i < jobs.length; i++) {
-        status(L(`Analizando ${i + 1}/${jobs.length}…`, `Analyzing ${i + 1}/${jobs.length}…`));
+        status(L(`Analizando ${i + 1}/${jobs.length}…`, `Analyzing ${i + 1}/${jobs.length}…`, `Analysiere ${i + 1}/${jobs.length}…`, `Analyse ${i + 1}/${jobs.length}…`));
         const { r, label } = jobs[i];
         const fight = r.fights.find((f) => f.id === r.fightId);
         const actor = r.players.find((p) => p.id === r.playerId);
@@ -209,9 +209,9 @@ const Compare = (() => {
       }
       if (profiles.length < 2) throw new Error(L('No se pudieron cargar los datos de los otros logs (puede ser un límite temporal de Warcraft Logs). Espera un momento, pulsa Cargar logs y vuelve a comparar.', 'Could not load the data of the other logs (this may be a temporary Warcraft Logs limit). Wait a moment, press Load logs and compare again.'));
       const [M, ...O] = profiles;
-      const warns = failed.map((n) => L(`No se pudieron cargar los datos de ${esc(n)}: no se incluye en la comparación.`, `Could not load the data of ${esc(n)}: it is not included in the comparison.`));
-      for (const p of O) if (p.spec !== M.spec || p.cls !== M.cls) warns.push(L(`${esc(p.label)} (${esc(p.name)}) juega otra especialización: sus habilidades no son comparables con las tuyas.`, `${esc(p.label)} (${esc(p.name)}) plays a different spec: their abilities are not comparable with yours.`));
-      for (const p of O) if (p.encounterID !== M.encounterID) warns.push(L(`${esc(p.label)} es de otro boss: los tiempos no se pueden comparar.`, `${esc(p.label)} is from another boss: timings are not comparable.`));
+      const warns = failed.map((n) => L(`No se pudieron cargar los datos de ${esc(n)}: no se incluye en la comparación.`, `Could not load the data of ${esc(n)}: it is not included in the comparison.`, `Die Daten von ${esc(n)} konnten nicht geladen werden: Sie werden nicht in den Vergleich einbezogen.`, `Impossible de charger les données de ${esc(n)} : elles ne sont pas incluses dans la comparaison.`));
+      for (const p of O) if (p.spec !== M.spec || p.cls !== M.cls) warns.push(L(`${esc(p.label)} (${esc(p.name)}) juega otra especialización: sus habilidades no son comparables con las tuyas.`, `${esc(p.label)} (${esc(p.name)}) plays a different spec: their abilities are not comparable with yours.`, `${esc(p.label)} (${esc(p.name)}) spielt eine andere Spezialisierung: Die Fähigkeiten sind mit deinen nicht vergleichbar.`, `${esc(p.label)} (${esc(p.name)}) joue une autre spécialisation : ses capacités ne sont pas comparables aux tiennes.`));
+      for (const p of O) if (p.encounterID !== M.encounterID) warns.push(L(`${esc(p.label)} es de otro boss: los tiempos no se pueden comparar.`, `${esc(p.label)} is from another boss: timings are not comparable.`, `${esc(p.label)} stammt von einem anderen Boss: Die Zeiten sind nicht vergleichbar.`, `${esc(p.label)} provient d’un autre boss : les temps ne sont pas comparables.`));
       const a = Analysis.analyze(M, O, { labels: O.map((p) => p.label), whoWord: L('los otros logs', 'the other logs') });
       st.last = a;
       st.warns = warns;

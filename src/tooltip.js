@@ -10,7 +10,6 @@ const SpellTip = (() => {
   let current = null; // elemento bajo el ratón
   let shownId = null;
 
-  const es = () => S.lang === 'es';
   const SCALING = {
     'Attack Power': ['poder de ataque', 'Attack Power'], 'Spell Power': ['poder con hechizos', 'Spell Power'],
     'Weapon Damage': ['daño del arma', 'Weapon Damage'], 'Max Health': ['salud máxima', 'Max Health'],
@@ -51,9 +50,9 @@ const SpellTip = (() => {
     // "[84.7% of Attack Power]" -> "84,7 % del poder de ataque"
     t = t.replace(/\[\s*([\d.,]+)\s*% of ([^\]]+?)\s*\]/g, (_m, n, what) => {
       const num = n.replace(',', '.');
-      const val = Number(num).toLocaleString(es() ? 'es-ES' : 'en-US', { maximumFractionDigits: 1 });
+      const val = Number(num).toLocaleString(langInfo().locale, { maximumFractionDigits: 1 });
       const name = SCALING[what.trim()];
-      return es() ? `${val} % del ${name ? name[0] : what}` : `${val}% of ${what}`;
+      return tr(`${val} % del ${name ? name[0] : what}`, `${val}% of ${what}`, `${val} % von ${what}`, `${val} % de ${what}`);
     });
     // fórmulas sin resolver entre corchetes
     for (let i = 0; i < 6; i++) {
@@ -61,7 +60,7 @@ const SpellTip = (() => {
       if (next === t) break;
       t = next;
     }
-    t = t.replace(/\(\s*([\d.,]+)\s*\*\s*[\d.]+\s*\)/g, '$1').replace(/\[Item Effect\]/g, es() ? 'Efecto de objeto' : 'Item effect')
+    t = t.replace(/\(\s*([\d.,]+)\s*\*\s*[\d.]+\s*\)/g, '$1').replace(/\[Item Effect\]/g, tr('Efecto de objeto', 'Item effect', 'Gegenstandseffekt', 'Effet de l’objet'))
       .replace(/\(\s*\)/g, '').replace(/\[\s*\]/g, '').replace(/[ \t]+/g, ' ').replace(/ ([.,;:)])/g, '$1');
     return t;
   }
@@ -86,24 +85,24 @@ const SpellTip = (() => {
     const m = typeof MechGuide !== 'undefined' ? MechGuide.forSpell(id, name) : null;
     if (!m) return '';
     const c = MechGuide.ringColor(m.type);
-    return `<div class="st-mech" style="--mc:${c}"><b>${es() ? 'Guía de WipeTime' : 'WipeTime guide'} · ${esc(MECH_DATA.types[m.type].label)}</b><p>${esc(m.note)}</p></div>`;
+    return `<div class="st-mech" style="--mc:${c}"><b>${tr('Guía de WipeTime', 'WipeTime guide', 'WipeTime-Leitfaden', 'Guide WipeTime')} · ${esc(MECH_DATA.types[m.type].label)}</b><p>${esc(m.note)}</p></div>`;
   }
 
   function render(id, data, fallbackName, extra) {
     const meta = data.head.map((l) => `<div>${esc(l)}</div>`).join('');
     const descHtml = data.desc.map((l) => (l.startsWith('⟦') ? `<h4>${esc(l.replace(/[⟦⟧]/g, ''))}</h4>` : `<p>${esc(l)}</p>`)).join('');
-    const buffHtml = data.buff?.length ? `<div class="st-buff"><b>${es() ? 'Efecto' : 'Effect'}</b>${data.buff.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : '';
+    const buffHtml = data.buff?.length ? `<div class="st-buff"><b>${tr('Efecto', 'Effect', 'Effekt', 'Effet')}</b>${data.buff.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : '';
     return `<div class="st-head">${data.icon ? `<img src="${abilityIconUrl(data.icon)}" width="40" height="40" alt="">` : ''}
       <div><b class="st-name">${esc(data.name || fallbackName || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div>
       ${meta ? `<div class="st-meta">${meta}</div>` : ''}
-      ${descHtml ? `<div class="st-desc">${descHtml}</div>` : `<div class="st-desc"><p class="muted">${es() ? 'Sin descripción disponible.' : 'No description available.'}</p></div>`}
+      ${descHtml ? `<div class="st-desc">${descHtml}</div>` : `<div class="st-desc"><p class="muted">${tr('Sin descripción disponible.', 'No description available.', 'Keine Beschreibung verfügbar.', 'Aucune description disponible.')}</p></div>`}
       ${buffHtml}${mechBlock(id, data.name || fallbackName)}<div class="st-foot">ID ${id} · Wowhead</div>`;
   }
 
   function load(id) {
     const key = `${S.lang}:${id}`;
     if (!cache.has(key)) {
-      cache.set(key, window.api.spellTip(id, es() ? 'es' : 'en').then((r) => {
+      cache.set(key, window.api.spellTip(id, S.lang).then((r) => {
         if (!r || r.error) throw new Error(r?.error || 'ERR');
         const p = parse(r.tooltip);
         const b = r.buff ? parse(r.buff) : null;
@@ -131,7 +130,7 @@ const SpellTip = (() => {
     shownId = id;
     const name = target.dataset.spellName || '';
     const extra = target.dataset.spellExtra || '';
-    t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${es() ? 'Cargando…' : 'Loading…'}</p></div>`;
+    t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('Cargando…', 'Loading…', 'Lädt…', 'Chargement…')}</p></div>`;
     t.hidden = false;
     place(x, y);
     try {
@@ -140,7 +139,7 @@ const SpellTip = (() => {
       t.innerHTML = render(id, data, name, extra);
     } catch {
       if (shownId !== id || t.hidden) return;
-      t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${es() ? 'No se pudo cargar la descripción.' : 'Could not load the description.'}</p></div><div class="st-foot">ID ${id}</div>`;
+      t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('No se pudo cargar la descripción.', 'Could not load the description.', 'Die Beschreibung konnte nicht geladen werden.', 'Impossible de charger la description.')}</p></div><div class="st-foot">ID ${id}</div>`;
     }
     place(x, y);
   }

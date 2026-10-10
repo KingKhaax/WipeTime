@@ -11,7 +11,8 @@ Programa de Windows para **ver, analizar y comparar logs de World of Warcraft** 
 - **Replay** de la pelea con zoom, buffos y debuffos (solo raids).
 - **Mítica+:** pulls, ruta y comparación con los mejores de tu nivel de llave.
 - **Comparar logs**, con consejos específicos para sanadores (maná) y tanques (mitigación).
-- **Guilds:** ranking de la guild y de sus miembros.
+- **Guilds:** ranking de la guild y de sus miembros; al pulsar uno de tus personajes se despliega su armería (equipo y estadísticas en número y %).
+- **Idiomas:** español, inglés, alemán y francés desde el botón «Idiomas».
 
 ## Cómo usarlo
 

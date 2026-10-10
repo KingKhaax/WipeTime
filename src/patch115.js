@@ -4,7 +4,7 @@
 // Fuentes oficiales: artículo del 29 de septiembre y notas de actualización 12.1.5 (enlaces al final del panel).
 // Los nombres de talentos y hechizos se dejan en inglés (nombre oficial); las descripciones están traducidas.
 const Patch115 = (() => {
-  const L = (es, en) => (S.lang === 'es' ? es : en);
+  const L = tr;
   // Miércoles 14 de octubre de 2026: día del mantenimiento semanal en Europa (en EE. UU. es el martes 13).
   // Blizzard no ha publicado la hora exacta: la cuenta atrás llega a las 00:00 de ese miércoles, hora local.
   const TARGET = new Date(2026, 9, 14, 0, 0, 0);

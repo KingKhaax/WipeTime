@@ -12,7 +12,7 @@ const MechGuide = (() => {
   const DIFF_CODE = { 3: 'N', 4: 'H', 5: 'M' };
   const DIFF_LABEL = { N: ['Normal', 'Normal'], H: ['Heroico', 'Heroic'], M: ['Mítico', 'Mythic'] };
   const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const L = (es, en) => (S.lang === 'es' ? es : en);
+  const L = tr;
   const ringColor = (type) => (type === 'enrage' ? '#e5e7eb' : MECH_DATA.types[type]?.color || '#888');
 
   // estilos de los anillos (uno por tipo, con el color del archivo de datos)

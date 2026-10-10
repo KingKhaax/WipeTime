@@ -243,7 +243,7 @@ const Extras = (() => {
     const compo = [...byClass.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) =>
       `<span class="chip on cls-chip" style="--cc:${classColor(c)}"><img class="cls-ic" src="${classIconUrl(c)}" width="22" height="22" alt="">${esc(className(c))} <b>×${n}</b></span>`).join('');
     const sub = LL(`<b>${list.length}</b> jugadores · ${nRole('tank')} tanques · ${nRole('healer')} sanadores · ${nRole('dps')} DPS · nivel de objeto medio <b>${num(itemLevel || 0, 1)}</b>`,
-      `<b>${list.length}</b> players · ${nRole('tank')} tanks · ${nRole('healer')} healers · ${nRole('dps')} DPS · average item level <b>${num(itemLevel || 0, 1)}</b>`);
+      `<b>${list.length}</b> players · ${nRole('tank')} tanks · ${nRole('healer')} healers · ${nRole('dps')} DPS · average item level <b>${num(itemLevel || 0, 1)}</b>`, `<b>${list.length}</b> Spieler · ${nRole('tank')} Tanks · ${nRole('healer')} Heiler · ${nRole('dps')} DPS · durchschnittliche Gegenstandsstufe <b>${num(itemLevel || 0, 1)}</b>`, `<b>${list.length}</b> joueurs · ${nRole('tank')} tanks · ${nRole('healer')} soigneurs · ${nRole('dps')} DPS · niveau d’objet moyen <b>${num(itemLevel || 0, 1)}</b>`);
 
     const dot = (ok, label, auras) => `<span class="cons ${ok ? 'ok' : 'no'}" ${ok ? `data-spell="${auras[0].guid}"` : ''} title="${ok ? '' : esc(LL('No detectado', 'Not detected'))}">${esc(label)}</span>`;
     const alerts = { flask: [], food: [], rune: [], ench: [] };
@@ -429,7 +429,7 @@ const Extras = (() => {
       // vida media de la banda a partir de las posiciones/vida del replay
       const hpEl = document.getElementById('ch-hp');
       try {
-        const data = await Replay.load(S.fight, (n) => { const e = document.getElementById('ch-hp-v'); if (e) e.textContent = LL(`Descargando… ${n} eventos`, `Downloading… ${n} events`); });
+        const data = await Replay.load(S.fight, (n) => { const e = document.getElementById('ch-hp-v'); if (e) e.textContent = LL(`Descargando… ${n} eventos`, `Downloading… ${n} events`, `Lädt… ${n} Ereignisse`, `Téléchargement… ${n} événements`); });
         if (seq !== S.seq) return;
         const diedAt = new Map();
         for (const d of deaths) diedAt.set(d.targetID, d.timestamp);
@@ -509,7 +509,7 @@ const Extras = (() => {
     const tick = total > 600000 ? 120000 : total > 240000 ? 60000 : 30000;
     const ruler = [];
     for (let ms = 0; ms <= total; ms += tick) ruler.push(`<span style="left:${(ms / total) * 100}%">${clock(ms)}</span>`);
-    let html = headerHTML(f, t('tabs.cooldowns'), LL(`<b>${events.length}</b> usos de defensivos durante el pull. Pasa el ratón por un icono para ver quién lo usó y cuándo.`, `<b>${events.length}</b> defensive uses during the pull. Hover an icon to see who used it and when.`))
+    let html = headerHTML(f, t('tabs.cooldowns'), LL(`<b>${events.length}</b> usos de defensivos durante el pull. Pasa el ratón por un icono para ver quién lo usó y cuándo.`, `<b>${events.length}</b> defensive uses during the pull. Hover an icon to see who used it and when.`, `<b>${events.length}</b> Defensiv-Einsätze während des Pulls. Fahre über ein Symbol, um zu sehen, wer es wann benutzt hat.`, `<b>${events.length}</b> utilisations de défensifs pendant le pull. Survole une icône pour voir qui l’a utilisé et quand.`))
       + `<div class="cd-wrap"><div class="cd-ruler">${ruler.join('')}</div>`;
     if (tkn?.pts.length) {
       const sm = smooth(tkn.pts, 2);
@@ -647,7 +647,7 @@ const Extras = (() => {
         <span class="r muted">${a.hitCount} ${LL('jug.', 'plr')}</span><span class="r">${plain(a.total)}</span>
         <button class="avbtn ${on ? 'on' : ''} ${explicit ? '' : 'auto'}" data-action="avoid" data-id="${a.guid}" title="${esc(explicit ? LL('Marcada por ti. Pulsa para cambiar.', 'Set by you. Click to toggle.') : LL('Sugerencia automática: golpea a pocos jugadores y no sobre todo a tanques. Pulsa para confirmar o cambiar.', 'Automatic guess: hits few players and mostly not tanks. Click to confirm or change.'))}">${on ? LL('Evitable', 'Avoidable') : LL('Inevitable', 'Unavoidable')}${explicit ? '' : ' ?'}</button></div>`;
     }).join('');
-    return headerHTML(f, t('tabs.avoidable'), LL(`<b>${avoid.length}</b> de ${list.length} habilidades enemigas marcadas como evitables`, `<b>${avoid.length}</b> of ${list.length} enemy abilities marked avoidable`))
+    return headerHTML(f, t('tabs.avoidable'), LL(`<b>${avoid.length}</b> de ${list.length} habilidades enemigas marcadas como evitables`, `<b>${avoid.length}</b> of ${list.length} enemy abilities marked avoidable`, `<b>${avoid.length}</b> von ${list.length} gegnerischen Fähigkeiten als vermeidbar markiert`, `<b>${avoid.length}</b> capacités ennemies sur ${list.length} marquées comme évitables`))
       + `<div class="mech-grid"><div><h3 class="sec">${LL('Habilidades enemigas', 'Enemy abilities')}</h3><div class="mtable">${tr}</div></div>
       <div><h3 class="sec">${LL('Quién recibió más daño evitable', 'Who took the most avoidable damage')}</h3>${rows.length ? rankedList(rows, { clickable: false }) : `<div class="empty">${LL('No hay habilidades marcadas como evitables.', 'No abilities are marked avoidable.')}</div>`}</div></div>
       <p class="foot">${LL('WCL no indica qué mecánicas se pueden esquivar. WipeTime sugiere (con "?") las que golpean a pocos jugadores y no sobre todo a tanques; tú decides pulsando el botón y se recuerda para este jefe.', 'WCL does not say which mechanics can be dodged. WipeTime suggests (with "?") abilities that hit few players and not mostly tanks; you decide with the button and it is remembered for this boss.')}</p>`;

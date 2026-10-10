@@ -2,12 +2,12 @@
 
 // Estado de versión: número en la barra superior y en Ajustes > Versión (rojo si estás atrasado, verde si es la última).
 const WCUpdate = (() => {
-  const es = () => S.lang === 'es';
   let res = null; // último resultado de update:check
   let version = '';
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['0.4.1', 'Botón «Idiomas» con español, inglés, alemán y francés (el idioma en uso va resaltado); al compararte con los mejores salen su nombre y reino en lugar de Top 1, 2, 3 (con soporte de caracteres chinos, coreanos y cirílicos) y el ranking se pide siempre en vivo; en tu perfil, al pulsar un personaje se despliega su armería con equipo y estadísticas en número y %; iconos de la barra superior sin el aro interior.', 'New «Languages» button with Spanish, English, German and French (the language in use is highlighted); when you compare with the best, their name and realm replace Top 1, 2, 3 (with Chinese, Korean and Cyrillic character support) and the ranking is always fetched live; in your profile, clicking a character opens its armory with gear and stats as numbers and %; top-bar icons without the inner ring.'],
     ['0.4.0', 'Logo oficial de Battle.net en Acerca de.', 'Official Battle.net logo in About.'],
     ['0.3.9', 'Carga mucho más rápida: caché en disco de los datos de Warcraft Logs (reabrir un log o un replay es casi instantáneo), eventos del replay y de los análisis descargados en paralelo, plantillas de guild precargadas y cachés de guild de 24 h. Botón para vaciar la caché en Ajustes → Datos. Contacto de Discord y del icono de Battle.net en Acerca de.', 'Much faster loading: on-disk cache of Warcraft Logs data (reopening a log or replay is almost instant), replay and analysis events downloaded in parallel, preloaded guild rosters and 24 h guild caches. Button to clear the cache in Settings → Data. Discord and Battle.net contact in About.'],
     ['0.3.8', 'El creador del instalador pasa a ser sr.kitkat; Acerca de con Battle.net (KitKat#21202) y Discord más abajo; quitado el campo Mi personaje de Ajustes.', 'Installer publisher is now sr.kitkat; About with Battle.net (KitKat#21202) and Discord lower; removed the My character field from Settings.'],
@@ -38,11 +38,11 @@ const WCUpdate = (() => {
   const canInstall = () => !!(res && res.outdated && res.canInstall);
 
   function stateHTML() {
-    if (!res) return `<span class="muted">${es() ? 'Aún no se ha comprobado.' : 'Not checked yet.'}</span>`;
-    if (res.error === 'NO_SOURCE') return `<span class="muted">${es() ? 'Configura abajo la fuente de actualizaciones para poder comprobar la última versión.' : 'Set the update source below to check for the latest version.'}</span>`;
-    if (res.error) return `<span class="bad">${es() ? 'No se pudo comprobar' : 'Could not check'}: ${esc(res.error)}</span>`;
-    if (res.outdated) return `<span class="bad">${es() ? `Versión atrasada · la última es v${esc(res.latest)}` : `Outdated · latest is v${esc(res.latest)}`}</span>${res.notes ? `<pre class="ver-notes">${esc(res.notes.slice(0, 600))}</pre>` : ''}`;
-    return `<span class="ok">${es() ? 'Tienes la versión más reciente' : 'You have the latest version'}</span>`;
+    if (!res) return `<span class="muted">${tr('Aún no se ha comprobado.', 'Not checked yet.', 'Noch nicht geprüft.', 'Pas encore vérifié.')}</span>`;
+    if (res.error === 'NO_SOURCE') return `<span class="muted">${tr('Configura abajo la fuente de actualizaciones para poder comprobar la última versión.', 'Set the update source below to check for the latest version.', 'Lege unten die Update-Quelle fest, um die neueste Version zu prüfen.', 'Configure ci-dessous la source des mises à jour pour vérifier la dernière version.')}</span>`;
+    if (res.error) return `<span class="bad">${tr('No se pudo comprobar', 'Could not check', 'Prüfung nicht möglich', 'Vérification impossible')}: ${esc(res.error)}</span>`;
+    if (res.outdated) return `<span class="bad">${tr(`Versión atrasada · la última es v${esc(res.latest)}`, `Outdated · latest is v${esc(res.latest)}`, `Veraltet · die neueste ist v${esc(res.latest)}`, `Version obsolète · la dernière est v${esc(res.latest)}`)}</span>${res.notes ? `<pre class="ver-notes">${esc(res.notes.slice(0, 600))}</pre>` : ''}`;
+    return `<span class="ok">${tr('Tienes la versión más reciente', 'You have the latest version', 'Du hast die neueste Version', 'Tu as la dernière version')}</span>`;
   }
 
   function paintBadge() {
@@ -50,7 +50,7 @@ const WCUpdate = (() => {
     if (!b) return;
     b.textContent = `v${version}`;
     b.className = `ver-badge ${cls()}`;
-    b.title = !res ? '' : res.error ? '' : res.outdated ? (es() ? `Hay una versión nueva: v${res.latest}` : `New version available: v${res.latest}`) : (es() ? 'Última versión' : 'Latest version');
+    b.title = !res ? '' : res.error ? '' : res.outdated ? (tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`, `Neue Version verfügbar: v${res.latest}`, `Nouvelle version disponible : v${res.latest}`)) : (tr('Última versión', 'Latest version', 'Neueste Version', 'Dernière version'));
   }
 
   async function check(manual) {
@@ -58,20 +58,20 @@ const WCUpdate = (() => {
     const src = WCSettings.get('updateSource');
     res = await window.api.updateCheck(src);
     paintBadge();
-    if (manual && res.outdated) toast(es() ? `Hay una versión nueva: v${res.latest}` : `New version available: v${res.latest}`);
+    if (manual && res.outdated) toast(tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`, `Neue Version verfügbar: v${res.latest}`, `Nouvelle version disponible : v${res.latest}`));
     return res;
   }
 
   async function install() {
     const btn = document.getElementById('doUpdate');
     const prog = document.getElementById('verProg');
-    if (btn) { btn.disabled = true; btn.textContent = es() ? 'Descargando…' : 'Downloading…'; }
+    if (btn) { btn.disabled = true; btn.textContent = tr('Descargando…', 'Downloading…', 'Lädt herunter…', 'Téléchargement…'); }
     if (prog) prog.hidden = false;
     window.api.onUpdateProgress?.((f) => { const i = document.querySelector('#verProg i'); if (i) i.style.width = `${Math.round(f * 100)}%`; });
     const r = await window.api.updateInstall();
     if (r.error) {
-      toast((es() ? 'Error al actualizar: ' : 'Update failed: ') + r.error);
-      if (btn) { btn.disabled = false; btn.textContent = es() ? 'Actualizar a la versión más reciente' : 'Update to the latest version'; }
+      toast((tr('Error al actualizar: ', 'Update failed: ', 'Update fehlgeschlagen: ', 'Échec de la mise à jour : ')) + r.error);
+      if (btn) { btn.disabled = false; btn.textContent = tr('Actualizar a la versión más reciente', 'Update to the latest version', 'Auf die neueste Version aktualisieren', 'Mettre à jour vers la dernière version'); }
     }
   }
 
