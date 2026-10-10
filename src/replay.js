@@ -45,14 +45,15 @@ const Replay = (() => {
       const dmg = new Map();
       let count = 0;
 
-      const stream = async (type, isDmg) => {
-        let start = raw.startTime;
+      const stream = (type, isDmg) => Promise.all(timeChunks(raw.startTime, raw.endTime, 4, 45000).map(({ s: s0, e: e0, last }) => streamChunk(type, isDmg, s0, e0, last)));
+      const streamChunk = async (type, isDmg, s0, e0, last) => {
+        let start = s0;
         for (let page = 0; page < 60; page++) {
           const d = await gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){
             events(fightIDs:$f,startTime:$s,endTime:$e,dataType:${type},limit:10000,includeResources:true){data nextPageTimestamp}}}}`,
-          { code: S.code, f: [raw.id], s: start, e: raw.endTime });
+          { code: S.code, f: [raw.id], s: start, e: e0 });
           const ev = d.reportData.report.events;
-          const data = ev?.data || [];
+          const data = (ev?.data || []).filter((x) => last || x.timestamp < e0);
           for (const e of data) {
             if (e.x != null) {
               const id = e.resourceActor === 1 ? e.sourceID : e.targetID;

@@ -3,7 +3,7 @@
 // Guilds: inicio de sesión con Blizzard (o búsqueda manual), logs recientes de la guild y ranking de parses de sus miembros.
 const Guilds = (() => {
   const CLASS_BY_ID = { 1: 'Warrior', 2: 'Paladin', 3: 'Hunter', 4: 'Rogue', 5: 'Priest', 6: 'DeathKnight', 7: 'Shaman', 8: 'Mage', 9: 'Warlock', 10: 'Monk', 11: 'Druid', 12: 'DemonHunter', 13: 'Evoker' };
-  const RANK_TTL = 6 * 3600 * 1000;
+  const RANK_TTL = 24 * 3600 * 1000;
   const MAX_MEMBERS = 80;
   const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
 
@@ -38,7 +38,7 @@ const Guilds = (() => {
     render();
     const r = await window.api.bnetGuilds(S.lang);
     st.busy = '';
-    if (r.error) { st.mineErr = friendly(r.error); st.mine = null; if (r.error === 'NOT_LOGGED') st.status = await window.api.bnetStatus(); } else { st.mine = r.guilds; st.chars = r.chars || null; st.mineErr = ''; }
+    if (r.error) { st.mineErr = friendly(r.error); st.mine = null; if (r.error === 'NOT_LOGGED') st.status = await window.api.bnetStatus(); } else { st.mine = r.guilds; st.chars = r.chars || null; st.mineErr = ''; (st.mine || []).slice(0, 4).forEach((g, i) => setTimeout(() => rosterOf(g).catch(() => {}), 1500 + i * 1500)); }
     if (S.guildOpen) render();
   }
 

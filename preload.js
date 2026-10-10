@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
-  query: (gql, variables, lang) => ipcRenderer.invoke('wcl:query', gql, variables, lang),
+  query: (gql, variables, lang, noCache) => ipcRenderer.invoke('wcl:query', gql, variables, lang, noCache),
+  clearQueryCache: () => ipcRenderer.invoke('qcache:clear'),
   getConfig: () => ipcRenderer.invoke('config:get'),
   setConfig: (cfg) => ipcRenderer.invoke('config:set', cfg),
   openExternal: (url) => ipcRenderer.invoke('open:external', url),

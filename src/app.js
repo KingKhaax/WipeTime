@@ -118,7 +118,7 @@ document.addEventListener('error', (e) => {
 
 // ============================================================ API
 async function gql(query, variables) {
-  const res = await window.api.query(query, variables, S.lang);
+  const res = await window.api.query(query, variables, S.lang, S.liveReport);
   if (res.error) throw new Error(res.error);
   if (!res.data && res.errors) throw new Error(res.errors.map((e) => e.message).join(' · '));
   if (res.errors) console.warn('GraphQL', res.errors);
@@ -134,19 +134,29 @@ function cached(key, fn) {
 
 const entriesOf = (tbl) => tbl?.data?.entries || [];
 
+// Divide un rango de tiempo en trozos para pedirlos en paralelo (la API pagina cada trozo por separado)
+function timeChunks(start, end, maxChunks = 4, minMs = 60000) {
+  const n = Math.max(1, Math.min(maxChunks, Math.floor((end - start) / minMs)));
+  const step = (end - start) / n;
+  return Array.from({ length: n }, (_, i) => ({ s: Math.floor(start + step * i), e: i === n - 1 ? end : Math.floor(start + step * (i + 1)), last: i === n - 1 }));
+}
+
 async function allEvents(f, dataType, extra = '') {
-  const out = [];
-  let start = f.startTime;
-  for (let page = 0; page < 40; page++) {
-    const d = await gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){
-      events(fightIDs:$f,startTime:$s,endTime:$e,dataType:${dataType},limit:10000${extra}){data nextPageTimestamp}}}}`,
-    { code: S.code, f: [f.id], s: start, e: f.endTime });
-    const ev = d.reportData.report.events;
-    out.push(...(ev?.data || []));
-    if (!ev?.nextPageTimestamp || ev.nextPageTimestamp <= start) break;
-    start = ev.nextPageTimestamp;
-  }
-  return out;
+  const run = async ({ s: s0, e: e0, last }) => {
+    const out = [];
+    let start = s0;
+    for (let page = 0; page < 40; page++) {
+      const d = await gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){
+        events(fightIDs:$f,startTime:$s,endTime:$e,dataType:${dataType},limit:10000${extra}){data nextPageTimestamp}}}}`,
+      { code: S.code, f: [f.id], s: start, e: e0 });
+      const ev = d.reportData.report.events;
+      for (const x of ev?.data || []) if (last || x.timestamp < e0) out.push(x);
+      if (!ev?.nextPageTimestamp || ev.nextPageTimestamp <= start) break;
+      start = ev.nextPageTimestamp;
+    }
+    return out;
+  };
+  return (await Promise.all(timeChunks(f.startTime, f.endTime).map(run))).flat();
 }
 
 // ---- Ventana de tiempo: pelea completa, una fase o un rango elegido (p. ej. 1:00–1:10).
@@ -552,6 +562,7 @@ async function loadReport(input, opts = {}) {
     if (!r) throw new Error(t('notFound'));
     S.code = code;
     S.report = r;
+    S.liveReport = Date.now() - (r.endTime || 0) < 3 * 3600 * 1000; // log reciente: puede seguir creciendo, no se cachea
     S.actors = new Map((r.masterData?.actors || []).map((a) => [a.id, a]));
     S.abilities = new Map((r.masterData?.abilities || []).map((a) => [a.gameID, a]));
     S.phases = new Map((r.phases || []).map((p) => [p.encounterID, new Map((p.phases || []).map((x) => [x.id, x]))]));

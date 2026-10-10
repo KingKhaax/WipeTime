@@ -135,8 +135,60 @@ async function query(gql, variables, lang) {
   throw lastError;
 }
 
-ipcMain.handle('wcl:query', async (_e, gql, variables, lang) => {
-  try { return await query(gql, variables, lang); } catch (e) { return { error: e.message }; }
+// Caché en disco (comprimida) de las respuestas de Warcraft Logs: reabrir un log, una pestaña o un replay no vuelve a pedir nada.
+// Duración: 7 días para tablas/eventos/gráficas de logs terminados, 12 h para rankings, 5 min para la cabecera del reporte
+// y nada si la app marca el log como "en directo" (terminó hace menos de 3 h).
+const qcacheDir = () => path.join(app.getPath('userData'), 'qcache');
+const QCACHE_MAX = 500 * 1024 * 1024;
+let qcacheWrites = 0;
+function qcacheTtl(gql) {
+  if (/rateLimitData/.test(gql)) return 0;
+  if (/fights\s*\{\s*id name/.test(gql)) return 5 * 60 * 1000;
+  if (/rankings|zoneRanking|guildData|characterData/.test(gql)) return 12 * 3600 * 1000;
+  return 7 * 24 * 3600 * 1000;
+}
+function qcachePrune() {
+  try {
+    const files = fs.readdirSync(qcacheDir()).map((f) => { const p = path.join(qcacheDir(), f); const s = fs.statSync(p); return { p, t: s.mtimeMs, size: s.size }; });
+    let total = 0;
+    for (const f of files) { if (Date.now() - f.t > 7 * 24 * 3600 * 1000) fs.rmSync(f.p, { force: true }); else total += f.size; }
+    if (total > QCACHE_MAX) {
+      for (const f of files.sort((a, b) => a.t - b.t)) { if (!fs.existsSync(f.p)) continue; fs.rmSync(f.p, { force: true }); total -= f.size; if (total <= QCACHE_MAX * 0.8) break; }
+    }
+  } catch { /* sin caché */ }
+}
+const inflightQ = new Map();
+ipcMain.handle('wcl:query', async (_e, gql, variables, lang, noCache) => {
+  try {
+    const ttl = noCache ? 0 : qcacheTtl(gql);
+    if (!ttl) return await query(gql, variables, lang);
+    const key = require('crypto').createHash('sha1').update(JSON.stringify([gql, variables, lang === 'es' ? 'es' : 'en', useWclProxy() ? 'p' : 'd'])).digest('hex');
+    const file = path.join(qcacheDir(), key + '.json.gz');
+    try {
+      const st = fs.statSync(file);
+      if (Date.now() - st.mtimeMs < ttl) return JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8'));
+    } catch { /* no está en caché */ }
+    if (!inflightQ.has(key)) {
+      inflightQ.set(key, query(gql, variables, lang).then((res) => {
+        if (res && res.data && !res.errors) {
+          try {
+            fs.mkdirSync(qcacheDir(), { recursive: true });
+            fs.writeFileSync(file, zlib.gzipSync(Buffer.from(JSON.stringify(res)), { level: 3 }));
+            if (++qcacheWrites % 150 === 0) qcachePrune();
+          } catch { /* disco lleno o sin permisos */ }
+        }
+        return res;
+      }).finally(() => inflightQ.delete(key)));
+    }
+    return await inflightQ.get(key);
+  } catch (e) { return { error: e.message }; }
+});
+app.whenReady().then(() => setTimeout(qcachePrune, 15000));
+
+ipcMain.handle('qcache:clear', () => {
+  let n = 0;
+  try { for (const f of fs.readdirSync(qcacheDir())) { fs.rmSync(path.join(qcacheDir(), f), { force: true }); n++; } } catch { /* vacío */ }
+  return n;
 });
 
 ipcMain.handle('config:get', () => {
