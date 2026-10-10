@@ -4,8 +4,6 @@
 async function openSettings(tab) {
   const cfg = await window.api.getConfig();
   const info = (await window.api.appInfo?.()) || {};
-  const bn = (await window.api.bnetStatus?.()) || {};
-  const adv = (bundled, inner, msg) => (bundled ? `<div class="set-ok">✓ ${msg}</div><details class="set-adv"><summary>${LL('Usar mis propias credenciales (opcional)', 'Use my own credentials (optional)')}</summary>${inner}</details>` : inner);
   const dlg = $('#settings');
   dlg.classList.add('wide', 'settings-dlg');
   const cur = tab || dlg.dataset.tab || 'look';
@@ -49,21 +47,6 @@ async function openSettings(tab) {
         <button type="button" class="btn ghost" data-set-act="reset-all">${LL('Restablecer todos los ajustes', 'Reset all settings')}</button>
       </div>
       <p class="foot">${LL('Los mapas y las imágenes que hayas cargado tú no se borran con estos botones.', 'Maps and images you loaded yourself are not removed by these buttons.')}</p>`,
-    api: `
-      <p class="muted">${t('howTo')}</p>
-      <button type="button" class="btn ghost" data-action="clients">${t('openClients')} ↗</button>
-      <label class="set-field">${t('clientId')}<input name="clientId" value="${esc(cfg.clientId)}" spellcheck="false" autocomplete="off"></label>
-      <label class="set-field">${t('clientSecret')}<input name="clientSecret" type="password" placeholder="${cfg.hasSecret ? esc(t('secretSaved')) : ''}" autocomplete="off"></label>
-      <div class="test-res muted" id="testRes"></div>
-      <div class="set-actions"><button type="button" class="btn" data-action="test">${t('test')}</button><button type="submit" class="btn primary">${t('save')}</button></div>`,
-    blizzard: adv(bn.bundled && !bn.clientId, `
-      <p class="muted">${LL('Crea un cliente en develop.battle.net (Client ID y Secret) para iniciar sesión y detectar tus guilds. Añade esta dirección en "Redirect URLs" del cliente:', 'Create a client at develop.battle.net (Client ID and Secret) to sign in and detect your guilds. Add this address under "Redirect URLs" of the client:')}</p>
-      <div class="gd-redirect"><code>${esc(bn.redirect || 'http://localhost:8721/callback')}</code></div>
-      <label class="set-field">Client ID<input id="bnId" value="${esc(bn.clientId || '')}" spellcheck="false" autocomplete="off"></label>
-      <label class="set-field">Client Secret<input id="bnSecret" type="password" placeholder="${bn.hasSecret ? esc(t('secretSaved')) : ''}" autocomplete="off"></label>
-      ${row(LL('Región', 'Region'), `<div class="segs">${['eu', 'us', 'kr', 'tw'].map((r) => `<button type="button" data-set-act="bnet-region" data-v="${r}" class="${bn.region === r ? 'on' : ''}">${r.toUpperCase()}</button>`).join('')}</div>`)}
-      <div class="set-actions"><button type="button" class="btn primary" data-set-act="bnet-save">${t('save')}</button></div>
-      <p class="muted">${bn.loggedIn ? `✓ ${LL('Sesión iniciada', 'Signed in')}${bn.battletag ? ' · ' + esc(bn.battletag) : ''}` : LL('Sin sesión: inicia sesión desde el botón Guilds de la barra superior.', 'Not signed in: sign in from the Guilds button in the top bar.')}</p>`, LL('El programa ya incluye la conexión con Blizzard: solo tienes que iniciar sesión desde el botón Guilds.', 'The program already includes the Blizzard connection: just sign in from the Guilds button.')),
     version: `
       <div class="ver-card" id="verCard">
         <div class="ver-now"><small class="muted">${LL('Tu versión', 'Your version')}</small><b class="ver-num ${WCUpdate.cls()}">v${esc(info.version || '?')}</b></div>
@@ -86,7 +69,7 @@ async function openSettings(tab) {
           <p class="about-dc" style="margin-top:30px"><svg viewBox="0 0 127.14 96.36" width="26" height="20" aria-hidden="true"><path fill="#5865F2" d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0 105.89 105.89 0 0 0 19.39 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg> <b>sr.kitkat</b> <span class="muted">${LL('dudas y preguntas', 'questions')}</span></p>
           <p class="about-dc"><img src="battlenet.png" width="26" height="26" alt="" style="border-radius:6px"> <b>KitKat#21202</b> <span class="muted">${LL('dudas y preguntas', 'questions')}</span></p></div></div>`,
   };
-  const tabs = [['look', LL('Apariencia', 'Appearance')], ['replay', 'Replay'], ['data', LL('Datos', 'Data')], ['api', LL('Cuenta de Warcraft Logs', 'Warcraft Logs account')], ['blizzard', 'Blizzard'], ['version', LL('Versión', 'Version')], ['about', LL('Acerca de', 'About')]];
+  const tabs = [['look', LL('Apariencia', 'Appearance')], ['replay', 'Replay'], ['data', LL('Datos', 'Data')], ['version', LL('Versión', 'Version')], ['about', LL('Acerca de', 'About')]];
   dlg.innerHTML = `<form method="dialog" id="settingsForm" class="set-wrap">
     <div class="set-nav"><h2>${t('settings')}</h2>${tabs.map(([k, l]) => `<button type="button" class="set-tab ${k === cur ? 'on' : ''}" data-set-tab="${k}">${l}</button>`).join('')}
       <span class="grow"></span><button type="button" class="btn ghost" data-action="close">${LL('Cerrar', 'Close')}</button></div>
@@ -119,11 +102,6 @@ document.addEventListener('click', async (ev) => {
   const act = el.dataset.setAct;
   if (act === 'zoom-reset') { WCSettings.set('zoom', 100); openSettings(); }
   else if (act === 'clear-icons') { const n = await window.api.clearIcons(); toastSet(LL(`Caché de iconos borrada (${n} archivos)`, `Icon cache cleared (${n} files)`, `Symbol-Cache geleert (${n} Dateien)`, `Cache des icônes vidé (${n} fichiers)`)); }
-  else if (act === 'bnet-save') {
-    await window.api.bnetSet({ clientId: $('#bnId').value, clientSecret: $('#bnSecret').value });
-    toastSet(LL('Datos de Blizzard guardados', 'Blizzard settings saved'));
-    openSettings('blizzard');
-  } else if (act === 'bnet-region') { await window.api.bnetSet({ region: el.dataset.v }); openSettings('blizzard'); }
   else if (act === 'check-update') { await WCUpdate.check(true); openSettings('version'); }
   else if (act === 'do-update') WCUpdate.install();
   else if (act === 'clear-spells') { const n = await window.api.clearSpells(); toastSet(LL(`Descripciones borradas (${n})`, `Descriptions cleared (${n})`, `Beschreibungen gelöscht (${n})`, `Descriptions effacées (${n})`)); }

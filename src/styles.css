@@ -1387,3 +1387,67 @@ img.role-ic { border-radius: 7px; }
 
 /* Iconos de la barra superior: sin el aro ni el fondo negro, para que no quede un marco dentro del botón */
 .home-btn img.wi, .top-actions img.wi, #settingsBtn img.wi, .xmenu button img.wi { background: transparent; box-shadow: none; border-radius: 3px; }
+
+/* Armería: modelo del personaje en el centro y armas debajo */
+.arm-gear { grid-template-columns: minmax(0, 1fr) minmax(190px, 250px) minmax(0, 1fr); align-items: stretch; }
+.arm-weapons { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 14px; }
+.arm-model, .pf-model { position: relative; display: flex; align-items: flex-end; justify-content: center; min-height: 360px; border-radius: 12px; overflow: hidden; perspective: 700px;
+  background: radial-gradient(ellipse at 50% 85%, rgba(47, 183, 192, .35), transparent 55%), radial-gradient(ellipse at 50% 20%, rgba(91, 141, 239, .18), transparent 60%), linear-gradient(180deg, #0b1424, #070c16); border: 1px solid var(--line); }
+.arm-model::after, .pf-model::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 10px; height: 18px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, .6), transparent); }
+.arm-model img, .pf-model img { position: relative; z-index: 1; max-width: 100%; max-height: 100%; object-fit: contain; transform: rotateY(var(--ry, 0deg)) rotateX(var(--rx, 0deg)); transition: transform .12s ease-out; filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .55)); user-select: none; }
+.arm-nomodel { align-self: center; color: var(--muted); font-size: 12px; }
+@media (max-width: 1100px) { .arm-gear { grid-template-columns: 1fr 1fr; } .arm-model { grid-column: 1 / -1; order: -1; } }
+
+/* Buscar personaje (portada) y ficha de personaje */
+.pf-find { margin: 18px 0 6px; }
+.pf-form { margin-top: 8px; }
+.pf-rec { margin-top: 10px; }
+.pf-back { margin-bottom: 8px; }
+.pf-head { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); margin-bottom: 14px; }
+.pf-ava { position: relative; flex: none; width: 76px; height: 76px; border-radius: 8px; overflow: hidden; background: #05080f; border: 2px solid #3a4a6e; }
+.pf-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pf-ava b { position: absolute; left: 0; bottom: 0; min-width: 26px; padding: 1px 5px; font-size: 15px; font-weight: 800; background: rgba(0, 0, 0, .78); color: #fff; border-top-right-radius: 8px; text-align: center; }
+.pf-id h1 { margin: 0; font-family: var(--display); font-size: 30px; line-height: 1.05; }
+.pf-sub { margin-top: 2px; }
+.pf-cls { font-weight: 600; margin-top: 2px; }
+.pf-tiles { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; min-width: 260px; }
+.pf-tile { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); overflow: hidden; }
+.pf-tile h4 { margin: 0; padding: 5px 12px; font-size: 12.5px; text-align: center; background: color-mix(in srgb, var(--accent) 14%, transparent); border-bottom: 1px solid var(--line); }
+.pf-tile-b { display: flex; gap: 16px; align-items: center; padding: 8px 14px; }
+.pf-tile-b span { display: flex; flex-direction: column; align-items: center; }
+.pf-tile-b small { color: var(--muted); font-size: 11px; }
+.pf-tile-b b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.pf-prog { font-size: 22px; font-weight: 800; }
+.pf-prog small { font-size: 13px; font-weight: 600; }
+.pf-upd { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; margin-left: auto; font-size: 12.5px; }
+.pf-upd b.bad { color: #ff7a7a; }
+.pf-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 14px; align-items: start; }
+.pf-left, .pf-right { min-width: 0; }
+.pf-ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.pf-ctl label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.pf-ctl select { max-width: 280px; }
+.pf-sum { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 16px; margin-bottom: 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); flex-wrap: wrap; }
+.pf-sum > div:first-child { display: flex; flex-direction: column; }
+.pf-sum small { color: var(--muted); }
+.pf-sum > div:first-child b { font-size: 38px; line-height: 1; font-variant-numeric: tabular-nums; }
+.pf-sum-r { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.pf-tbl-w { overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); }
+.pf-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
+.pf-table th { padding: 6px 8px; font-weight: 600; color: var(--muted); background: var(--panel-2); border: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.pf-table td { padding: 6px 8px; border: 1px solid var(--line); text-align: center; font-variant-numeric: tabular-nums; }
+.pf-table td.n { text-align: right; }
+.pf-table td.pf-boss { text-align: left; font-weight: 600; color: #8fb7ff; }
+.pf-table tr.none td { color: var(--muted); }
+.pf-table tr.none td.pf-boss { color: var(--muted); font-weight: 500; }
+.pf-gear { border-radius: 12px; border: 1px solid var(--line); background: var(--panel); overflow: hidden; margin-bottom: 12px; }
+.pf-gear-h { display: flex; justify-content: space-between; padding: 8px 12px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: 13px; }
+.pf-it { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--line); min-width: 0; }
+.pf-it:last-child { border-bottom: 0; }
+.pf-it .arm-ic { width: 28px; height: 28px; }
+.pf-itx { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.pf-itx b { color: var(--q, var(--text)); font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-itx i { font-style: normal; font-size: 11px; color: #5fd38d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-itx i.gem { color: #6fb7ff; }
+.pf-it em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pf-model { min-height: 420px; }
+@media (max-width: 1000px) { .pf-grid { grid-template-columns: 1fr; } .pf-upd { align-items: flex-start; margin-left: 0; } }

@@ -12,6 +12,7 @@ Programa de Windows para **ver, analizar y comparar logs de World of Warcraft** 
 - **Mítica+:** pulls, ruta y comparación con los mejores de tu nivel de llave.
 - **Comparar logs**, con consejos específicos para sanadores (maná) y tanques (mitigación).
 - **Guilds:** ranking de la guild y de sus miembros; al pulsar uno de tus personajes se despliega su armería (equipo y estadísticas en número y %).
+- **Buscar personaje:** ficha al estilo WoWProgress con posiciones, tabla por jefe, equipo y modelo en vivo.
 - **Idiomas:** español, inglés, alemán y francés desde el botón «Idiomas».
 
 ## Cómo usarlo

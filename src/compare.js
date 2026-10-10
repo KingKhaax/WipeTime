@@ -32,6 +32,7 @@ const Compare = (() => {
     S.home = true;
     S.cmpOpen = true;
     S.guildOpen = false;
+    S.profileOpen = false;
     sidebar.hidden = true;
     if (!st) st = { rows: [newRow()], main: newRow(), results: null, win: [0, 30000], last: null, hintName: '', dirty: true };
     if (S.code && (!st.main.url || fromPlayerId != null)) {

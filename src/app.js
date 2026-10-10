@@ -544,12 +544,13 @@ function friendlyError(e) {
 async function loadReport(input, opts = {}) {
   const { code, fight } = parseInput(input);
   if (!code) return toast(t('badUrl'));
-  if (!S.hasCreds) return openSettings();
+  if (!S.hasCreds) return toast(t('noCreds'));
   if (typeof Replay !== 'undefined') Replay.stop();
   const seq = ++S.seq;
   S.home = false;
   S.cmpOpen = false;
   S.guildOpen = false;
+  S.profileOpen = false;
   S.cache.clear();
   if (!opts.keepView) { S.player = null; S.tab = 'damage'; S.enemySel = null; S.buffsPlayer = null; S.range = null; S.combine = []; S.combineMode = false; }
   main.innerHTML = loadingHTML();
@@ -1348,7 +1349,10 @@ function renderWelcome() {
         </div>
       </div>
     </section>
-    ${S.hasCreds ? '' : `<div class="notice">${t('noCreds')} <button class="btn primary" data-action="settings">${t('configure')}</button></div>`}
+    ${S.hasCreds ? '' : `<div class="notice">${t('noCreds')}</div>`}
+    <section class="pf-find"><h3 class="sec">${LL('Buscar personaje', 'Find a character', 'Charakter suchen', 'Chercher un personnage')}</h3>
+      <p class="muted">${LL('Mira sus posiciones (mundial, región y reino), sus logs por jefe, su equipo y su modelo, todo en vivo.', 'See their rankings (world, region and realm), logs per boss, gear and model, all live.', 'Sieh Platzierungen (Welt, Region und Realm), Logs pro Boss, Ausrüstung und Modell, alles live.', 'Consulte ses classements (monde, région et royaume), ses logs par boss, son équipement et son modèle, en direct.')}</p>
+      ${typeof Profile !== 'undefined' ? Profile.formHTML() : ''}</section>
     <div class="feats">${feats.map(([h, p, icon]) => `<div class="feat">
       <span class="feat-ic"><img src="wcicon://i/${icon}" width="48" height="48" alt=""></span>
       <div><b>${t(h)}</b><span>${t(p)}</span></div></div>`).join('')}</div>
@@ -1428,7 +1432,7 @@ async function loadExpansion() {
 }
 
 const loadingHTML = () => `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
-const errorHTML = (msg) => `<div class="error"><b>${t('error')}</b><p>${esc(msg)}</p>${!S.hasCreds || /credencial|credential/i.test(msg) ? `<button class="btn primary" data-action="settings">${t('configure')}</button>` : ''}</div>`;
+const errorHTML = (msg) => `<div class="error"><b>${t('error')}</b><p>${esc(msg)}</p></div>`;
 
 let toastTimer;
 function toast(msg) {
@@ -1437,12 +1441,6 @@ function toast(msg) {
   el.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
-}
-
-async function saveSettings(form) {
-  const fd = new FormData(form);
-  await window.api.setConfig({ clientId: fd.get('clientId'), clientSecret: fd.get('clientSecret') });
-  await refreshConfig();
 }
 
 async function refreshConfig() {
@@ -1628,25 +1626,9 @@ document.addEventListener('click', async (ev) => {
     case 'settings':
       openSettings();
       break;
-    case 'clients':
-      window.api.openExternal('https://www.warcraftlogs.com/api/clients/');
-      break;
     case 'close':
       $('#settings').close();
       break;
-    case 'test': {
-      const form = $('#settingsForm');
-      const res = $('#testRes');
-      await saveSettings(form);
-      res.textContent = t('loading');
-      try {
-        const d = await gql('{rateLimitData{limitPerHour pointsSpentThisHour}}');
-        res.textContent = t('testOk', { spent: num(d.rateLimitData.pointsSpentThisHour, 0), limit: d.rateLimitData.limitPerHour });
-      } catch (e) {
-        res.textContent = friendlyError(e);
-      }
-      break;
-    }
   }
 });
 
@@ -1668,9 +1650,7 @@ document.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     loadReport($('#heroInput').value);
   } else if (ev.target.id === 'settingsForm') {
-    await saveSettings(ev.target);
-    toast(t('saved'));
-    if (S.report && !S.home) render(); else { renderWelcome(); loadExpansion().then(() => { if (!S.report) renderWelcome(); }); }
+    ev.preventDefault(); // los ajustes se guardan al momento; ya no hay credenciales que enviar
   }
 });
 
@@ -1682,6 +1662,7 @@ function goHome() {
   S.home = true;
   S.cmpOpen = false;
   S.guildOpen = false;
+  S.profileOpen = false;
   $('#whoami').open && $('#whoami').close();
   renderWelcome();
   main.scrollTop = 0;
@@ -1699,7 +1680,7 @@ document.addEventListener('paste', (ev) => {
   const item = [...(ev.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
   if (item) { ev.preventDefault(); savePatchArt(item.getAsFile()); }
 });
-$('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; Compare.open(); });
+$('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; S.profileOpen = false; Compare.open(); });
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);
 
@@ -1730,7 +1711,8 @@ function setLang(code) {
   lsSet('lang', S.lang);
   applyStaticText();
   // Recarga para obtener nombres de habilidades y encuentros en el nuevo idioma
-  if (S.guildOpen) Guilds.render();
+  if (S.profileOpen) Profile.render();
+  else if (S.guildOpen) Guilds.render();
   else if (S.cmpOpen) Compare.render();
   else if (S.code && !S.home) loadReport(S.code, { keepView: true, fightId: S.fight?.id });
   else renderWelcome();

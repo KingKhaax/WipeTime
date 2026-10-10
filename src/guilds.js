@@ -5,16 +5,16 @@ const Guilds = (() => {
   const CLASS_BY_ID = { 1: 'Warrior', 2: 'Paladin', 3: 'Hunter', 4: 'Rogue', 5: 'Priest', 6: 'DeathKnight', 7: 'Shaman', 8: 'Mage', 9: 'Warlock', 10: 'Monk', 11: 'Druid', 12: 'DemonHunter', 13: 'Evoker' };
   const RANK_TTL = 24 * 3600 * 1000;
   const MAX_MEMBERS = 80;
-  const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, armory: null, tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
+  const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, armory: null, loginMine: null, loginChars: null, manualChars: [], charMsg: '', tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
 
   const region = () => (st.sel?.region || st.status?.region || 'eu').toUpperCase();
   const guildKey = (g) => `${g.realmSlug}/${g.name}`;
   const friendly = (code) => {
     const c = String(code || '');
-    if (c === 'NO_BNET_CLIENT') return LL('Falta el Client ID y el Secret de Blizzard (Ajustes → Blizzard).', 'Blizzard Client ID and Secret are missing (Settings → Blizzard).');
+    if (c === 'NO_BNET_CLIENT') return LL('La conexión con Blizzard no está disponible ahora mismo.', 'The Blizzard connection is not available right now.', 'Die Verbindung zu Blizzard ist gerade nicht verfügbar.', 'La connexion à Blizzard n’est pas disponible pour le moment.');
     if (c === 'CLOSED') return LL('Cerraste la ventana de inicio de sesión.', 'You closed the sign-in window.');
-    if (/TOKEN_|BAD_STATE|access_denied|invalid_request|redirect/i.test(c)) return LL(`Blizzard rechazó el inicio de sesión (${c}). Comprueba que en tu cliente del portal de desarrolladores esté registrada exactamente esta dirección de redirección: ${st.status?.redirect}`, `Blizzard rejected the sign-in (${c}). Check that this exact redirect URL is registered in your developer portal client: ${st.status?.redirect}`, `Blizzard hat die Anmeldung abgelehnt (${c}). Prüfe, ob genau diese Weiterleitungsadresse in deinem Client im Entwicklerportal registriert ist: ${st.status?.redirect}`, `Blizzard a refusé la connexion (${c}). Vérifie que cette adresse de redirection exacte est enregistrée dans ton client du portail développeur : ${st.status?.redirect}`);
-    if (/HTTP_404/.test(c)) return LL('Guild no encontrada: revisa el nombre y el reino (en minúsculas y con guiones).', 'Guild not found: check the name and realm (lowercase, with hyphens).');
+    if (/TOKEN_|BAD_STATE|access_denied|invalid_request|redirect/i.test(c)) return LL(`Blizzard rechazó el inicio de sesión (${c}). Inténtalo de nuevo más tarde.`, `Blizzard rejected the sign-in (${c}). Try again later.`, `Blizzard hat die Anmeldung abgelehnt (${c}). Versuche es später erneut.`, `Blizzard a refusé la connexion (${c}). Réessaie plus tard.`);
+    if (/HTTP_404/.test(c)) return LL('No encontrado: revisa el nombre, el reino y la región.', 'Not found: check the name, realm and region.', 'Nicht gefunden: Prüfe Name, Realm und Region.', 'Introuvable : vérifie le nom, le royaume et la région.');
     if (c === 'NOT_LOGGED') return LL('La sesión de Blizzard ha caducado: vuelve a iniciar sesión.', 'The Blizzard session expired: sign in again.');
     return c;
   };
@@ -25,10 +25,13 @@ const Guilds = (() => {
     S.home = true;
     S.cmpOpen = true; // la portada no debe repintarse encima
     S.guildOpen = true;
+    S.profileOpen = false;
     sidebar.hidden = true;
     st.status = await window.api.bnetStatus();
-    if (!st.mine && st.status.cachedGuilds?.list && st.status.cachedGuilds.region === st.status.region) { st.mine = st.status.cachedGuilds.list; st.chars = st.status.cachedGuilds.chars || null; }
+    if (!st.loginMine && st.status.cachedGuilds?.list && st.status.cachedGuilds.region === st.status.region) { st.loginMine = st.status.cachedGuilds.list; st.loginChars = st.status.cachedGuilds.chars || null; }
+    rebuild();
     render();
+    loadSaved().then(() => { if (S.guildOpen) render(); });
     main.scrollTop = 0;
     if (st.status.loggedIn && !st.fresh) { st.fresh = true; loadMine(); }
   }
@@ -38,7 +41,7 @@ const Guilds = (() => {
     render();
     const r = await window.api.bnetGuilds(S.lang);
     st.busy = '';
-    if (r.error) { st.mineErr = friendly(r.error); st.mine = null; if (r.error === 'NOT_LOGGED') st.status = await window.api.bnetStatus(); } else { st.mine = r.guilds; st.chars = r.chars || null; st.mineErr = ''; (st.mine || []).slice(0, 4).forEach((g, i) => setTimeout(() => rosterOf(g).catch(() => {}), 1500 + i * 1500)); }
+    if (r.error) { st.mineErr = friendly(r.error); st.loginMine = null; rebuild(); if (r.error === 'NOT_LOGGED') st.status = await window.api.bnetStatus(); } else { st.loginMine = r.guilds; st.loginChars = r.chars || null; rebuild(); st.mineErr = ''; (st.mine || []).slice(0, 4).forEach((g, i) => setTimeout(() => rosterOf(g).catch(() => {}), 1500 + i * 1500)); }
     if (S.guildOpen) render();
   }
 
@@ -46,19 +49,19 @@ const Guilds = (() => {
   function render() {
     if (!S.guildOpen) return;
     const s = st.status || {};
-    const hasClient = s.hasClient;
+    const hasClient = s.canLogin;
     const glyph = '<img class="wi" src="wcicon://i/inv_shirt_guildtabard_01" width="30" height="30" alt="">';
     const saved = !s.loggedIn && s.cachedGuilds?.list?.length;
-    const login = saved
+    const login = !s.canLogin && !s.loggedIn ? '' : saved
       ? `<div class="bn-card ok"><div class="bn-ic ok">${glyph}</div><div class="bn-txt"><h2>${esc(s.battletag || LL('Cuenta guardada', 'Saved account'))}</h2><p>${LL('Guilds guardadas de tu última sesión. Inicia sesión solo si quieres actualizar la lista.', 'Guilds saved from your last session. Sign in only to refresh the list.')}</p></div><div class="bn-actions"><button class="btn ghost sm" data-gd="login">↻ ${LL('Actualizar guilds', 'Refresh guilds')}</button></div></div>`
       : s.loggedIn
       ? `<div class="bn-card ok"><div class="bn-ic ok">${glyph}</div><div class="bn-txt"><h2>${esc(s.battletag || LL('Cuenta conectada', 'Account connected'))}</h2><p><span class="bn-dot"></span>${LL('Battle.net conectado · región', 'Battle.net connected · region')} ${esc((s.region || 'eu').toUpperCase())}</p></div>
           <div class="bn-actions"><button class="btn ghost sm" data-gd="refresh">↻ ${LL('Actualizar guilds', 'Refresh guilds')}</button><button class="btn ghost sm" data-gd="logout">${LL('Cerrar sesión', 'Sign out')}</button></div></div>`
       : `<div class="bn-card"><div class="bn-glow"></div><div class="bn-ic">${glyph}</div>
-          <div class="bn-txt"><h2>${LL('Conecta tu cuenta de Battle.net', 'Connect your Battle.net account')}</h2>
+          <div class="bn-txt"><h2>${LL('Conecta tu cuenta de Battle.net (opcional)', 'Connect your Battle.net account (optional)', 'Verbinde dein Battle.net-Konto (optional)', 'Connecte ton compte Battle.net (facultatif)')}</h2>
             <p>${LL('Detectamos tus guilds automáticamente y abrimos sus logs y rankings con un clic.', 'We detect your guilds automatically and open their logs and rankings in one click.')}</p>
             <ul class="bn-feats"><li>${LL('Tus guilds al instante', 'Your guilds instantly')}</li><li>${LL('Logs recientes', 'Recent logs')}</li><li>${LL('Ranking de parses', 'Parse ranking')}</li></ul></div>
-          ${hasClient ? `<button class="bn-btn" data-gd="login">${glyph}<span>${LL('Iniciar sesión con Battle.net', 'Sign in with Battle.net')}</span></button>` : `<button class="bn-btn" data-action="settings">${glyph}<span>${LL('Configurar Battle.net', 'Set up Battle.net')}</span></button>`}
+          ${hasClient ? `<button class="bn-btn" data-gd="login">${glyph}<span>${LL('Iniciar sesión con Battle.net', 'Sign in with Battle.net')}</span></button>` : ''}
           <small class="bn-note">${LL('Solo leemos los nombres de tus personajes y guilds. Tu contraseña nunca pasa por WipeTime.', 'We only read your character and guild names. Your password never goes through WipeTime.')}</small></div>`;
     let mine = '';
     if (st.busy === 'mine') mine = `<div class="loading"><span class="spinner"></span>${LL('Buscando tus guilds…', 'Finding your guilds…')}</div>`;
@@ -76,9 +79,10 @@ const Guilds = (() => {
     const bodyUnderMine = !!(st.sel && Array.isArray(st.mine) && st.mine.some((g) => guildKey(g) === guildKey(st.sel)));
     const bodyDiv = `<div id="gdBody">${st.sel ? bodyHTML() : ''}</div>`;
     main.innerHTML = `<div class="hdr"><div class="eyebrow">${LL('Comunidad', 'Community')}</div><h1>Guilds</h1><div class="sub">${LL('Mira los logs de tu guild y quién tiene mejores parses.', 'See your guild\'s logs and who has the best parses.')}</div></div>
-      ${login}${mine ? `<h3 class="sec">${LL('Tus guilds', 'Your guilds')}</h3>${mine}` : ''}
+      ${login}${mine ? `<h3 class="sec">${LL('Tus guilds', 'Your guilds')}</h3>${mine}` : `<div class="empty sm">${LL('No hace falta iniciar sesión: añade tus personajes abajo o busca tu guild y guárdala.', 'No sign-in needed: add your characters below or find your guild and save it.', 'Keine Anmeldung nötig: Füge unten deine Charaktere hinzu oder suche deine Gilde und speichere sie.', 'Aucune connexion nécessaire : ajoute tes personnages ci-dessous ou cherche ta guilde et enregistre-la.')}</div>`}
       ${bodyUnderMine ? bodyDiv : ''}
       ${charsHTML()}
+      <h4 class="subh">${LL('Añadir un personaje', 'Add a character', 'Charakter hinzufügen', 'Ajouter un personnage')}</h4>${charFormHTML()}
       <div class="bn-or"><span>${LL('o busca una guild a mano', 'or find a guild by hand')}</span></div>${manual}
       ${bodyUnderMine ? '' : bodyDiv}`;
     if (st.sel) afterBody();
@@ -96,13 +100,17 @@ const Guilds = (() => {
   const SLOTS_L = ['HEAD', 'NECK', 'SHOULDER', 'BACK', 'CHEST', 'WRIST'];
   const SLOTS_R = ['HANDS', 'WAIST', 'LEGS', 'FEET', 'FINGER_1', 'FINGER_2'];
   const SLOTS_B = ['TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
+  // La mano izquierda solo sale si el personaje lleva algo (con un arma a dos manos no hay hueco)
+  const slotHTML = (bySlot, sl) => { const it = bySlot.get(sl); return !it && sl === 'OFF_HAND' ? '' : itemHTML(it, it?.slotName || sl); };
+  const modelHTML = (d) => `<div class="arm-model" data-tilt>${d.render ? `<img src="${Cards.media(d.render)}" alt="${esc(d.name)}" draggable="false">` : `<span class="arm-nomodel">${LL('Sin modelo disponible', 'No model available', 'Kein Modell verfügbar', 'Aucun modèle disponible')}</span>`}</div>`;
 
+  const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
   function itemHTML(it, slotLabel) {
     if (!it) return `<div class="arm-it empty"><span class="arm-ic"></span><span class="arm-tx"><small>${esc(slotLabel)}</small></span></div>`;
     const col = QCOLOR[it.quality] || '#fff';
     const sub = [
-      ...it.enchant.map((e) => `<i class="ench">${esc(String(e).replace(/^Enchanted: /i, ''))}</i>`),
-      ...it.gems.map((g) => `<i class="gem">${esc(g.name || g.stat || '')}</i>`),
+      ...it.enchant.map((e) => `<i class="ench">${esc(cleanLine(e))}</i>`),
+      ...it.gems.map((g) => `<i class="gem">${esc(cleanLine(g.name || g.stat || ''))}</i>`),
     ].join('');
     return `<div class="arm-it" style="--q:${col}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
       <span class="arm-tx"><b title="${esc(it.name)}">${esc(it.name)}</b><small><em>${esc(it.ilvl || '')}</em> ${esc(slotLabel)}${it.set ? ` · ${esc(it.set)}` : ''}</small>${sub}</span></div>`;
@@ -136,13 +144,13 @@ const Guilds = (() => {
     if (!a || a.key !== charKey(c)) return '';
     const head = `<div class="arm-top"><b>${esc(c.name)}</b><span class="arm-sp"></span>
       <button type="button" class="btn ghost sm" data-gd="armory-refresh" data-key="${esc(a.key)}">↻ ${LL('Actualizar', 'Refresh', 'Aktualisieren', 'Actualiser')}</button>
-      ${c.guild ? `<button type="button" class="btn ghost sm" data-gd="pick-char" data-guild="${esc(c.guild.name)}" data-realm="${esc(c.guild.realmSlug)}" data-realmname="${esc(c.guild.realmName)}">${LL('Abrir guild', 'Open guild', 'Gilde öffnen', 'Ouvrir la guilde')}</button>` : ''}
+      ${c.guild ? `<button type="button" class="btn ghost sm" data-gd="pick-char" data-guild="${esc(c.guild.name)}" data-realm="${esc(c.guild.realmSlug)}" data-realmname="${esc(c.guild.realmName)}" data-region="${esc(c.region || '')}">${LL('Abrir guild', 'Open guild', 'Gilde öffnen', 'Ouvrir la guilde')}</button>` : ''}
       <button type="button" class="btn ghost sm" data-gd="armory-close">${LL('Cerrar', 'Close', 'Schließen', 'Fermer')}</button></div>`;
     if (a.status === 'loading') return `<div class="arm">${head}<div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
     if (a.status === 'err') return `<div class="arm">${head}<div class="error"><p>${esc(friendly(a.err))}</p></div></div>`;
     const d = a.data;
     const bySlot = new Map(d.items.map((i) => [i.slot, i]));
-    const col = (slots) => slots.map((sl) => { const it = bySlot.get(sl); return itemHTML(it, it?.slotName || sl); }).join('');
+    const col = (slots) => slots.map((sl) => slotHTML(bySlot, sl)).join('');
     const info = [
       `<span><small>${LL('Nivel de objeto', 'Item level', 'Gegenstandsstufe', 'Niveau d’objet')}</small><b>${esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
       d.ilvlAvg && d.ilvlAvg !== d.ilvlEquipped ? `<span><small>${LL('Media (inventario)', 'Average (bags)', 'Durchschnitt (Taschen)', 'Moyenne (sacs)')}</small><b>${esc(d.ilvlAvg)}</b></span>` : '',
@@ -151,17 +159,74 @@ const Guilds = (() => {
       d.achievements ? `<span><small>${LL('Logros', 'Achievements', 'Erfolge', 'Hauts faits')}</small><b>${esc(d.achievements)}</b></span>` : '',
     ].join('');
     return `<div class="arm">${head}<div class="arm-info">${info}</div>
-      <div class="arm-body"><div class="arm-gear"><div class="arm-col">${col(SLOTS_L)}</div><div class="arm-col">${col(SLOTS_R)}</div><div class="arm-col wide">${col(SLOTS_B)}</div></div>
+      <div class="arm-body"><div class="arm-gear"><div class="arm-col">${col(SLOTS_L)}</div>${modelHTML(d)}<div class="arm-col">${col(SLOTS_R)}</div><div class="arm-weapons">${col(SLOTS_B)}</div></div>
       <div class="arm-stats">${statsHTML(d.stats)}</div></div></div>`;
   }
 
-  async function openArmory(key, realmSlug, name) {
-    st.armory = { key, status: 'loading' };
-    render();
-    const r = await window.api.bnetArmory(realmSlug, name, S.lang);
+  // Siempre se pide a Blizzard en el momento (sin caché) y, con la armería abierta, se vuelve a pedir cada minuto
+  async function openArmory(key, realmSlug, name, silent = false, region = '') {
+    clearInterval(st.armoryTimer);
+    if (!silent) { st.armory = { key, status: 'loading' }; render(); }
+    const r = await window.api.bnetArmory(realmSlug, name, S.lang, region);
     if (st.armory?.key !== key) return;
-    st.armory = r.error ? { key, status: 'err', err: r.error, realmSlug, name } : { key, status: 'ok', data: r, realmSlug, name };
+    if (r.error && silent && st.armory.data) return; // un fallo puntual no borra lo que ya se veía
+    st.armory = r.error ? { key, status: 'err', err: r.error, realmSlug, name, region } : { key, status: 'ok', data: r, realmSlug, name, region };
+    if (S.guildOpen) render();
+    st.armoryTimer = setInterval(() => {
+      if (!S.guildOpen || st.armory?.key !== key) { clearInterval(st.armoryTimer); return; }
+      openArmory(key, realmSlug, name, true, region);
+    }, 60000);
+  }
+
+  // ---- Registro a mano (sin iniciar sesión): personajes y guilds guardados en este equipo
+  const savedChars = () => lsList('gd:chars');
+  const savedGuilds = () => lsList('gd:guilds');
+  const saveList = (k, l) => lsSet(k, JSON.stringify(l));
+
+  // Une lo que viene de la cuenta de Battle.net (si inició sesión) con lo registrado a mano
+  function rebuild() {
+    const seen = new Set();
+    const chars = [];
+    for (const c of [...(st.loginChars || []), ...st.manualChars]) { const k = charKey(c); if (!seen.has(k)) { seen.add(k); chars.push(c); } }
+    st.chars = chars.length ? chars : null;
+    const gseen = new Set();
+    const gl = [];
+    const add = (g) => { if (!g?.name) return; const k = guildKey(g); if (gseen.has(k)) return; gseen.add(k); gl.push(g); };
+    (st.loginMine || []).forEach(add);
+    savedGuilds().forEach(add);
+    st.manualChars.forEach((c) => c.guild && add({ name: c.guild.name, realmSlug: c.guild.realmSlug, realmName: c.guild.realmName, region: c.region }));
+    st.mine = gl.length ? gl : (st.loginMine ? [] : null);
+  }
+
+  async function loadSaved() {
+    const list = await Promise.all(savedChars().map(async (c) => {
+      try { return { ...(await Cards.char(c.name, c.realmSlug, c.region)), manual: true, region: c.region }; } catch { return null; }
+    }));
+    st.manualChars = list.filter(Boolean);
+    rebuild();
+  }
+
+  async function addChar(name, realm, region) {
+    const slug = Cards.slugOf(realm);
+    st.charMsg = '';
+    try {
+      const info = await Cards.char(name, slug, region);
+      const l = savedChars();
+      if (!l.some((x) => charKey(x) === charKey({ name: info.name, realmSlug: info.realmSlug }))) { l.push({ name: info.name, realmSlug: info.realmSlug, region }); saveList('gd:chars', l); }
+      await loadSaved();
+      lsSet('gd:hidden', JSON.stringify(lsList('gd:hidden').filter((k) => k !== charKey(info))));
+    } catch (e) { st.charMsg = friendly(String(e.message || e)); }
     render();
+  }
+
+  const guildSaved = (g) => savedGuilds().some((x) => guildKey(x) === guildKey(g));
+  function charFormHTML() {
+    const last = lsGet('gd:charRegion') || st.status?.region || 'eu';
+    return `<form id="gdCharForm" class="gd-form"><input name="name" placeholder="${esc(LL('Nombre del personaje', 'Character name', 'Charaktername', 'Nom du personnage'))}" spellcheck="false" autocomplete="off" required>
+      <input name="realm" placeholder="${esc(LL('Reino (ej. Zul’jin)', 'Realm (e.g. Zul’jin)', 'Realm (z. B. Zul’jin)', 'Royaume (ex. Zul’jin)'))}" spellcheck="false" autocomplete="off" required>
+      <select name="region">${['eu', 'us', 'kr', 'tw'].map((r) => `<option value="${r}" ${r === last ? 'selected' : ''}>${r.toUpperCase()}</option>`).join('')}</select>
+      <button class="btn" type="submit">${LL('Añadir personaje', 'Add character', 'Charakter hinzufügen', 'Ajouter le personnage')}</button></form>
+      ${st.charMsg ? `<div class="error sm"><p>${esc(st.charMsg)}</p></div>` : ''}`;
   }
 
   function charsHTML() {
@@ -170,10 +235,10 @@ const Guilds = (() => {
     const favs = new Set(lsList('gd:favs'));
     const wrap = (c, canHide) => {
       const k = charKey(c);
-      const pick = `data-gd="armory" data-key="${esc(k)}" data-realm="${esc(c.realmSlug)}" data-name="${esc(c.name)}"`;
+      const pick = `data-gd="armory" data-key="${esc(k)}" data-realm="${esc(c.realmSlug)}" data-name="${esc(c.name)}" data-region="${esc(c.region || '')}"`;
       return `<div class="cc-wrap ${st.armory?.key === k ? 'open' : ''}">${Cards.charCardHTML(c, { onClick: pick })}<div class="cc-act">
         <button type="button" class="${favs.has(k) ? 'on' : ''}" data-gd="fav" data-key="${esc(k)}" title="${esc(favs.has(k) ? LL('Quitar de favoritos', 'Remove from favorites') : LL('Añadir a favoritos', 'Add to favorites'))}" aria-label="${esc(LL('Favorito', 'Favorite'))}">${ICON_STAR(favs.has(k))}</button>
-        ${canHide ? `<button type="button" data-gd="hide" data-key="${esc(k)}" title="${esc(LL('Quitar de la lista', 'Remove from the list'))}" aria-label="${esc(LL('Quitar', 'Remove'))}">${ICON_X}</button>` : ''}</div></div>${armoryHTML(c)}`;
+        ${canHide ? `<button type="button" data-gd="${c.manual ? 'delchar' : 'hide'}" data-key="${esc(k)}" title="${esc(LL('Quitar de la lista', 'Remove from the list'))}" aria-label="${esc(LL('Quitar', 'Remove'))}">${ICON_X}</button>` : ''}</div></div>${armoryHTML(c)}`;
     };
     const favList = st.chars.filter((c) => favs.has(charKey(c)));
     const list = st.chars.filter((c) => !hidden.has(charKey(c)));
@@ -196,7 +261,7 @@ const Guilds = (() => {
   function bodyHTML() {
     const g = st.sel;
     const tab = (k, l) => `<button class="chip ${st.tab === k ? 'on' : ''}" data-gd="tab" data-tab="${k}">${l}</button>`;
-    return `${st.tab === 'rank' ? '' : `<div class="gd-head"><span data-crest data-realm="${esc(g.realmSlug)}" data-guild="${esc(g.name)}" data-size="56"></span><h2>${esc(g.name)}</h2><span class="muted">${esc(g.realmName || g.realmSlug)} · ${region()}</span></div>`}
+    return `${st.tab === 'rank' ? '' : `<div class="gd-head"><span data-crest data-realm="${esc(g.realmSlug)}" data-guild="${esc(g.name)}" data-size="56"></span><h2>${esc(g.name)}</h2><span class="muted">${esc(g.realmName || g.realmSlug)} · ${region()}</span>${guildSaved(g) ? `<button type="button" class="btn ghost sm" data-gd="unsaveguild">${LL('Quitar de mis guilds', 'Remove from my guilds', 'Aus meinen Gilden entfernen', 'Retirer de mes guildes')}</button>` : `<button type="button" class="btn sm" data-gd="saveguild">★ ${LL('Guardar guild', 'Save guild', 'Gilde speichern', 'Enregistrer la guilde')}</button>`}</div>`}
       <div class="metricbar">${tab('logs', LL('Logs recientes', 'Recent logs'))}${tab('rank', LL('Ranking de parses', 'Parse ranking'))}</div>
       <div id="gdTab"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
   }
@@ -393,7 +458,7 @@ const Guilds = (() => {
       st.mine = null; st.mineErr = '';
       render();
     } else if (a === 'refresh') { st.mine = null; loadMine(); }
-    else if (a === 'pick') { const g = (st.mine || []).find((x) => guildKey(x) === el.dataset.key); if (g) pickGuild({ ...g, region: st.status?.region }); }
+    else if (a === 'pick') { const g = (st.mine || []).find((x) => guildKey(x) === el.dataset.key); if (g) pickGuild({ ...g, region: g.region || st.status?.region }); }
     else if (a === 'pick-found') { const x = st.results?.list?.[Number(el.dataset.i)]; if (x) { st.tab = 'logs'; pickGuild({ name: x.name, realmSlug: x.realmSlug, realmName: x.realmName, region: x.region }); } }
     else if (a === 'fav') {
       const k = el.dataset.key;
@@ -406,10 +471,15 @@ const Guilds = (() => {
       if (!l.includes(k)) lsSet('gd:hidden', JSON.stringify([...l, k]));
       render();
     } else if (a === 'unhide') { lsSet('gd:hidden', '[]'); render(); }
-    else if (a === 'armory') { if (st.armory?.key === el.dataset.key) { st.armory = null; render(); } else openArmory(el.dataset.key, el.dataset.realm, el.dataset.name); }
-    else if (a === 'armory-refresh') { const x = st.armory; if (x) openArmory(x.key, x.realmSlug, x.name); }
-    else if (a === 'armory-close') { st.armory = null; render(); }
-    else if (a === 'pick-char') pickGuild({ name: el.dataset.guild, realmSlug: el.dataset.realm, realmName: el.dataset.realmname, region: st.status?.region });
+    else if (a === 'armory') { if (st.armory?.key === el.dataset.key) { clearInterval(st.armoryTimer); st.armory = null; render(); } else openArmory(el.dataset.key, el.dataset.realm, el.dataset.name, false, el.dataset.region || ''); }
+    else if (a === 'armory-refresh') { const x = st.armory; if (x) openArmory(x.key, x.realmSlug, x.name, false, x.region || ''); }
+    else if (a === 'armory-close') { clearInterval(st.armoryTimer); st.armory = null; render(); }
+    else if (a === 'pick-char') pickGuild({ name: el.dataset.guild, realmSlug: el.dataset.realm, realmName: el.dataset.realmname, region: el.dataset.region || st.status?.region });
+    else if (a === 'delchar') { saveList('gd:chars', savedChars().filter((x) => charKey(x) !== el.dataset.key)); if (st.armory?.key === el.dataset.key) st.armory = null; await loadSaved(); render(); }
+    else if (a === 'saveguild' || a === 'unsaveguild') {
+      const g = st.sel;
+      if (g) { const rest = savedGuilds().filter((x) => guildKey(x) !== guildKey(g)); saveList('gd:guilds', a === 'saveguild' ? [...rest, { name: g.name, realmSlug: g.realmSlug, realmName: g.realmName || g.realmSlug, region: g.region || st.status?.region || 'eu' }] : rest); rebuild(); render(); }
+    }
     else if (a === 'tab') { st.tab = el.dataset.tab; render(); }
     else if (a === 'diff') { st.diff = Number(el.dataset.v); rankTab(); }
     else if (a === 'metric') { st.metric = el.dataset.v; rankTab(); }
@@ -420,6 +490,16 @@ const Guilds = (() => {
   });
 
   document.addEventListener('submit', async (ev) => {
+    if (ev.target.id === 'gdCharForm') {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const region = String(fd.get('region') || 'eu');
+      lsSet('gd:charRegion', region);
+      const name = String(fd.get('name') || '').trim();
+      const realm = String(fd.get('realm') || '').trim();
+      if (name && realm) addChar(name, realm, region);
+      return;
+    }
     if (ev.target.id !== 'gdForm') return;
     ev.preventDefault();
     const fd = new FormData(ev.target);

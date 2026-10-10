@@ -855,13 +855,13 @@ function bnetUser() {
   return { token: decrypt(u.token), exp: u.exp, battletag: u.battletag || '' };
 }
 
-async function bnetApi(pathQuery, token) {
+async function bnetApi(pathQuery, token, region = bnetRegion()) {
   if (token === '__proxy__') {
-    const res = await fetch(`${proxyUrl()}/bnet?region=${bnetRegion()}&path=${encodeURIComponent(pathQuery)}`);
+    const res = await fetch(`${proxyUrl()}/bnet?region=${region}&path=${encodeURIComponent(pathQuery)}`);
     if (!res.ok) throw new Error('BNET_HTTP_' + res.status);
     return res.json();
   }
-  const res = await fetch(`https://${bnetRegion()}.api.blizzard.com${pathQuery}`, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(`https://${region}.api.blizzard.com${pathQuery}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error('BNET_HTTP_' + res.status);
   return res.json();
 }
@@ -869,7 +869,7 @@ async function bnetApi(pathQuery, token) {
 ipcMain.handle('bnet:status', () => {
   const c = readConfig();
   const u = bnetUser();
-  return { clientId: c.bnetId || '', hasSecret: !!decrypt(c.bnetSecret), bundled: hasBundled('bnet'), hasClient: !!(c.bnetId && decrypt(c.bnetSecret)) || hasBundled('bnet') || !!proxyUrl(), proxy: !!proxyUrl(), region: bnetRegion(), loggedIn: !!u, battletag: u?.battletag || c.bnetUser?.battletag || '', expired: !u && !!c.bnetUser, cachedGuilds: c.bnetGuilds || null, redirect: BNET_REDIRECT };
+  return { clientId: c.bnetId || '', hasSecret: !!decrypt(c.bnetSecret), bundled: hasBundled('bnet'), hasClient: !!(c.bnetId && decrypt(c.bnetSecret)) || hasBundled('bnet') || !!proxyUrl(), canLogin: !!(c.bnetId && decrypt(c.bnetSecret)) || hasBundled('bnet'), proxy: !!proxyUrl(), region: bnetRegion(), loggedIn: !!u, battletag: u?.battletag || c.bnetUser?.battletag || '', expired: !u && !!c.bnetUser, cachedGuilds: c.bnetGuilds || null, redirect: BNET_REDIRECT };
 });
 
 ipcMain.handle('bnet:set', (_e, { clientId, clientSecret, region }) => {
@@ -934,39 +934,40 @@ ipcMain.handle('bnet:login', async (e) => {
 
 // Guilds de tus personajes: se leen los personajes de la cuenta y la guild de los de mayor nivel
 // Datos de un personaje (nivel, raza, clase, facción, guild y foto) con la API de perfil
-async function charInfo(realmSlug, name, lang, token) {
-  const ns = `profile-${bnetRegion()}`;
+async function charInfo(realmSlug, name, lang, token, region = bnetRegion()) {
+  const ns = `profile-${region}`;
   const loc = BNET_LOCALE[lang] || 'en_US';
   const base = `/profile/wow/character/${encodeURIComponent(String(realmSlug).toLowerCase())}/${encodeURIComponent(String(name).toLowerCase())}`;
-  const [p, md] = await Promise.all([bnetApi(`${base}?namespace=${ns}&locale=${loc}`, token), bnetApi(`${base}/character-media?namespace=${ns}`, token).catch(() => null)]);
+  const [p, md] = await Promise.all([bnetApi(`${base}?namespace=${ns}&locale=${loc}`, token, region), bnetApi(`${base}/character-media?namespace=${ns}`, token, region).catch(() => null)]);
   return {
     name: p.name, level: p.level, race: p.race?.name, cls: p.character_class?.name, classId: p.character_class?.id, faction: p.faction?.type,
     guild: p.guild ? { name: p.guild.name, realmSlug: p.guild.realm.slug, realmName: p.guild.realm.name, faction: p.guild.faction?.type } : null,
-    realmSlug: p.realm?.slug || realmSlug, realmName: p.realm?.name || realmSlug, region: bnetRegion(),
+    realmSlug: p.realm?.slug || realmSlug, realmName: p.realm?.name || realmSlug, region,
     avatar: md?.assets?.find((x) => x.key === 'avatar')?.value || md?.assets?.[0]?.value || '',
   };
 }
 
 // Armería: equipo, estadísticas (valor y %) y datos básicos de un personaje con la API de perfil de Blizzard
 const itemIconCache = new Map();
-async function itemIcon(id, token) {
+async function itemIcon(id, token, region = bnetRegion()) {
   if (!id) return '';
   if (!itemIconCache.has(id)) {
-    itemIconCache.set(id, bnetApi(`/data/wow/media/item/${Number(id)}?namespace=static-${bnetRegion()}`, token)
+    itemIconCache.set(id, bnetApi(`/data/wow/media/item/${Number(id)}?namespace=static-${region}`, token, region)
       .then((j) => j.assets?.find((a) => a.key === 'icon')?.value || '').catch(() => { itemIconCache.delete(id); return ''; }));
   }
   return itemIconCache.get(id);
 }
 
-async function armory(realmSlug, name, lang) {
+async function armory(realmSlug, name, lang, region = bnetRegion()) {
+  if (!BNET_REGIONS.includes(region)) region = bnetRegion();
   const token = await bnetAppToken();
-  const ns = `profile-${bnetRegion()}`;
+  const ns = `profile-${region}`;
   const loc = BNET_LOCALE[lang] || 'en_US';
   const base = `/profile/wow/character/${encodeURIComponent(String(realmSlug).toLowerCase())}/${encodeURIComponent(String(name).toLowerCase())}`;
-  const get = (sub) => bnetApi(`${base}${sub}?namespace=${ns}&locale=${loc}`, token);
+  const get = (sub) => bnetApi(`${base}${sub}?namespace=${ns}&locale=${loc}`, token, region);
   const [sum, eq, st, md] = await Promise.all([get(''), get('/equipment').catch(() => null), get('/statistics').catch(() => null), get('/character-media').catch(() => null)]);
   const equipped = eq?.equipped_items || [];
-  const icons = await Promise.all(equipped.map((i) => itemIcon(i.item?.id, token)));
+  const icons = await Promise.all(equipped.map((i) => itemIcon(i.item?.id, token, region)));
   const items = equipped.map((i, k) => ({
     slot: i.slot?.type || '', slotName: i.slot?.name || '', id: i.item?.id, name: i.name || '', ilvl: i.level?.value || 0,
     quality: i.quality?.type || 'COMMON', icon: icons[k], binding: i.binding?.name || '',
@@ -974,7 +975,8 @@ async function armory(realmSlug, name, lang) {
     gems: (i.sockets || []).map((sk) => ({ name: sk.item?.name || '', stat: sk.display_string || '' })),
     set: i.set?.item_set?.name || '', armorType: i.item_subclass?.name || '',
   }));
-  const pct = (o) => (o ? { rating: o.rating ?? 0, value: o.value ?? 0 } : null);
+  // Blizzard da el número del rating en rating_normalized (antes rating); en velocidad y evitación solo viene rating_bonus
+  const pct = (o) => (o ? { rating: o.rating_normalized ?? o.rating ?? 0, value: o.value ?? o.rating_bonus ?? 0 } : null);
   const stats = st ? {
     health: st.health, power: st.power, powerType: st.power_type?.name || '',
     strength: st.strength?.effective ?? 0, agility: st.agility?.effective ?? 0, intellect: st.intellect?.effective ?? 0, stamina: st.stamina?.effective ?? 0,
@@ -990,17 +992,19 @@ async function armory(realmSlug, name, lang) {
     name: sum.name, level: sum.level, race: sum.race?.name, cls: sum.character_class?.name, classId: sum.character_class?.id,
     spec: sum.active_spec?.name || '', faction: sum.faction?.type, guild: sum.guild?.name || '', realmName: sum.realm?.name || realmSlug,
     ilvlAvg: sum.average_item_level || 0, ilvlEquipped: sum.equipped_item_level || 0, achievements: sum.achievement_points || 0,
-    render: md?.assets?.find((a) => a.key === 'main-raw')?.value || md?.assets?.find((a) => a.key === 'inset')?.value || '',
+    render: md?.assets?.find((a) => a.key === 'main-raw')?.value || md?.assets?.find((a) => a.key === 'main')?.value || md?.assets?.find((a) => a.key === 'inset')?.value || '',
+    avatar: md?.assets?.find((a) => a.key === 'avatar')?.value || '', lastLogin: sum.last_login_timestamp || 0, gender: sum.gender?.type || '', faction: sum.faction?.type || '',
+    guildRealm: sum.guild?.realm?.slug || '', guildRealmName: sum.guild?.realm?.name || '', realmSlug: sum.realm?.slug || realmSlug, region,
     items, stats, at: Date.now(),
   };
 }
 
-ipcMain.handle('bnet:armory', async (_e, realmSlug, name, lang) => {
-  try { return await armory(realmSlug, name, lang); } catch (err) { return { error: String(err.message || err) }; }
+ipcMain.handle('bnet:armory', async (_e, realmSlug, name, lang, region) => {
+  try { return await armory(realmSlug, name, lang, region); } catch (err) { return { error: String(err.message || err) }; }
 });
 
-ipcMain.handle('bnet:char', async (_e, realmSlug, name, lang) => {
-  try { return await charInfo(realmSlug, name, lang, await bnetAppToken()); } catch (err) { return { error: String(err.message || err) }; }
+ipcMain.handle('bnet:char', async (_e, realmSlug, name, lang, region) => {
+  try { return await charInfo(realmSlug, name, lang, await bnetAppToken(), BNET_REGIONS.includes(region) ? region : bnetRegion()); } catch (err) { return { error: String(err.message || err) }; }
 });
 
 // Escudo de una guild: emblema, borde y fondo con sus colores
@@ -1110,6 +1114,17 @@ ipcMain.handle('rio:rank', async (_e, { raid, difficulty, region, realmSlug, gui
 });
 
 // ---- Buscar guilds solo por nombre (sin saber el reino) en el buscador público de Raider.io
+ipcMain.handle('rio:char', async (_e, region, realmSlug, name) => {
+  try {
+    if (!['eu', 'us', 'kr', 'tw'].includes(region)) region = 'eu';
+    const fields = 'mythic_plus_scores_by_season:current,mythic_plus_ranks,gear';
+    const res = await fetch(`https://raider.io/api/v1/characters/profile?region=${region}&realm=${encodeURIComponent(realmSlug)}&name=${encodeURIComponent(name)}&fields=${encodeURIComponent(fields)}`, { headers: { 'user-agent': 'WipeTime', accept: 'application/json' } });
+    if (!res.ok) return { error: 'HTTP_' + res.status };
+    const j = await res.json();
+    return { season: j.mythic_plus_scores_by_season?.[0] || null, ranks: j.mythic_plus_ranks || null, ilvl: j.gear?.item_level_equipped || 0, crawled: j.last_crawled_at || '', url: j.profile_url || '' };
+  } catch (err) { return { error: String(err.message || err) }; }
+});
+
 ipcMain.handle('rio:guilds', async (_e, term) => {
   try {
     const q = String(term || '').trim();

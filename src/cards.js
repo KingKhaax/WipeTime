@@ -11,10 +11,10 @@ const Cards = (() => {
 
   const slugOf = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/\s+/g, '-');
 
-  function char(name, realmSlug) {
-    const key = `${S.lang}:${realmSlug}:${String(name).toLowerCase()}`;
+  function char(name, realmSlug, region) {
+    const key = `${S.lang}:${region || ''}:${realmSlug}:${String(name).toLowerCase()}`;
     if (!charCache.has(key)) {
-      charCache.set(key, window.api.bnetChar(realmSlug, name, S.lang).then((r) => { if (r.error) throw new Error(r.error); return r; }).catch((e) => { charCache.delete(key); throw e; }));
+      charCache.set(key, window.api.bnetChar(realmSlug, name, S.lang, region).then((r) => { if (r.error) throw new Error(r.error); return r; }).catch((e) => { charCache.delete(key); throw e; }));
     }
     return charCache.get(key);
   }
@@ -66,6 +66,21 @@ const Cards = (() => {
       el.innerHTML = c.avatar ? `<img src="${media(c.avatar)}" alt="" title="${esc(c.name)}">` : '';
     } catch { /* sin foto: el personaje no tiene perfil público */ }
   }
+
+  // Efecto de profundidad: el modelo se inclina hacia donde está el ratón
+  document.addEventListener('mousemove', (ev) => {
+    const box = ev.target.closest?.('[data-tilt]');
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width - 0.5;
+    const y = (ev.clientY - r.top) / r.height - 0.5;
+    box.style.setProperty('--ry', `${(x * 22).toFixed(1)}deg`);
+    box.style.setProperty('--rx', `${(-y * 8).toFixed(1)}deg`);
+  });
+  document.addEventListener('mouseout', (ev) => {
+    const box = ev.target.closest?.('[data-tilt]');
+    if (box && !box.contains(ev.relatedTarget)) { box.style.setProperty('--ry', '0deg'); box.style.setProperty('--rx', '0deg'); }
+  });
 
   return { char, crest, charCardHTML, crestHTML, portraitHTML, fillCrests, fillMe, slugOf, media, CLASS_KEY };
 })();
