@@ -1339,3 +1339,6 @@ img.role-ic { border-radius: 7px; }
 .rk-win { margin-top: 22px; }
 .rk-win-h { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-family: var(--display); font-size: 20px; color: var(--title); }
 .rk-win-h small { font-family: inherit; font-size: 13px; }
+
+.about-dc:first-of-type { margin-top: 26px; }
+.about-dc .muted { font-size: 13px; }

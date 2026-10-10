@@ -1428,7 +1428,7 @@ function toast(msg) {
 
 async function saveSettings(form) {
   const fd = new FormData(form);
-  await window.api.setConfig({ clientId: fd.get('clientId'), clientSecret: fd.get('clientSecret'), me: fd.get('me') });
+  await window.api.setConfig({ clientId: fd.get('clientId'), clientSecret: fd.get('clientSecret') });
   await refreshConfig();
 }
 
