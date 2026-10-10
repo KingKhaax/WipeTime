@@ -8,6 +8,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['0.4.0', 'Logo oficial de Battle.net en Acerca de.', 'Official Battle.net logo in About.'],
     ['0.3.9', 'Carga mucho más rápida: caché en disco de los datos de Warcraft Logs (reabrir un log o un replay es casi instantáneo), eventos del replay y de los análisis descargados en paralelo, plantillas de guild precargadas y cachés de guild de 24 h. Botón para vaciar la caché en Ajustes → Datos. Contacto de Discord y del icono de Battle.net en Acerca de.', 'Much faster loading: on-disk cache of Warcraft Logs data (reopening a log or replay is almost instant), replay and analysis events downloaded in parallel, preloaded guild rosters and 24 h guild caches. Button to clear the cache in Settings → Data. Discord and Battle.net contact in About.'],
     ['0.3.8', 'El creador del instalador pasa a ser sr.kitkat; Acerca de con Battle.net (KitKat#21202) y Discord más abajo; quitado el campo Mi personaje de Ajustes.', 'Installer publisher is now sr.kitkat; About with Battle.net (KitKat#21202) and Discord lower; removed the My character field from Settings.'],
     ['0.3.7', 'Ranking de guild con clasificación por Daño, Sanación o Daño al jefe.', 'Guild ranking with Damage, Healing or Boss damage classification.'],
