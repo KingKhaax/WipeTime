@@ -565,7 +565,7 @@ const Extras2 = (() => {
     const iw = W - padL - 8; const ih = H - padB - padT;
     const X = (ms) => padL + (ms / total) * iw;
     const Y = (v) => padT + ih - (v / 100) * ih;
-    ctx.font = '11px system-ui'; ctx.fillStyle = muted; ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    ctx.font = `11px ${UI_FONT}`; ctx.fillStyle = muted; ctx.strokeStyle = grid; ctx.lineWidth = 1;
     for (let v = 0; v <= 100; v += 25) {
       ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(padL, Y(v)); ctx.lineTo(W - 8, Y(v)); ctx.stroke(); ctx.globalAlpha = 1;
       ctx.textAlign = 'right'; ctx.fillText(`${v}%`, padL - 6, Y(v) + 4);

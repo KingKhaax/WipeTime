@@ -372,7 +372,7 @@ const Extras = (() => {
     const max = Math.max(opts.fixedMax || 0, ...series.map((s) => s.v), 1) * 1.08;
     const X = (ms) => padL + (ms / total) * iw;
     const Y = (v) => padT + ih - (v / max) * ih;
-    ctx.font = '11px system-ui'; ctx.fillStyle = muted; ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.font = `11px ${UI_FONT}`; ctx.fillStyle = muted; ctx.strokeStyle = line; ctx.lineWidth = 1;
     for (let i = 0; i <= 3; i++) {
       const v = (max / 3) * i; const y = Y(v);
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 8, y); ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1;
@@ -714,7 +714,7 @@ const Extras = (() => {
       const [x, y] = P(c);
       const r = 10 + 12 * ((c.p.endTime - c.p.startTime) / maxD);
       ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fillStyle = 'rgba(77,163,255,.35)'; ctx.fill(); ctx.strokeStyle = '#7aa7ff'; ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(c.p.id), x, y);
+      ctx.fillStyle = '#fff'; ctx.font = `700 12px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(c.p.id), x, y);
     });
   }
 

@@ -29,7 +29,7 @@
   --neg-text: #f2c4c9;
   --pos-bg: #253a32;
   --zebra: rgba(255, 255, 255, .012);
-  --font: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font: "Noto Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif;
   color-scheme: dark;
 }
 
@@ -965,7 +965,7 @@ h3.sec { margin: 22px 0 8px; font-size: 13px; letter-spacing: .4px; text-transfo
    Tema WoW (v2.6): azul noche con los colores del logo (teal, azul, índigo), títulos clásicos y marcos de objeto
    ===================================================================== */
 :root {
-  --display: "Palatino Linotype", "Book Antiqua", Palatino, "Times New Roman", serif;
+  --display: var(--font); /* títulos con la misma tipografía limpia que el resto (estilo Battle.net) */
   --brand-1: #19aaa8;
   --brand-2: #2c76b8;
   --brand-3: #3e42c6;
@@ -1035,7 +1035,7 @@ body { background: radial-gradient(1400px 700px at 50% -220px, rgba(25, 170, 168
 
 /* títulos con tipografía clásica */
 .hdr h1, .welcome h1, .hero-title, .cmp-hero h1, .phead h1, .brand, .gd-head h2, .rep-title, .enc-h > span:first-child, .bn-txt h2, .hdr h2 {
-  font-family: var(--display); color: var(--title); letter-spacing: .2px;
+  font-family: var(--display); color: var(--title); letter-spacing: 0; font-weight: 700;
 }
 .hdr h1, .hero-title { font-weight: 700; text-shadow: 0 2px 16px rgba(0, 0, 0, .4); }
 :root[data-theme="light"] .hdr h1, :root[data-theme="light"] .hero-title { text-shadow: none; }

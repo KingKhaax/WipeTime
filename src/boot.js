@@ -11,8 +11,10 @@ var WCSettings = (function () {
     wipecraft: ['#2aa7b5', '#17779f'], gold: ['#e7b84a', '#a9741a'], blue: ['#5b8def', '#3a6fe0'], violet: ['#8b7bff', '#6a56e8'], cyan: ['#2fc4e8', '#0f93b5'], green: ['#3fc08a', '#1f9d6b'],
     orange: ['#f0a23b', '#d17f12'], pink: ['#ef5f9a', '#d03a78'], red: ['#ef5f6b', '#d6384a'],
   };
+  var CJK = ', "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", "Segoe UI", sans-serif';
   var FONTS = {
-    default: { label: 'Inter / Segoe UI', css: 'Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    default: { label: 'Noto Sans (estilo Battle.net)', css: '"Noto Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
+    inter: { label: 'Inter', css: 'Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
     segoe: { label: 'Segoe UI', css: '"Segoe UI", system-ui, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
     arial: { label: 'Arial', css: 'Arial, Helvetica, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
     verdana: { label: 'Verdana', css: 'Verdana, Geneva, "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", sans-serif' },
@@ -21,6 +23,17 @@ var WCSettings = (function () {
     georgia: { label: 'Georgia', css: 'Georgia, "Times New Roman", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", serif' },
     consolas: { label: 'Consolas', css: 'Consolas, "Cascadia Mono", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", monospace' },
     comic: { label: 'Comic Sans', css: '"Comic Sans MS", "Chalkboard SE", "Microsoft YaHei", "Microsoft JhengHei", "Malgun Gothic", "Yu Gothic", cursive' },
+    roboto: { label: 'Roboto', css: 'Roboto' + CJK },
+    opensans: { label: 'Open Sans', css: '"Open Sans"' + CJK },
+    sourcesans: { label: 'Source Sans 3', css: '"Source Sans 3"' + CJK },
+    lato: { label: 'Lato', css: 'Lato' + CJK },
+    montserrat: { label: 'Montserrat', css: 'Montserrat' + CJK },
+    poppins: { label: 'Poppins', css: 'Poppins' + CJK },
+    barlow: { label: 'Barlow', css: 'Barlow' + CJK },
+    exo2: { label: 'Exo 2 (gaming)', css: '"Exo 2"' + CJK },
+    rajdhani: { label: 'Rajdhani (gaming)', css: 'Rajdhani' + CJK },
+    bahnschrift: { label: 'Bahnschrift (Windows)', css: 'Bahnschrift, "Noto Sans"' + CJK },
+    expressway: { label: 'Expressway (si la tienes instalada)', css: 'Expressway, "Expressway Free", Bahnschrift, "Noto Sans"' + CJK },
   };
   var data = {};
   try { data = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { data = {}; }
@@ -57,6 +70,8 @@ var WCSettings = (function () {
     var font = (FONTS[get('font')] || FONTS.default).css;
     root.style.setProperty('--font', font);
     window.UI_FONT = font;
+    // precarga los pesos para que también salgan bien los textos pintados en canvas (replay, gráficas)
+    try { if (document.fonts) ['400', '500', '600', '700'].forEach(function (w) { document.fonts.load(w + ' 14px "Noto Sans"'); }); } catch (e) { /* sin precarga */ }
     root.dataset.density = get('density');
     root.dataset.motion = get('motion');
   }
