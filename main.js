@@ -730,10 +730,13 @@ async function fetchManifest(source) {
   return res.json();
 }
 
-ipcMain.handle('update:check', async (_e, source) => {
+// Fuente fija: las Releases del repositorio de WipeTime (no hay que escribir ninguna dirección)
+const UPDATE_SOURCE = 'KingKhaax/WipeTime';
+
+ipcMain.handle('update:check', async () => {
   const current = app.getVersion();
   try {
-    const mf = await fetchManifest(source);
+    const mf = await fetchManifest(UPDATE_SOURCE);
     const latest = String(mf.version || '').replace(/^v/i, '');
     if (!latest) throw new Error('BAD_MANIFEST');
     const portable = !!process.env.PORTABLE_EXECUTABLE_FILE;
@@ -774,7 +777,8 @@ ipcMain.handle('update:install', async (e) => {
       fs.writeFileSync(bat, `@echo off\r\nping 127.0.0.1 -n 4 >nul\r\ncopy /y "${file}" "${target}" >nul\r\nstart "" "${target}"\r\n`);
       require('child_process').spawn('cmd.exe', ['/c', bat], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     } else {
-      require('child_process').spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
+      // Instalación silenciosa y reapertura automática del programa (los mismos argumentos que usa electron-updater)
+      require('child_process').spawn(file, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore' }).unref();
     }
     setTimeout(() => app.quit(), 400);
     return { ok: true };

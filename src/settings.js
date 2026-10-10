@@ -53,11 +53,9 @@ async function openSettings(tab) {
         <div class="ver-state" id="verState">${WCUpdate.stateHTML()}</div>
       </div>
       <div class="set-actions">
-        <button type="button" class="btn" data-set-act="check-update">${LL('Buscar actualizaciones', 'Check for updates')}</button>
-        <button type="button" class="btn primary" data-set-act="do-update" id="doUpdate" ${WCUpdate.canInstall() ? '' : 'disabled'}>${LL('Actualizar a la versión más reciente', 'Update to the latest version')}</button>
+        <button type="button" class="btn primary" data-set-act="update-now" id="doUpdate">${WCUpdate.buttonLabel()}</button>
       </div>
       <div class="ver-prog" id="verProg" hidden><i></i></div>
-      ${row(LL('Fuente de actualizaciones', 'Update source'), `<input id="updSource" class="set-input" value="${esc(G('updateSource') || '')}" placeholder="usuario/repositorio  ·  https://…/latest.json" spellcheck="false">`, LL('Repositorio de GitHub con Releases, o la dirección de un archivo latest.json', 'GitHub repository with Releases, or the URL of a latest.json file'))}
       ${toggle('autoUpdateCheck', LL('Buscar actualizaciones al abrir', 'Check for updates on startup'))}
       <h3>${LL('Historial de versiones', 'Version history')}</h3>
       <div class="changelog">${WCUpdate.CHANGELOG.map(([v, es, en]) => `<div><b>v${v}</b><span>${S.lang === 'es' ? es : en}</span></div>`).join('')}</div>`,
@@ -102,8 +100,7 @@ document.addEventListener('click', async (ev) => {
   const act = el.dataset.setAct;
   if (act === 'zoom-reset') { WCSettings.set('zoom', 100); openSettings(); }
   else if (act === 'clear-icons') { const n = await window.api.clearIcons(); toastSet(LL(`Caché de iconos borrada (${n} archivos)`, `Icon cache cleared (${n} files)`, `Symbol-Cache geleert (${n} Dateien)`, `Cache des icônes vidé (${n} fichiers)`)); }
-  else if (act === 'check-update') { await WCUpdate.check(true); openSettings('version'); }
-  else if (act === 'do-update') WCUpdate.install();
+  else if (act === 'update-now') WCUpdate.updateNow();
   else if (act === 'clear-spells') { const n = await window.api.clearSpells(); toastSet(LL(`Descripciones borradas (${n})`, `Descriptions cleared (${n})`, `Beschreibungen gelöscht (${n})`, `Descriptions effacées (${n})`)); }
   else if (act === 'clear-qcache') { const n = await window.api.clearQueryCache(); toastSet(LL(`Caché de logs vaciada (${n} archivos)`, `Log cache cleared (${n} files)`, `Log-Cache geleert (${n} Dateien)`, `Cache des logs vidé (${n} fichiers)`)); }
   else if (act === 'clear-bossmaps') { const n = await window.api.clearBossMaps(); toastSet(LL(`Mapas de jefes borrados (${n})`, `Boss maps cleared (${n})`, `Bosskarten gelöscht (${n})`, `Cartes de boss effacées (${n})`)); }
@@ -134,9 +131,6 @@ document.addEventListener('change', async (ev) => {
     WCSettings.set('font', t0.value);
     const fp = $('#fontPrev');
     if (fp) fp.style.fontFamily = WCSettings.FONTS[t0.value].css;
-  } else if (t0.id === 'updSource') {
-    WCSettings.set('updateSource', t0.value.trim());
-    WCUpdate.reset();
   } else if (t0.dataset.setBool) {
     const k = t0.dataset.setBool;
     WCSettings.set(k, t0.checked);

@@ -7,6 +7,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['0.4.4', 'Actualización con un solo botón en Ajustes → Versión: comprueba, descarga, instala y reabre WipeTime sin escribir ninguna dirección de GitHub.', 'One-button update in Settings → Version: it checks, downloads, installs and reopens WipeTime without typing any GitHub address.'],
     ['0.4.3', 'Servidor intermedio movido a Vercel: WipeTime vuelve a funcionar sin claves propias incluso durante los bloqueos de IPs de Cloudflare por los partidos de fútbol.', 'Intermediate server moved to Vercel: WipeTime works again without your own keys even during the Cloudflare IP blocks caused by football matches.'],
     ['0.4.2', 'Nueva ficha de personaje (Buscar personaje en el inicio): posiciones mundial, de región y de reino, tabla por jefe, parche y dificultad, puntuación de Mítica+, equipo y modelo en vivo, botón Actualizar y días sin actualizar el equipo; la armería muestra el modelo del personaje, sin hueco de mano izquierda si lleva arma a dos manos y con los números de las estadísticas; guilds y personajes se registran a mano sin iniciar sesión; fuera las pestañas de credenciales de Ajustes.', 'New character page (Find a character on the home screen): world, region and realm rankings, per-boss table, patch and difficulty, Mythic+ score, live gear and model, Update button and days since the gear was last updated; the armory shows the character model, no off-hand slot with a two-handed weapon and the stat numbers; guilds and characters are registered by hand without signing in; credential tabs removed from Settings.'],
     ['0.4.1', 'Botón «Idiomas» con español, inglés, alemán y francés (el idioma en uso va resaltado); al compararte con los mejores salen su nombre y reino en lugar de Top 1, 2, 3 (con soporte de caracteres chinos, coreanos y cirílicos) y el ranking se pide siempre en vivo; en tu perfil, al pulsar un personaje se despliega su armería con equipo y estadísticas en número y %; iconos de la barra superior sin el aro interior.', 'New «Languages» button with Spanish, English, German and French (the language in use is highlighted); when you compare with the best, their name and realm replace Top 1, 2, 3 (with Chinese, Korean and Cyrillic character support) and the ranking is always fetched live; in your profile, clicking a character opens its armory with gear and stats as numbers and %; top-bar icons without the inner ring.'],
@@ -57,8 +58,7 @@ const WCUpdate = (() => {
 
   async function check(manual) {
     if (!version) version = ((await window.api.appInfo?.()) || {}).version || '';
-    const src = WCSettings.get('updateSource');
-    res = await window.api.updateCheck(src);
+    res = await window.api.updateCheck();
     paintBadge();
     if (manual && res.outdated) toast(tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`, `Neue Version verfügbar: v${res.latest}`, `Nouvelle version disponible : v${res.latest}`));
     return res;
@@ -73,17 +73,34 @@ const WCUpdate = (() => {
     const r = await window.api.updateInstall();
     if (r.error) {
       toast((tr('Error al actualizar: ', 'Update failed: ', 'Update fehlgeschlagen: ', 'Échec de la mise à jour : ')) + r.error);
-      if (btn) { btn.disabled = false; btn.textContent = tr('Actualizar a la versión más reciente', 'Update to the latest version', 'Auf die neueste Version aktualisieren', 'Mettre à jour vers la dernière version'); }
+      if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); }
     }
   }
+
+  // Un solo botón: comprueba si hay versión nueva y, si la hay, la descarga e instala
+  async function updateNow() {
+    const btn = document.getElementById('doUpdate');
+    if (btn) { btn.disabled = true; btn.textContent = tr('Buscando…', 'Checking…', 'Suche…', 'Recherche…'); }
+    const r = await check(false);
+    const st = document.getElementById('verState');
+    if (st) st.innerHTML = stateHTML();
+    if (r.error) { toast(tr('No se pudo comprobar', 'Could not check', 'Prüfung nicht möglich', 'Vérification impossible') + `: ${r.error}`); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
+    if (!r.outdated) { toast(tr('Tienes la versión más reciente', 'You have the latest version', 'Du hast die neueste Version', 'Tu as la dernière version')); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
+    if (!r.canInstall) { toast(tr('Hay una versión nueva, pero no se puede instalar sola', 'A new version exists, but it cannot be installed automatically', 'Es gibt eine neue Version, sie lässt sich aber nicht automatisch installieren', 'Une nouvelle version existe, mais elle ne peut pas être installée automatiquement')); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
+    await install();
+  }
+
+  const buttonLabel = () => (res?.outdated
+    ? tr(`Actualizar a v${res.latest}`, `Update to v${res.latest}`, `Auf v${res.latest} aktualisieren`, `Mettre à jour vers v${res.latest}`)
+    : tr('Buscar e instalar actualización', 'Check and install update', 'Nach Update suchen und installieren', 'Rechercher et installer la mise à jour'));
 
   async function init() {
     version = ((await window.api.appInfo?.()) || {}).version || '';
     paintBadge();
-    if (WCSettings.get('autoUpdateCheck') !== false && WCSettings.get('updateSource')) check(false);
+    if (WCSettings.get('autoUpdateCheck') !== false) check(false);
   }
 
   const reset = () => { res = null; paintBadge(); };
   document.addEventListener('DOMContentLoaded', init);
-  return { check, install, init, reset, cls, canInstall, stateHTML, CHANGELOG };
+  return { check, install, updateNow, buttonLabel, init, reset, cls, canInstall, stateHTML, CHANGELOG };
 })();
