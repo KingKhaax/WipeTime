@@ -1451,3 +1451,34 @@ img.role-ic { border-radius: 7px; }
 .pf-it em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pf-model { min-height: 420px; }
 @media (max-width: 1000px) { .pf-grid { grid-template-columns: 1fr; } .pf-upd { align-items: flex-start; margin-left: 0; } }
+
+/* Versión: verde si es la más reciente, rojo (con pulso suave) si hay una nueva */
+.ver-badge.ok { background: rgba(61, 220, 132, .12); }
+.ver-badge.bad { background: rgba(255, 93, 93, .14); animation: verPulse 2s ease-in-out infinite; }
+@keyframes verPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 93, 93, .45); } 50% { box-shadow: 0 0 0 5px rgba(255, 93, 93, 0); } }
+:root[data-motion="reduced"] .ver-badge.bad { animation: none; }
+
+/* Buscador de personajes */
+.pf-search { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pf-search input, .pf-search select { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 15px; }
+.pf-in-name { flex: 2 1 220px; min-width: 160px; }
+.pf-in-realm { flex: 1.4 1 180px; min-width: 140px; }
+.pf-search input:focus, .pf-search select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.pf-search .btn.primary { padding: 11px 26px; border-radius: 10px; }
+.pf-find .sec { cursor: pointer; }
+.flag { display: inline-block; vertical-align: middle; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .55); object-fit: cover; }
+.pf-dlg { min-width: min(720px, 86vw); max-height: 78vh; display: flex; flex-direction: column; gap: 10px; }
+.pf-dlg-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pf-dlg-h h2 { margin: 0; font-size: 20px; }
+.pf-res { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+.pf-row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); text-align: left; cursor: pointer; }
+.pf-row:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel-2)); }
+.pf-row-pic { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: #05080f; border: 2px solid var(--c, var(--line)); }
+.pf-row-pic img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.pf-row-n { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.pf-row-n b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-row-n small, .pf-row-s small { color: var(--muted); font-size: 12px; }
+.pf-fac { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; vertical-align: middle; }
+.pf-row-s { display: flex; align-items: center; gap: 10px; text-align: right; }
+.pf-row-s > span { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.pf-links { margin-top: 4px; font-size: 12.5px; }

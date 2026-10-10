@@ -4,9 +4,11 @@
 const WCUpdate = (() => {
   let res = null; // último resultado de update:check
   let version = '';
+  let lastCheck = 0;
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['0.4.6', 'Buscador de personajes rehecho: escribe el nombre (el reino es opcional) y pulsa Intro para ver en una ventana todos los personajes con ese nombre, su reino y la bandera de su país; al pulsar uno se abre su ficha con posiciones, logs por jefe, equipo y modelo, con enlaces a Warcraft Logs, Raider.IO y la armería. Nuevo botón Personajes en la barra superior. La versión de la barra superior se pone en verde si es la última y en rojo si hay una nueva, y se comprueba sola cada pocos minutos.', 'Rebuilt character search: type the name (realm is optional) and press Enter to see in a window every character with that name, its realm and country flag; picking one opens its page with rankings, logs per boss, gear and model, with links to Warcraft Logs, Raider.IO and the armory. New Characters button in the top bar. The version in the top bar turns green when it is the latest and red when a new one exists, and it re-checks by itself every few minutes.'],
     ['0.4.5', 'Nueva tipografía en toda la app: Noto Sans, limpia y profesional como la de Battle.net, incluida en el programa (también en títulos y gráficas). En Ajustes → Apariencia → Fuente hay más opciones: Inter, Roboto, Open Sans, Montserrat, Poppins, Barlow, Exo 2, Rajdhani, Lato, Source Sans 3, Bahnschrift y Expressway (esta usa la que tengas instalada).', 'New typography across the app: Noto Sans, clean and professional like Battle.net’s, bundled with the program (also in titles and charts). Settings → Appearance → Font has more choices: Inter, Roboto, Open Sans, Montserrat, Poppins, Barlow, Exo 2, Rajdhani, Lato, Source Sans 3, Bahnschrift and Expressway (which uses the one you have installed).'],
     ['0.4.4', 'Actualización con un solo botón en Ajustes → Versión: comprueba, descarga, instala y reabre WipeTime sin escribir ninguna dirección de GitHub.', 'One-button update in Settings → Version: it checks, downloads, installs and reopens WipeTime without typing any GitHub address.'],
     ['0.4.3', 'Servidor intermedio movido a Vercel: WipeTime vuelve a funcionar sin claves propias incluso durante los bloqueos de IPs de Cloudflare por los partidos de fútbol.', 'Intermediate server moved to Vercel: WipeTime works again without your own keys even during the Cloudflare IP blocks caused by football matches.'],
@@ -59,8 +61,12 @@ const WCUpdate = (() => {
 
   async function check(manual) {
     if (!version) version = ((await window.api.appInfo?.()) || {}).version || '';
-    res = await window.api.updateCheck();
+    const next = await window.api.updateCheck();
+    // un fallo puntual de red no borra el último estado conocido (verde o rojo)
+    res = next.error && res && !res.error ? res : next;
+    lastCheck = Date.now();
     paintBadge();
+    refreshOpenPanel();
     if (manual && res.outdated) toast(tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`, `Neue Version verfügbar: v${res.latest}`, `Nouvelle version disponible : v${res.latest}`));
     return res;
   }
@@ -95,11 +101,27 @@ const WCUpdate = (() => {
     ? tr(`Actualizar a v${res.latest}`, `Update to v${res.latest}`, `Auf v${res.latest} aktualisieren`, `Mettre à jour vers v${res.latest}`)
     : tr('Buscar e instalar actualización', 'Check and install update', 'Nach Update suchen und installieren', 'Rechercher et installer la mise à jour'));
 
+  // Si Ajustes → Versión está abierto, repinta el estado y el botón con el resultado más reciente
+  function refreshOpenPanel() {
+    const st = document.getElementById('verState');
+    if (st) st.innerHTML = stateHTML();
+    const num = document.querySelector('.ver-num');
+    if (num) num.className = `ver-num ${cls()}`;
+    const btn = document.getElementById('doUpdate');
+    if (btn && !btn.disabled) btn.textContent = buttonLabel();
+  }
+
   async function init() {
     version = ((await window.api.appInfo?.()) || {}).version || '';
     paintBadge();
     if (WCSettings.get('autoUpdateCheck') !== false) check(false);
   }
+
+  // Seguimiento en tiempo real: cada 3 minutos y al volver a la ventana (si han pasado más de 60 s)
+  const recheck = () => { if (WCSettings.get('autoUpdateCheck') !== false && Date.now() - lastCheck > 60000) check(false); };
+  setInterval(() => { if (WCSettings.get('autoUpdateCheck') !== false) check(false); }, 3 * 60 * 1000);
+  window.addEventListener('focus', recheck);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) recheck(); });
 
   const reset = () => { res = null; paintBadge(); };
   document.addEventListener('DOMContentLoaded', init);

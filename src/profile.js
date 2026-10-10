@@ -77,6 +77,68 @@ const Profile = (() => {
     }, 60000);
   }
 
+
+  // ------------------------------------------------------------ banderas y búsqueda por nombre
+  const COUNTRY = { es_ES: 'es', es_MX: 'mx', es_AR: 'ar', es_CL: 'cl', de_DE: 'de', fr_FR: 'fr', en_GB: 'gb', it_IT: 'it', pt_PT: 'pt', pt_BR: 'br', ru_RU: 'ru', pl_PL: 'pl', en_US: 'us', en_AU: 'au', ko_KR: 'kr', zh_TW: 'tw', zh_CN: 'cn' };
+  const REGION_FLAG = { eu: 'gb', us: 'us', kr: 'kr', tw: 'tw' };
+  const flagCode = (locale, region) => COUNTRY[locale] || REGION_FLAG[region] || '';
+  const flagHTML = (locale, region, title = '') => { const c = flagCode(locale, region); return c ? `<img class="flag" src="flags/${c}.svg" alt="${esc(c.toUpperCase())}" title="${esc(title || c.toUpperCase())}" width="22" height="16">` : ''; };
+  const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const sr = { term: '', realm: '', region: 'all', list: [], hidden: 0, loading: false, error: '' };
+  const CLASS_KEY_BY_ID = () => Cards.CLASS_KEY;
+
+  // Comprobación directa en Blizzard cuando se escribe un reino (por si Raider.IO no conoce al personaje)
+  async function directLookup(name, realm, region) {
+    const slug = Cards.slugOf(realm);
+    for (const rg of region === 'all' ? REGIONS : [region]) {
+      try {
+        const c = await Cards.char(name, slug, rg);
+        return { name: c.name, realmSlug: c.realmSlug || slug, realmName: c.realmName || realm, altName: '', region: rg, regionShort: rg.toUpperCase(), locale: '', faction: String(c.faction || '').toLowerCase(), classId: c.classId || 0, thumb: c.avatar || '' };
+      } catch { /* no existe en esa región */ }
+    }
+    return null;
+  }
+
+  async function search(name, realm, region) {
+    sr.term = name; sr.realm = realm; sr.region = region; sr.list = []; sr.hidden = 0; sr.error = ''; sr.loading = true;
+    renderSearch();
+    const [r, direct] = await Promise.all([window.api.rioSearch(name), realm ? directLookup(name, realm, region) : Promise.resolve(null)]);
+    sr.loading = false;
+    if (r.error && !direct) sr.error = friendlyError(r.error);
+    let list = r.list || [];
+    if (region !== 'all') list = list.filter((x) => x.region === region);
+    if (realm) {
+      const k = norm(realm);
+      list = list.filter((x) => norm(x.realmName).includes(k) || norm(x.realmSlug).includes(k) || norm(x.altName).includes(k));
+    }
+    if (direct && !list.some((x) => x.region === direct.region && x.realmSlug === direct.realmSlug && norm(x.name) === norm(direct.name))) list.unshift(direct);
+    sr.list = list;
+    sr.hidden = r.hidden || 0;
+    renderSearch();
+  }
+
+  function renderSearch() {
+    const dlg = $('#pfSearch');
+    if (!dlg) return;
+    const key = Cards.CLASS_KEY;
+    let body;
+    if (sr.loading) body = `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
+    else if (sr.error) body = `<div class="error"><p>${esc(sr.error)}</p></div>`;
+    else if (!sr.list.length) body = `<div class="empty sm">${LL('No he encontrado ningún personaje con ese nombre. Prueba a escribir el reino o a cambiar la región.', 'No character found with that name. Try entering the realm or changing the region.', 'Kein Charakter mit diesem Namen gefunden. Gib den Realm an oder ändere die Region.', 'Aucun personnage trouvé avec ce nom. Essaie de saisir le royaume ou de changer de région.')}</div>`;
+    else body = `<div class="pf-res">${sr.list.map((x, i) => {
+      const cls = key[x.classId] || '';
+      const faction = x.faction === 'horde' ? '#ff4a4a' : x.faction === 'alliance' ? '#4a8dff' : 'var(--muted)';
+      const flag = flagHTML(x.locale, x.region, [x.realmName, x.regionShort].filter(Boolean).join(' · '));
+      return `<button type="button" class="pf-row" data-pf="pick" data-i="${i}"><span class="pf-row-pic" style="--c:${classColor(cls)}">${x.thumb ? `<img src="${Cards.media(x.thumb)}" alt="" loading="lazy">` : ''}</span>
+        <span class="pf-row-n"><b style="color:${classColor(cls)}">${esc(x.name)}</b><small>${esc(cls ? className(cls) : '')} <i class="pf-fac" style="background:${faction}"></i></small></span>
+        <span class="pf-row-s">${flag}<span>${esc(x.realmName)}${x.altName && x.altName !== x.realmName ? ` <small class="muted">${esc(x.altName)}</small>` : ''}<small>${esc(x.regionShort || x.region.toUpperCase())}</small></span></span></button>`;
+    }).join('')}</div>${sr.hidden ? `<small class="muted">${LL(`${sr.hidden} resultados de reinos de China ocultos (no se pueden consultar).`, `${sr.hidden} results from China realms hidden (they cannot be queried).`, `${sr.hidden} Ergebnisse von China-Realms ausgeblendet (nicht abrufbar).`, `${sr.hidden} résultats de royaumes chinois masqués (non consultables).`)}</small>` : ''}`;
+    dlg.innerHTML = `<div class="pf-dlg"><div class="pf-dlg-h"><div><h2>${LL('Personajes', 'Characters', 'Charaktere', 'Personnages')}: «${esc(sr.term)}»</h2>
+      <small class="muted">${sr.loading ? '' : LL(`${sr.list.length} encontrados`, `${sr.list.length} found`, `${sr.list.length} gefunden`, `${sr.list.length} trouvés`)}${sr.realm ? ` · ${esc(sr.realm)}` : ''}</small></div>
+      <button type="button" class="btn ghost" data-pf="closesearch">${LL('Cerrar', 'Close', 'Schließen', 'Fermer')}</button></div>${body}</div>`;
+    if (!dlg.open) dlg.showModal();
+  }
+
   // ------------------------------------------------------------ vista
   function open(q) {
     if (typeof Replay !== 'undefined') Replay.stop();
@@ -86,10 +148,10 @@ const Profile = (() => {
     S.guildOpen = false;
     S.profileOpen = true;
     sidebar.hidden = true;
-    st.q = { name: q.name, slug: q.slug, realm: q.realm || q.slug, region: REGIONS.includes(q.region) ? q.region : 'eu' };
+    st.q = { name: q.name, slug: q.slug, realm: q.realm || q.slug, region: REGIONS.includes(q.region) ? q.region : 'eu', locale: q.locale || '' };
     st.arm = null; st.rio = null; st.wcl = null; st.wclErr = ''; st.armErr = '';
     const l = recent().filter((x) => !(x.slug === st.q.slug && x.name.toLowerCase() === st.q.name.toLowerCase() && x.region === st.q.region));
-    l.unshift({ name: st.q.name, realm: st.q.realm, slug: st.q.slug, region: st.q.region });
+    l.unshift({ name: st.q.name, realm: st.q.realm, slug: st.q.slug, region: st.q.region, locale: st.q.locale });
     lsSet('prof:recent', JSON.stringify(l.slice(0, 8)));
     main.scrollTop = 0;
     load();
@@ -126,6 +188,20 @@ const Profile = (() => {
     return tiles.join('');
   }
 
+  // Enlaces a las mismas fichas en otras webs
+  function linksHTML() {
+    const q = st.q;
+    const slug = encodeURIComponent(q.slug);
+    const nm = encodeURIComponent(q.name);
+    const lang = { es: 'es-es', en: 'en-gb', de: 'de-de', fr: 'fr-fr' }[S.lang] || 'en-gb';
+    const links = [
+      ['Warcraft Logs', `https://www.warcraftlogs.com/character/${q.region}/${slug}/${nm}`],
+      ['Raider.IO', st.rio?.url || `https://raider.io/characters/${q.region}/${slug}/${nm}`],
+      [LL('Armería', 'Armory', 'Arsenal', 'Armurerie'), `https://worldofwarcraft.blizzard.com/${lang}/character/${q.region}/${slug}/${nm}`],
+    ];
+    return links.map(([l, u]) => `<a href="#" class="link" data-pf="ext" data-u="${esc(u)}">${esc(l)} ↗</a>`).join(' · ');
+  }
+
   function headerHTML() {
     const a = st.arm;
     const w = st.wcl;
@@ -139,8 +215,9 @@ const Profile = (() => {
     return `<div class="pf-head">
       <span class="pf-ava">${avatar}<b>${esc(a?.level || w?.level || '')}</b></span>
       <div class="pf-id"><h1>${esc(a?.name || q.name)}</h1>
-        <div class="pf-sub">${guild}<span>${esc(a?.realmName || q.realm)} (${esc(q.region.toUpperCase())})</span></div>
-        <div class="pf-cls" style="color:${classColor(cls)}">${esc([a?.race, a?.cls].filter(Boolean).join(' '))}${a?.spec ? ` · ${esc(a.spec)}` : ''}</div></div>
+        <div class="pf-sub">${guild}${flagHTML(q.locale, q.region)} <span>${esc(a?.realmName || q.realm)} (${esc(q.region.toUpperCase())})</span></div>
+        <div class="pf-cls" style="color:${classColor(cls)}">${esc([a?.race, a?.cls].filter(Boolean).join(' '))}${a?.spec ? ` · ${esc(a.spec)}` : ''}</div>
+        <div class="pf-links">${linksHTML()}</div></div>
       <div class="pf-tiles">${tilesHTML()}</div>
       <div class="pf-upd"><button type="button" class="btn ghost" data-pf="update" ${st.busy ? 'disabled' : ''}>↻ ${LL('Actualizar', 'Update', 'Aktualisieren', 'Actualiser')}</button>
         <small>${LL('Equipo actualizado', 'Gear updated', 'Ausrüstung aktualisiert', 'Équipement mis à jour')}: <b class="${stale ? 'bad' : ''}">${esc(ago(a?.lastLogin))}</b>${days != null && days > 0 ? ` <span class="muted">(${LL(`${days} d sin actualizar`, `${days} d without update`, `${days} T. ohne Update`, `${days} j sans mise à jour`)})</span>` : ''}</small>
@@ -212,15 +289,23 @@ const Profile = (() => {
         <aside class="pf-right"><div class="pf-gear">${gearHTML()}</div>${model}</aside></div></div>`;
   }
 
-  // ------------------------------------------------------------ formulario de búsqueda (portada)
+  // ------------------------------------------------------------ buscador (portada)
   function formHTML() {
-    const last = lsGet('prof:region') || 'eu';
+    const last = lsGet('prof:region') || 'all';
     const rec = recent();
-    return `<form id="pfForm" class="gd-form pf-form"><input name="name" placeholder="${esc(LL('Nombre del personaje', 'Character name', 'Charaktername', 'Nom du personnage'))}" spellcheck="false" autocomplete="off" required>
-      <input name="realm" placeholder="${esc(LL('Reino (ej. Zul’jin)', 'Realm (e.g. Zul’jin)', 'Realm (z. B. Zul’jin)', 'Royaume (ex. Zul’jin)'))}" spellcheck="false" autocomplete="off" required>
-      <select name="region">${REGIONS.map((r) => `<option value="${r}" ${r === last ? 'selected' : ''}>${r.toUpperCase()}</option>`).join('')}</select>
-      <button class="btn primary" type="submit">${LL('Buscar personaje', 'Find character', 'Charakter suchen', 'Chercher le personnage')}</button></form>
-      ${rec.length ? `<div class="chips pf-rec">${rec.map((x, i) => `<button type="button" class="chip" data-pf="recent" data-i="${i}">${esc(x.name)} <span class="muted">${esc(x.realm)} · ${esc(x.region.toUpperCase())}</span></button>`).join('')}</div>` : ''}`;
+    const reg = [['all', LL('Todas las regiones', 'All regions', 'Alle Regionen', 'Toutes les régions')], ['eu', 'EU'], ['us', 'US'], ['kr', 'KR'], ['tw', 'TW']];
+    return `<form id="pfForm" class="pf-search" autocomplete="off">
+      <input name="name" class="pf-in-name" placeholder="${esc(LL('Nombre del personaje', 'Character name', 'Charaktername', 'Nom du personnage'))}" spellcheck="false" required>
+      <input name="realm" class="pf-in-realm" placeholder="${esc(LL('Reino (opcional)', 'Realm (optional)', 'Realm (optional)', 'Royaume (facultatif)'))}" spellcheck="false">
+      <select name="region">${reg.map(([v, l]) => `<option value="${v}" ${v === last ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <button class="btn primary" type="submit">${LL('Buscar', 'Search', 'Suchen', 'Rechercher')}</button></form>
+      ${rec.length ? `<div class="chips pf-rec">${rec.map((x, i) => `<button type="button" class="chip" data-pf="recent" data-i="${i}">${flagHTML(x.locale, x.region)} ${esc(x.name)} <span class="muted">${esc(x.realm)} · ${esc(x.region.toUpperCase())}</span></button>`).join('')}</div>` : ''}`;
+  }
+
+  function sectionHTML() {
+    return `<section class="pf-find"><h3 class="sec" data-pf="focus">${LL('Buscar personaje', 'Find a character', 'Charakter suchen', 'Chercher un personnage')}</h3>
+      <p class="muted">${LL('Escribe el nombre y pulsa Intro: verás los personajes que existen con ese nombre, su reino y su país. El reino es opcional. Al elegir uno, se abre su ficha con posiciones, logs por jefe, equipo y modelo en vivo.', 'Type the name and press Enter: you will see the characters that exist with that name, their realm and country. The realm is optional. Pick one to open its page with rankings, logs per boss, gear and model, live.', 'Gib den Namen ein und drücke Enter: Du siehst die Charaktere mit diesem Namen, ihren Realm und ihr Land. Der Realm ist optional. Wähle einen, um seine Seite mit Platzierungen, Logs pro Boss, Ausrüstung und Modell live zu öffnen.', 'Saisis le nom et appuie sur Entrée : tu verras les personnages portant ce nom, leur royaume et leur pays. Le royaume est facultatif. Choisis-en un pour ouvrir sa fiche avec classements, logs par boss, équipement et modèle, en direct.')}</p>
+      ${formHTML()}</section>`;
   }
 
   document.addEventListener('submit', (ev) => {
@@ -231,7 +316,7 @@ const Profile = (() => {
     const realm = String(fd.get('realm') || '').trim();
     const region = String(fd.get('region') || 'eu');
     lsSet('prof:region', region);
-    if (name && realm) open({ name, realm, slug: Cards.slugOf(realm), region });
+    if (name) search(name, realm, region);
   });
 
   document.addEventListener('click', (ev) => {
@@ -239,6 +324,10 @@ const Profile = (() => {
     if (!el) return;
     const a = el.dataset.pf;
     if (a === 'recent') { const x = recent()[Number(el.dataset.i)]; if (x) open(x); }
+    else if (a === 'pick') { const x = sr.list[Number(el.dataset.i)]; if (x) { $('#pfSearch').close(); open({ name: x.name, realm: x.realmName, slug: x.realmSlug, region: x.region, locale: x.locale }); } }
+    else if (a === 'closesearch') $('#pfSearch').close();
+    else if (a === 'ext') { ev.preventDefault(); window.api.openExternal(el.dataset.u); }
+    else if (a === 'focus') { const i = document.querySelector('#pfForm input[name="name"]'); if (i) i.focus(); }
     else if (!S.profileOpen) return;
     else if (a === 'update') load();
     else if (a === 'home') goHome();
@@ -253,5 +342,5 @@ const Profile = (() => {
     fetchWcl().then(render);
   });
 
-  return { open, render, formHTML, load };
+  return { open, render, formHTML, sectionHTML, search, load };
 })();

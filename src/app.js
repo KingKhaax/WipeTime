@@ -1350,9 +1350,7 @@ function renderWelcome() {
       </div>
     </section>
     ${S.hasCreds ? '' : `<div class="notice">${t('noCreds')}</div>`}
-    <section class="pf-find"><h3 class="sec">${LL('Buscar personaje', 'Find a character', 'Charakter suchen', 'Chercher un personnage')}</h3>
-      <p class="muted">${LL('Mira sus posiciones (mundial, región y reino), sus logs por jefe, su equipo y su modelo, todo en vivo.', 'See their rankings (world, region and realm), logs per boss, gear and model, all live.', 'Sieh Platzierungen (Welt, Region und Realm), Logs pro Boss, Ausrüstung und Modell, alles live.', 'Consulte ses classements (monde, région et royaume), ses logs par boss, son équipement et son modèle, en direct.')}</p>
-      ${typeof Profile !== 'undefined' ? Profile.formHTML() : ''}</section>
+    ${typeof Profile !== 'undefined' ? Profile.sectionHTML() : ''}
     <div class="feats">${feats.map(([h, p, icon]) => `<div class="feat">
       <span class="feat-ic"><img src="wcicon://i/${icon}" width="48" height="48" alt=""></span>
       <div><b>${t(h)}</b><span>${t(p)}</span></div></div>`).join('')}</div>
@@ -1486,6 +1484,7 @@ function applyStaticText() {
   renderLangList();
   $('#homeLabel').textContent = t('home');
   $('#cmpLabel').textContent = t('cmpOpen');
+  $('#profLabel').textContent = tr('Personajes', 'Characters', 'Charaktere', 'Personnages');
   $('#exportLabel').textContent = tr('Exportar', 'Export', 'Exportieren', 'Exporter');
   $('#brandHome').title = t('home');
 }
@@ -1680,6 +1679,7 @@ document.addEventListener('paste', (ev) => {
   const item = [...(ev.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
   if (item) { ev.preventDefault(); savePatchArt(item.getAsFile()); }
 });
+$('#profBtn').addEventListener('click', () => { goHome(); setTimeout(() => { const i = document.querySelector('#pfForm input[name="name"]'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }, 50); });
 $('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; S.profileOpen = false; Compare.open(); });
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);

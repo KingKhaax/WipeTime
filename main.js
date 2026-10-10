@@ -1118,6 +1118,33 @@ ipcMain.handle('rio:rank', async (_e, { raid, difficulty, region, realmSlug, gui
 });
 
 // ---- Buscar guilds solo por nombre (sin saber el reino) en el buscador público de Raider.io
+// Buscar personajes por nombre en todos los reinos (Raider.IO). Devuelve reino, país del reino (locale), clase y foto.
+ipcMain.handle('rio:search', async (_e, term) => {
+  try {
+    const q = String(term || '').trim();
+    if (q.length < 2) return { list: [], hidden: 0 };
+    const res = await fetch(`https://raider.io/api/search?term=${encodeURIComponent(q)}&type=character`, { headers: { 'user-agent': 'WipeTime', accept: 'application/json' } });
+    if (!res.ok) return { error: 'HTTP_' + res.status };
+    const j = await res.json();
+    const low = q.toLowerCase();
+    const order = { eu: 0, us: 1, kr: 2, tw: 3 };
+    let hidden = 0;
+    const list = [];
+    for (const x of j.matches || []) {
+      const d = x.data;
+      if (x.type !== 'character' || !d?.realm || !d?.name) continue;
+      if (!(d.region?.slug in order)) { hidden++; continue; } // los reinos de China no se pueden consultar
+      list.push({
+        name: d.name, realmSlug: d.realm.slug, realmName: d.realm.name, altName: d.realm.altName || '', region: d.region.slug, regionShort: d.region.short_name || '',
+        locale: d.realm.locale || '', faction: d.faction || '', classId: d.class?.id || 0,
+        thumb: d.thumbnail_url ? 'https:' + String(d.thumbnail_url).replace(/^https?:/, '').split('?')[0] : '',
+      });
+    }
+    list.sort((a, b) => (a.name.toLowerCase() === low ? 0 : 1) - (b.name.toLowerCase() === low ? 0 : 1) || order[a.region] - order[b.region] || a.realmName.localeCompare(b.realmName));
+    return { list: list.slice(0, 80), hidden };
+  } catch (err) { return { error: String(err.message || err) }; }
+});
+
 ipcMain.handle('rio:char', async (_e, region, realmSlug, name) => {
   try {
     if (!['eu', 'us', 'kr', 'tw'].includes(region)) region = 'eu';
