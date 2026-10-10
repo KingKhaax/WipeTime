@@ -1,0 +1,7 @@
+{
+  "name": "wipetime-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor intermedio de WipeTime para Vercel (claves de Warcraft Logs y Blizzard como variables de entorno)",
+  "engines": { "node": "24.x" }
+}

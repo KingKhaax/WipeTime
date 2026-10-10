@@ -28,3 +28,20 @@ Hace que WipeTime funcione **sin pedir claves a nadie**, como una web: las clave
 - Límite de 120 peticiones por minuto y por IP; para algo más estricto, añade una regla de *Rate Limiting* en el panel de Cloudflare.
 - Si algún día se abusa, basta con regenerar las claves en Warcraft Logs / Blizzard y volver a ejecutar los `secret put`; la app no hay que tocarla.
 - Las claves **propias** que un usuario ponga en Ajustes tienen prioridad sobre el servidor.
+
+
+---
+
+## Alternativa actual: Vercel (plan Hobby, gratis)
+
+El servidor en producción vive en Vercel (`server/vercel/`), porque las IPs de `workers.dev` quedan bloqueadas en España durante los partidos de fútbol. Hace lo mismo que `worker.js`.
+
+```
+cd server/vercel
+npx vercel login
+npx vercel link --yes --project wipetime-proxy
+npx vercel env add WCL_ID production --sensitive      # y lo mismo con WCL_SECRET, BNET_ID, BNET_SECRET
+npx vercel deploy --prod --yes
+```
+
+Después, `build/proxy.json` debe contener `{ "url": "https://wipetime-proxy.vercel.app" }`.

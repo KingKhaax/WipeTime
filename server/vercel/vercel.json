@@ -1,0 +1,8 @@
+{
+  "regions": ["fra1"],
+  "rewrites": [
+    { "source": "/wcl", "destination": "/api/wcl" },
+    { "source": "/bnet", "destination": "/api/bnet" },
+    { "source": "/", "destination": "/api/index" }
+  ]
+}
