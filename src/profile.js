@@ -5,7 +5,7 @@
 const Profile = (() => {
   const REGIONS = ['eu', 'us', 'kr', 'tw'];
   const PATCH_OF_ZONE = { 46: '12.0.0', 50: '12.0.7', 53: '12.1' };
-  const METRICS = [['dps', 'DPS'], ['hps', 'HPS']];
+  const METRICS = [['dps', 'DPS'], ['hps', 'HPS'], ['bossdps', null]];
   const SLOT_ORDER = ['HEAD', 'NECK', 'SHOULDER', 'BACK', 'CHEST', 'SHIRT', 'TABARD', 'WRIST', 'HANDS', 'WAIST', 'LEGS', 'FEET', 'FINGER_1', 'FINGER_2', 'TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
   const QCOLOR = { POOR: '#9d9d9d', COMMON: '#ffffff', UNCOMMON: '#1eff00', RARE: '#0070dd', EPIC: '#a335ee', LEGENDARY: '#ff8000', ARTIFACT: '#e6cc80', HEIRLOOM: '#00ccff' };
   const st = { q: null, zones: null, zone: null, diff: 5, metric: 'dps', arm: null, rio: null, wcl: null, wclErr: '', armErr: '', busy: false, at: 0, timer: null };
@@ -35,6 +35,35 @@ const Profile = (() => {
     st.zones = (d.worldData?.expansion?.zones || []).filter((z) => z.encounters?.length >= 1 && !bad.test(z.name)).sort((a, b) => a.id - b.id);
     if (!st.zones.some((z) => z.id === st.zone)) st.zone = st.zones[st.zones.length - 1]?.id;
     return st.zones;
+  }
+
+  // Todos los logs del personaje en un jefe (como el desplegable de Warcraft Logs), con caché por parche/dificultad/métrica
+  st.encLogs = {};
+  const encPending = new Set();
+  const encKey = (id) => `${st.zone}:${st.diff}:${st.metric}:${id}`;
+  async function fetchEncLogs(id) {
+    const q = st.q, key = encKey(id);
+    try {
+      const metric = METRICS.some(([m]) => m === st.metric) ? st.metric : 'dps';
+      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){encounterRankings(encounterID:${Number(id)},difficulty:${Number(st.diff)},metric:${metric})}}}`, undefined, true);
+      const ranks = d.characterData?.character?.encounterRankings?.ranks || [];
+      st.encLogs[key] = ranks.filter((r) => r.report?.code).sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+    } catch (e) { st.encLogs[key] = { error: friendlyError(e) }; }
+  }
+  function encLogsHTML(id, clsKey) {
+    const data = st.encLogs[encKey(id)];
+    let body;
+    if (!data && !encPending.has(encKey(id))) { const k = encKey(id); encPending.add(k); fetchEncLogs(id).finally(() => { encPending.delete(k); if (S.profileOpen) render(); }); }
+    if (!data) body = `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
+    else if (data.error) body = `<div class="empty sm">${esc(data.error)}</div>`;
+    else if (!data.length) body = `<div class="empty sm">${LL('No hay logs públicos de este jefe.', 'No public logs for this boss.', 'Keine öffentlichen Logs für diesen Boss.', 'Aucun log public pour ce boss.')}</div>`;
+    else body = `<table class="pf-logs"><thead><tr><th>${LL('Fecha', 'Date', 'Datum', 'Date')}</th><th>%</th><th>${esc(st.metric === 'hps' ? 'HPS' : 'DPS')}</th><th>${LL('Duración', 'Duration', 'Dauer', 'Durée')}</th><th>${LL('Nivel obj.', 'Item lvl', 'Gegenstandsst.', 'Niv. obj.')}</th><th></th></tr></thead><tbody>`
+      + data.map((r) => `<tr data-pf="log" data-code="${esc(r.report.code)}" data-fight="${Number(r.report.fightID) || ''}" title="${esc(LL('Abrir este log', 'Open this log', 'Diesen Log öffnen', 'Ouvrir ce log'))}">`
+        + `<td>${esc(new Date(r.startTime || r.report.startTime).toLocaleString(locale(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))}</td>`
+        + `<td><span class="pf-pct"><b style="color:${parseColor(r.rankPercent)}">${r.rankPercent != null ? Math.floor(r.rankPercent) : '-'}</b>${clsKey && r.spec ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(r.spec).split(' ').join('')}`)}" width="18" height="18" alt="">` : ''}</span></td>`
+        + `<td>${r.amount != null ? num(r.amount, 1) : '-'}</td><td>${r.duration ? clock(r.duration) : '-'}</td><td>${r.bracketData != null ? esc(r.bracketData) : '-'}</td>`
+        + `<td class="pf-logs-go">${LL('Ver log', 'View log', 'Log ansehen', 'Voir le log')} →</td></tr>`).join('') + `</tbody></table>`;
+    return `<tr class="pf-logs-row"><td colspan="10">${body}</td></tr>`;
   }
 
   async function fetchWcl() {
@@ -247,7 +276,7 @@ const Profile = (() => {
     const zone = zones.find((z) => z.id === st.zone);
     const opts = zones.map((z) => `<option value="${z.id}" ${z.id === st.zone ? 'selected' : ''}>${esc(PATCH_OF_ZONE[z.id] ? `${PATCH_OF_ZONE[z.id]} · ${z.name}` : z.name)}</option>`).join('');
     const diffs = (zone?.difficulties || []).filter((d) => [1, 3, 4, 5].includes(d.id)).map((d) => `<button type="button" class="chip ${st.diff === d.id ? 'on' : ''}" data-pf="diff" data-v="${d.id}">${esc(diffName(d.id) || d.name)}</button>`).join('');
-    const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l}</button>`).join('');
+    const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l || LL('Daño a jefe', 'Boss Damage', 'Bossschaden', 'Dégâts au boss')}</button>`).join('');
     return `<div class="pf-ctl"><label>${LL('Parche', 'Patch', 'Patch', 'Patch')}<select data-pf-zone>${opts}</select></label>
       <span class="chips">${diffs}</span><span class="sep"></span><span class="chips">${mets}</span></div>`;
   }
@@ -273,17 +302,22 @@ const Profile = (() => {
       const r = byEnc.get(e.id);
       const has = r && r.totalKills > 0;
       const a2 = r?.allStars;
-      return `<tr class="${has ? '' : 'none'}"><td class="pf-boss"><span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="30" height="30" loading="lazy" alt=""></span><span>${esc(e.name)}</span></td>
+      return `<tr class="${has ? `pf-enc${st.openEnc === e.id ? ' open' : ''}` : 'none'}"${has ? ` data-pf="enc" data-e="${e.id}"` : ''}><td class="pf-boss"><span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="30" height="30" loading="lazy" alt=""></span><span>${esc(e.name)}</span></td>
         <td>${has ? `<span class="pf-pct">${pct(r.rankPercent)}${specImg(r)}</span>` : '-'}</td><td class="n">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? r.totalKills : 0}</td>
         <td class="n">${has && r.fastestKill ? clock(r.fastestKill) : '-'}</td><td>${has ? pct(r.medianPercent) : '-'}</td>
         <td class="n">${has && a2 ? num(a2.points, 2) : '-'}</td>
         <td class="n" title="${a2 ? esc(`${num0(a2.total)} ${LL('jugadores', 'players', 'Spieler', 'joueurs')}`) : ''}">${has && a2 ? `<b style="color:${parseColor(a2.rankPercent)}">${num0(a2.rank)}</b>` : '-'}</td>
-        <td class="n">${has && a2 ? num0(a2.regionRank) : '-'}</td><td class="n">${has && a2 ? num0(a2.serverRank) : '-'}</td></tr>`;
+        <td class="n">${has && a2 ? num0(a2.regionRank) : '-'}</td><td class="n">${has && a2 ? num0(a2.serverRank) : '-'}</td></tr>`
+        + (has && st.openEnc === e.id ? encLogsHTML(e.id, clsKey) : '');
     }).join('');
-    return `<div class="pf-sum"><div><small>${LL('Mejor media', 'Best Perf. Avg', 'Beste Ø-Leistung', 'Meilleure moyenne')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
-      <div class="pf-sum-r"><span>${LL('Media mediana', 'Median Perf. Avg', 'Median-Ø', 'Moyenne médiane')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
-        <span>${LL('Kills registradas', 'Kills Logged', 'Registrierte Kills', 'Kills enregistrés')}: <b>${kills}</b></span>
-        <span>${LL('Puntos All Star', 'All Star Points', 'All-Star-Punkte', 'Points All Star')}: <b>${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}</span></div></div>
+    // Resumen con la misma disposición que Warcraft Logs: dificultad arriba, mejor media a la izquierda,
+    // mediana y kills a la derecha, y los puntos All Star (con parche y spec) abajo en el centro
+    const asSpec = as?.spec && clsKey ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(as.spec).split(' ').join('')}`)}" width="20" height="20" alt="" title="${esc(as.spec)}">` : '';
+    return `<div class="pf-sum2"><div class="pf-sum2-t">${esc(diffName(st.diff) || '')}</div>
+      <div class="pf-sum2-l"><small>${LL('Mejor media', 'Best Perf. Avg', 'Beste Ø-Leistung', 'Meilleure moyenne')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
+      <div class="pf-sum2-r"><span>${LL('Media mediana', 'Median Perf. Avg', 'Median-Ø', 'Moyenne médiane')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
+        <span>${LL('Kills registradas', 'Kills Logged', 'Registrierte Kills', 'Kills enregistrés')}: <b>${kills}</b></span></div>
+      <div class="pf-sum2-b">${LL('Puntos All Star', 'All Star Points', 'All-Star-Punkte', 'Points All Star')}: <b class="pf-as">${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}${PATCH_OF_ZONE[st.zone] ? ` <span class="muted">(${esc(PATCH_OF_ZONE[st.zone])})</span>` : ''}${asSpec}</div></div>
       <div class="pf-tbl-w"><table class="pf-table"><thead><tr><th rowspan="2">${LL('Jefe', 'Boss', 'Boss', 'Boss')}</th><th rowspan="2">${LL('Mejor %', 'Best %', 'Bester %', 'Meilleur %')}</th><th rowspan="2">${LL(`${unit} máximo`, `Highest ${unit}`, `Höchstes ${unit}`, `${unit} max.`)}</th><th rowspan="2">Kills</th><th rowspan="2">${LL('Más rápida', 'Fastest', 'Schnellste', 'Plus rapide')}</th><th rowspan="2">${LL('Med.', 'Med', 'Med.', 'Méd.')}</th><th colspan="4">All Stars</th></tr>
         <tr><th>${LL('Puntos', 'Points', 'Punkte', 'Points')}</th><th>${LL('Mundo', 'World', 'Welt', 'Monde')}</th><th>${esc(regionName(st.q.region))}</th><th>${LL('Reino', 'Realm', 'Realm', 'Royaume')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
@@ -369,6 +403,8 @@ const Profile = (() => {
     else if (a === 'focus') { const i = document.querySelector('#pfForm input[name="name"]'); if (i) i.focus(); }
     else if (!S.profileOpen) return;
     else if (a === 'update') load();
+    else if (a === 'enc') { const id = Number(el.dataset.e); st.openEnc = st.openEnc === id ? null : id; render(); }
+    else if (a === 'log') loadReport(`https://www.warcraftlogs.com/reports/${el.dataset.code}${el.dataset.fight ? `#fight=${el.dataset.fight}` : ''}`);
     else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»', 'Talente kopiert: im Spiel mit «Importieren» einfügen', 'Talents copiés : collez-les en jeu avec «Importer»'))); }
     else if (a === 'home') goHome();
     else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; render(); fetchWcl().then(render); }
