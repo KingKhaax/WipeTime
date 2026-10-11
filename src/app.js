@@ -1654,6 +1654,7 @@ document.addEventListener('submit', async (ev) => {
 });
 
 $('#settingsBtn').addEventListener('click', () => openSettings());
+$('#verBadge').addEventListener('click', () => openSettings('version'));
 
 function goHome() {
   if (typeof Replay !== 'undefined') Replay.stop();
