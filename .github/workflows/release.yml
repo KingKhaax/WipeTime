@@ -125,15 +125,22 @@ jobs:
             version: ${{ toJSON(steps.ver.outputs.version) }}
 
       # latest.json: el actualizador de la app lo usa para comprobar el SHA-256 de lo que descarga
+      # latest.yml + .blockmap: electron-updater (instalado con el Setup) descarga solo lo que cambia
       - name: Reunir ficheros finales
         shell: pwsh
         run: |
           $v = '${{ steps.ver.outputs.version }}'
           $src = if ('${{ steps.sign.outputs.on }}' -eq 'true') { 'signed-installers' } else { 'dist' }
           New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item "$src/WipeTime v$v Setup.exe", "$src/WipeTime v$v.exe" out/
+          # Mismos nombres que GitHub da a los assets (espacios -> puntos): latest.yml tiene que coincidir
+          $setup = "WipeTime.v$v.Setup.exe"
+          $portable = "WipeTime.v$v.exe"
+          Copy-Item "$src/WipeTime v$v Setup.exe" "out/$setup"
+          Copy-Item "$src/WipeTime v$v.exe" "out/$portable"
+          node tools/update-info.js out $setup $v
+          if ($LASTEXITCODE) { throw "No se pudo generar latest.yml" }
           $hash = { param($f) (Get-FileHash $f -Algorithm SHA256).Hash.ToLower() }
-          [ordered]@{ version = $v; sha256 = & $hash "out/WipeTime v$v Setup.exe"; sha256Portable = & $hash "out/WipeTime v$v.exe" } |
+          [ordered]@{ version = $v; sha256 = & $hash "out/$setup"; sha256Portable = & $hash "out/$portable" } |
             ConvertTo-Json | Set-Content out/latest.json -Encoding utf8NoBOM
           Get-Content out/latest.json
 

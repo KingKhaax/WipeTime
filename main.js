@@ -745,9 +745,33 @@ ipcMain.handle('update:check', async () => {
   } catch (e) { return { current, error: String(e.message || e) }; }
 });
 
+// Instalado con el Setup: electron-updater descarga solo las partes que han cambiado (latest.yml + .blockmap de la release),
+// instala en silencio y vuelve a abrir el programa. Devuelve false si no se puede (portable, release sin latest.yml...).
+async function quickUpdate(sender) {
+  if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) return false;
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  const onProgress = (p) => { if (!sender.isDestroyed()) sender.send('update:progress', p.percent / 100); };
+  autoUpdater.on('download-progress', onProgress);
+  try {
+    const r = await autoUpdater.checkForUpdates();
+    if (!r || !r.isUpdateAvailable) return false;
+    await autoUpdater.downloadUpdate();
+    setImmediate(() => autoUpdater.quitAndInstall(true, true));
+    return true;
+  } catch (err) {
+    console.warn('electron-updater', err);
+    return false;
+  } finally {
+    autoUpdater.removeListener('download-progress', onProgress);
+  }
+}
+
 ipcMain.handle('update:install', async (e) => {
   if (!pendingUpdate) return { error: 'NO_CHECK' };
   const { mf, portable } = pendingUpdate;
+  if (!portable && await quickUpdate(e.sender)) return { ok: true };
   const url = portable ? mf.portable : mf.setup;
   if (!url || !/^https:\/\//i.test(url)) return { error: 'NO_ASSET' };
   try {

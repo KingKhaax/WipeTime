@@ -29,7 +29,8 @@
         "to": ".",
         "filter": [
           "secrets.json",
-          "proxy.json"
+          "proxy.json",
+          "app-update.yml"
         ]
       }
     ],
@@ -48,6 +49,14 @@
     },
     "portable": {
       "artifactName": "WipeTime v${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "KingKhaax",
+      "repo": "WipeTime"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }
