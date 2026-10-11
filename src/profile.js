@@ -115,6 +115,24 @@ const Profile = (() => {
     sr.list = list;
     sr.hidden = r.hidden || 0;
     renderSearch();
+    fillSpecs(sr.term);
+  }
+
+  // Spec que lleva ahora cada personaje encontrado (Raider.IO), para poner su icono junto al nombre
+  async function fillSpecs(term) {
+    const todo = sr.list.map((x, i) => [x, i]).filter(([x]) => !x.specIcon && x.realmSlug).slice(0, 20);
+    let k = 0;
+    await Promise.all(Array.from({ length: 4 }, async () => {
+      while (k < todo.length) {
+        const [x, i] = todo[k++];
+        const r = await window.api.rioSpec?.(x.region, x.realmSlug, x.name);
+        if (sr.term !== term || !r || r.error || !r.spec) continue;
+        const cls = Cards.CLASS_KEY[x.classId] || String(r.cls || '').split(' ').join('');
+        x.specIcon = `${cls}-${r.spec.split(' ').join('')}`;
+        const img = document.querySelector(`#pfSearch .pf-row-spec[data-i="${i}"]`);
+        if (img) { img.src = specIconUrl(x.specIcon); img.hidden = false; }
+      }
+    }));
   }
 
   function renderSearch() {
@@ -130,7 +148,7 @@ const Profile = (() => {
       const faction = x.faction === 'horde' ? '#ff4a4a' : x.faction === 'alliance' ? '#4a8dff' : 'var(--muted)';
       const flag = flagHTML(x.locale, x.region, [x.realmName, x.regionShort].filter(Boolean).join(' · '));
       return `<button type="button" class="pf-row" data-pf="pick" data-i="${i}"><span class="pf-row-pic" style="--c:${classColor(cls)}">${x.thumb ? `<img src="${Cards.media(x.thumb)}" alt="" loading="lazy">` : ''}</span>
-        <span class="pf-row-n"><b style="color:${classColor(cls)}">${esc(x.name)}</b><small>${esc(cls ? className(cls) : '')} <i class="pf-fac" style="background:${faction}"></i></small></span>
+        <span class="pf-row-n"><b style="color:${classColor(cls)}"><img class="pf-row-spec" data-i="${i}" ${x.specIcon ? `src="${specIconUrl(x.specIcon)}"` : 'hidden'} width="20" height="20" alt="">${esc(x.name)}</b><small>${esc(cls ? className(cls) : '')} <i class="pf-fac" style="background:${faction}"></i></small></span>
         <span class="pf-row-s">${flag}<span>${esc(x.realmName)}${x.altName && x.altName !== x.realmName ? ` <small class="muted">${esc(x.altName)}</small>` : ''}<small>${esc(x.regionShort || x.region.toUpperCase())}</small></span></span></button>`;
     }).join('')}</div>${sr.hidden ? `<small class="muted">${LL(`${sr.hidden} resultados de reinos de China ocultos (no se pueden consultar).`, `${sr.hidden} results from China realms hidden (they cannot be queried).`, `${sr.hidden} Ergebnisse von China-Realms ausgeblendet (nicht abrufbar).`, `${sr.hidden} résultats de royaumes chinois masqués (non consultables).`)}</small>` : ''}`;
     dlg.innerHTML = `<div class="pf-dlg"><div class="pf-dlg-h"><div><h2>${LL('Personajes', 'Characters', 'Charaktere', 'Personnages')}: «${esc(sr.term)}»</h2>
@@ -246,11 +264,11 @@ const Profile = (() => {
     const as = [...(zr.allStars || [])].sort((a, b) => b.points - a.points)[0];
     const unit = zr.metric === 'hps' ? 'HPS' : 'DPS';
     const pct = (v) => (v == null ? '-' : `<b style="color:${parseColor(v)}">${Math.floor(v)}</b>`);
-    const rows = zone.encounters.map((e) => {
+    const rows = zone.encounters.filter((e) => e.name).map((e) => { // sin nombre = jefe aún sin traducir en Warcraft Logs
       const r = byEnc.get(e.id);
       const has = r && r.totalKills > 0;
       const a2 = r?.allStars;
-      return `<tr class="${has ? '' : 'none'}"><td class="pf-boss">${esc(e.name)}</td>
+      return `<tr class="${has ? '' : 'none'}"><td class="pf-boss"><span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="30" height="30" loading="lazy" alt=""></span><span>${esc(e.name)}</span></td>
         <td>${has ? pct(r.rankPercent) : '-'}</td><td class="n">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? r.totalKills : 0}</td>
         <td class="n">${has && r.fastestKill ? clock(r.fastestKill) : '-'}</td><td>${has ? pct(r.medianPercent) : '-'}</td>
         <td class="n">${has && a2 ? num(a2.points, 2) : '-'}</td>
@@ -278,6 +296,17 @@ const Profile = (() => {
     return `<div class="pf-gear-h"><b>${LL('Equipo', 'Gear', 'Ausrüstung', 'Équipement')}</b><span>${LL('Nivel de objeto', 'Item Level', 'Gegenstandsstufe', 'Niveau d’objet')}: <b>${esc(ilvl || '—')}</b></span></div>${rows}`;
   }
 
+  // Talentos que lleva ahora (Raider.IO): héroe y clase/especialización, con tooltip y botón para copiarlos al juego
+  function talentsHTML() {
+    const tl = st.rio?.talents;
+    if (!tl || !tl.nodes?.length) return '';
+    const icon = (n) => `<span class="pf-tal-i${n.rank < n.max ? ' part' : ''}" data-spell="${n.spell}" aria-label="${esc(n.name)}"><img src="wcicon://i/${encodeURIComponent(n.icon)}" alt="" loading="lazy">${n.max > 1 ? `<i>${n.rank}</i>` : ''}</span>`;
+    const hero = tl.nodes.filter((n) => n.hero), rest = tl.nodes.filter((n) => !n.hero);
+    return `<div class="pf-tal"><div class="pf-gear-h"><b>${LL('Talentos', 'Talents', 'Talente', 'Talents')}</b>${tl.text ? `<button type="button" class="btn ghost sm" data-pf="copytal">${LL('Copiar talentos', 'Copy talents', 'Talente kopieren', 'Copier les talents')}</button>` : ''}</div>`
+      + (hero.length ? `<small class="pf-tal-h">${LL('Héroe', 'Hero', 'Held', 'Héros')}</small><div class="pf-tal-g">${hero.map(icon).join('')}</div>` : '')
+      + `<small class="pf-tal-h">${LL('Clase y especialización', 'Class and specialization', 'Klasse und Spezialisierung', 'Classe et spécialisation')}</small><div class="pf-tal-g">${rest.map(icon).join('')}</div></div>`;
+  }
+
   function render() {
     if (!S.profileOpen || !st.q) return;
     const a = st.arm;
@@ -286,7 +315,7 @@ const Profile = (() => {
       <div class="pf-back"><button type="button" class="btn ghost sm" data-pf="home">${LL('← Inicio', '← Home', '← Start', '← Accueil')}</button></div>
       ${headerHTML()}
       <div class="pf-grid"><section class="pf-left">${controlsHTML()}${tableHTML()}</section>
-        <aside class="pf-right"><div class="pf-gear">${gearHTML()}</div>${model}</aside></div></div>`;
+        <aside class="pf-right"><div class="pf-gear">${gearHTML()}</div>${talentsHTML()}${model}</aside></div></div>`;
   }
 
   // ------------------------------------------------------------ buscador (portada)
@@ -330,6 +359,7 @@ const Profile = (() => {
     else if (a === 'focus') { const i = document.querySelector('#pfForm input[name="name"]'); if (i) i.focus(); }
     else if (!S.profileOpen) return;
     else if (a === 'update') load();
+    else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»', 'Talente kopiert: im Spiel mit «Importieren» einfügen', 'Talents copiés : collez-les en jeu avec «Importer»'))); }
     else if (a === 'home') goHome();
     else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; render(); fetchWcl().then(render); }
     else if (a === 'metric') { st.metric = el.dataset.v; st.wcl = null; render(); fetchWcl().then(render); }

@@ -1491,3 +1491,104 @@ img.role-ic { border-radius: 7px; }
 
 /* Los iconos de la barra superior traen un marco oscuro dentro de la imagen: se recorta para que se vean limpios */
 .home-btn img.wi, .top-actions img.wi, #settingsBtn img.wi { object-view-box: inset(12%); border-radius: 4px; }
+
+/* Ficha de personaje: tabla de rankings como Warcraft Logs, más limpia y centrada, con el icono de cada jefe */
+.pf-sum { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; padding: 18px 22px; }
+.pf-sum > div:first-child { grid-column: 2; align-items: center; }
+.pf-sum > div:first-child small { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; }
+.pf-sum > div:first-child b { font-size: 46px; margin-top: 4px; }
+.pf-sum-r { grid-column: 3; justify-self: end; text-align: right; gap: 4px; }
+.pf-tbl-w { border-radius: 12px; }
+.pf-table { font-size: 13.5px; }
+.pf-table th { padding: 9px 10px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; background: color-mix(in srgb, var(--panel-2) 85%, #000); }
+.pf-table td, .pf-table td.n { padding: 7px 10px; text-align: center; border-left: 0; border-right: 0; }
+.pf-table tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--panel) 92%, #fff 3%); }
+.pf-table tbody tr:hover td { background: color-mix(in srgb, var(--panel) 85%, #8fb7ff 8%); }
+.pf-table td.pf-boss { display: flex; align-items: center; gap: 10px; padding-left: 12px; min-width: 240px; }
+.pf-bic { flex: none; width: 30px; height: 30px; border-radius: 7px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+.pf-bic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pf-table tr.none .pf-bic { opacity: .4; filter: grayscale(1); }
+@media (max-width: 900px) { .pf-sum { grid-template-columns: 1fr; } .pf-sum > div:first-child, .pf-sum-r { grid-column: 1; justify-self: center; text-align: center; } }
+
+/* =====================================================================
+   Diseño sobrio (como NinjaLoot): grises neutros, sin degradados ni brillos,
+   el color de acento solo para lo activo. Va al final para mandar sobre lo anterior.
+   ===================================================================== */
+:root {
+  --bg: #0f0f11; --bg-deep: #0b0b0d; --panel: #17171a; --panel-2: #1e1e22;
+  --line: #2a2a30; --line-soft: #232328; --line-mid: #303037; --line-strong: #3b3b44;
+  --track: #26262b; --head: #141417; --hover: #1d1d22; --chip: #222227;
+  --me-bg: color-mix(in srgb, var(--accent) 12%, #17171a); --me-line: color-mix(in srgb, var(--accent) 55%, #2a2a30);
+  --text: #e8e8ec; --text-2: #c9c9d1; --muted: #9a9aa3; --dim: #6b6b74; --title: #f2f2f5;
+  --gold: var(--accent); --gold-soft: #b9b9c2; --gold-line: #3b3b44;
+  --brand-grad: var(--accent); --zebra: rgba(255, 255, 255, .015);
+}
+body { background: var(--bg); }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+::-webkit-scrollbar-thumb { background: #2e2e35; }
+.hdr::after { height: 1px; margin-top: 14px; background: var(--line); }
+.hdr h1, .hero-title { text-shadow: none; }
+.eyebrow, .hero .eyebrow { color: var(--muted); }
+h3.sec, .recent-h { color: var(--muted); text-transform: uppercase; font-size: 12px; letter-spacing: .08em; }
+
+/* barra superior plana */
+.topbar { background: color-mix(in srgb, var(--bg) 55%, var(--panel)); box-shadow: none; border-bottom: 1px solid var(--line); }
+.topbar::after { display: none; }
+
+/* botones: planos, el acento solo en el principal */
+.btn { border-radius: 8px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); box-shadow: none; }
+.btn.primary:hover { filter: none; background: color-mix(in srgb, var(--accent) 88%, #fff); }
+.btn.ghost:hover, .btn:hover, .ver-badge:hover { border-color: var(--line-strong); }
+.tab.active { text-shadow: none; }
+
+/* tarjetas sin sombras ni luces */
+.feat, .rcard, .ov-tile, .night-card, .rb, .pullcard, .set-card, .gd-login, .bn-card, .wipe-card, .chart, .exp-card { box-shadow: none; }
+.feat:hover, .rcard:hover, .night-card:hover, .pullcard:hover { border-color: var(--line-strong); }
+
+/* portada: panel liso, título sin degradado */
+.hero { background: var(--panel); border-color: var(--line); box-shadow: none; }
+.hero-glow, .hero-stars { display: none; }
+.hero-title .grad { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--accent); filter: none; }
+.hero-form:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.patch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--text); }
+.exp-card { background: var(--panel-2); border-color: var(--line); }
+.feat-ic, .feat:hover .feat-ic { background: var(--panel-2); border: 1px solid var(--line); box-shadow: none; }
+img.ai { box-shadow: 0 0 0 1px rgba(0, 0, 0, .6); }
+
+/* barras y marcas con el acento en vez de degradados */
+.an-bar i, .cmp-n.mine { background: var(--accent); }
+.bn-glow { display: none; }
+.arm-model, .pf-model { background: var(--panel-2); }
+
+/* desplegables con el estilo de la app (en vez del de Windows) */
+select {
+  -webkit-appearance: none; appearance: none; color: var(--text); font: inherit;
+  background: var(--panel-2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%239a9aa3' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>") no-repeat right 10px center / 10px 6px;
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 30px 6px 10px; cursor: pointer;
+}
+select:hover { border-color: var(--line-strong); }
+select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+select option { background: #17171a; color: var(--text); }
+
+/* ficha de personaje: talentos y spec en el buscador */
+.pf-tal { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+.pf-tal-h { display: block; margin: 10px 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.pf-tal-g { display: flex; flex-wrap: wrap; gap: 5px; }
+.pf-tal-i { position: relative; width: 34px; height: 34px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line-strong); background: #000; cursor: help; }
+.pf-tal-i img { display: block; width: 100%; height: 100%; }
+.pf-tal-i i { position: absolute; right: 1px; bottom: 0; padding: 0 3px; border-radius: 3px; font-style: normal; font-size: 10px; font-weight: 700; background: rgba(0, 0, 0, .78); color: #fff; }
+.pf-tal-i.part { border-color: #c7a14a; }
+.pf-row-spec { width: 20px; height: 20px; border-radius: 4px; vertical-align: -4px; margin-right: 6px; }
+.pn-btn { background: var(--accent); box-shadow: none; }
+.pn-btn:hover { transform: none; filter: none; background: color-mix(in srgb, var(--accent) 88%, #fff); }
+.pn-count { background: var(--panel); border-color: var(--line); }
+.pn-box { background: var(--panel-2); border-color: var(--line); box-shadow: none; }
+/* Los paneles «surface-dark» (portada, tarjetas oscuras) también en gris neutro */
+.surface-dark {
+  --bg: #0f0f11; --bg-deep: #0b0b0d; --panel: #17171a; --panel-2: #1e1e22;
+  --line: #2a2a30; --line-soft: #232328; --line-mid: #303037; --line-strong: #3b3b44;
+  --track: #26262b; --head: #141417; --hover: #1d1d22; --chip: #222227;
+  --me-bg: color-mix(in srgb, var(--accent) 12%, #17171a); --me-line: color-mix(in srgb, var(--accent) 55%, #2a2a30);
+  --text: #e8e8ec; --text-2: #c9c9d1; --muted: #9a9aa3; --dim: #6b6b74;
+}

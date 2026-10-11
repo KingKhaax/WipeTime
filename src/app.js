@@ -1742,6 +1742,9 @@ function setLang(code) {
 }
 
 (async function init() {
+  // El inicio usa partes de scripts que se cargan después de este (buscador de personajes, cuenta atrás del parche):
+  // se espera a que estén todos para que al abrir salga directamente el inicio completo
+  if (document.readyState === 'loading') await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
   applyStaticText();
   await refreshConfig();
   renderWelcome();

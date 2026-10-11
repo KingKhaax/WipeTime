@@ -1183,11 +1183,28 @@ ipcMain.handle('rio:search', async (_e, term) => {
 ipcMain.handle('rio:char', async (_e, region, realmSlug, name) => {
   try {
     if (!['eu', 'us', 'kr', 'tw'].includes(region)) region = 'eu';
-    const fields = 'mythic_plus_scores_by_season:current,mythic_plus_ranks,gear';
+    const fields = 'mythic_plus_scores_by_season:current,mythic_plus_ranks,gear,talents';
     const res = await fetch(`https://raider.io/api/v1/characters/profile?region=${region}&realm=${encodeURIComponent(realmSlug)}&name=${encodeURIComponent(name)}&fields=${encodeURIComponent(fields)}`, { headers: { 'user-agent': 'WipeTime', accept: 'application/json' } });
     if (!res.ok) return { error: 'HTTP_' + res.status };
     const j = await res.json();
-    return { season: j.mythic_plus_scores_by_season?.[0] || null, ranks: j.mythic_plus_ranks || null, ilvl: j.gear?.item_level_equipped || 0, crawled: j.last_crawled_at || '', url: j.profile_url || '' };
+    // Talentos que lleva ahora (los gratuitos del árbol no se muestran) y el texto para importarlos en el juego
+    const lo = j.talentLoadout;
+    const talents = lo && Array.isArray(lo.loadout) ? {
+      text: lo.loadout_text || '', spec: j.active_spec_name || '',
+      nodes: lo.loadout.filter((x) => !x.grantedNode && x.rank > 0).map((x) => { const e = (x.node?.entries || [])[x.entryIndex || 0] || {}; return e.spell ? { spell: e.spell.id, name: e.spell.name, icon: String(e.spell.icon || '').toLowerCase(), rank: x.rank, max: e.maxRanks || 1, hero: (x.node.subTreeId || 0) > 0 } : null; }).filter(Boolean),
+    } : null;
+    return { season: j.mythic_plus_scores_by_season?.[0] || null, ranks: j.mythic_plus_ranks || null, ilvl: j.gear?.item_level_equipped || 0, crawled: j.last_crawled_at || '', url: j.profile_url || '', talents };
+  } catch (err) { return { error: String(err.message || err) }; }
+});
+
+// Spec activa de un personaje (para el icono en los resultados del buscador)
+ipcMain.handle('rio:spec', async (_e, region, realmSlug, name) => {
+  try {
+    if (!['eu', 'us', 'kr', 'tw'].includes(region)) region = 'eu';
+    const res = await fetch(`https://raider.io/api/v1/characters/profile?region=${region}&realm=${encodeURIComponent(realmSlug)}&name=${encodeURIComponent(name)}`, { headers: { 'user-agent': 'WipeTime', accept: 'application/json' } });
+    if (!res.ok) return { error: 'HTTP_' + res.status };
+    const j = await res.json();
+    return { spec: j.active_spec_name || '', cls: j.class || '' };
   } catch (err) { return { error: String(err.message || err) }; }
 });
 

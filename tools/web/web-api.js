@@ -319,9 +319,19 @@
     }),
     rioChar: wrap(async (region, realmSlug, name) => {
       if (!REGIONS.includes(region)) region = 'eu';
-      const fields = 'mythic_plus_scores_by_season:current,mythic_plus_ranks,gear';
+      const fields = 'mythic_plus_scores_by_season:current,mythic_plus_ranks,gear,talents';
       const j = await rioGet(`https://raider.io/api/v1/characters/profile?region=${region}&realm=${encodeURIComponent(realmSlug)}&name=${encodeURIComponent(name)}&fields=${encodeURIComponent(fields)}`);
-      return { season: j.mythic_plus_scores_by_season?.[0] || null, ranks: j.mythic_plus_ranks || null, ilvl: j.gear?.item_level_equipped || 0, crawled: j.last_crawled_at || '', url: j.profile_url || '' };
+      const lo = j.talentLoadout;
+      const talents = lo && Array.isArray(lo.loadout) ? {
+        text: lo.loadout_text || '', spec: j.active_spec_name || '',
+        nodes: lo.loadout.filter((x) => !x.grantedNode && x.rank > 0).map((x) => { const e = (x.node?.entries || [])[x.entryIndex || 0] || {}; return e.spell ? { spell: e.spell.id, name: e.spell.name, icon: String(e.spell.icon || '').toLowerCase(), rank: x.rank, max: e.maxRanks || 1, hero: (x.node.subTreeId || 0) > 0 } : null; }).filter(Boolean),
+      } : null;
+      return { season: j.mythic_plus_scores_by_season?.[0] || null, ranks: j.mythic_plus_ranks || null, ilvl: j.gear?.item_level_equipped || 0, crawled: j.last_crawled_at || '', url: j.profile_url || '', talents };
+    }),
+    rioSpec: wrap(async (region, realmSlug, name) => {
+      if (!REGIONS.includes(region)) region = 'eu';
+      const j = await rioGet(`https://raider.io/api/v1/characters/profile?region=${region}&realm=${encodeURIComponent(realmSlug)}&name=${encodeURIComponent(name)}`);
+      return { spec: j.active_spec_name || '', cls: j.class || '' };
     }),
     bnetArmory: wrap(armory),
     bnetCrest: wrap(async (realmSlug, guildName) => {
