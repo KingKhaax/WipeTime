@@ -264,12 +264,17 @@ const Profile = (() => {
     const as = [...(zr.allStars || [])].sort((a, b) => b.points - a.points)[0];
     const unit = zr.metric === 'hps' ? 'HPS' : 'DPS';
     const pct = (v) => (v == null ? '-' : `<b style="color:${parseColor(v)}">${Math.floor(v)}</b>`);
+    // Icono de la spec con la que se hizo el mejor parse (como en Warcraft Logs)
+    // Warcraft Logs numera las clases distinto que Blizzard (Monje = 5 en WCL, 10 en Blizzard)
+    const WCL_CLASS = { 1: 'DeathKnight', 2: 'Druid', 3: 'Hunter', 4: 'Mage', 5: 'Monk', 6: 'Paladin', 7: 'Priest', 8: 'Rogue', 9: 'Shaman', 10: 'Warlock', 11: 'Warrior', 12: 'DemonHunter', 13: 'Evoker' };
+    const clsKey = WCL_CLASS[w.classID] || Cards.CLASS_KEY[st.arm?.classId] || '';
+    const specImg = (r) => { const sp = r.bestSpec || r.spec; return clsKey && sp ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(sp).split(' ').join('')}`)}" width="20" height="20" alt="" title="${esc(sp)}">` : ''; };
     const rows = zone.encounters.filter((e) => e.name).map((e) => { // sin nombre = jefe aún sin traducir en Warcraft Logs
       const r = byEnc.get(e.id);
       const has = r && r.totalKills > 0;
       const a2 = r?.allStars;
       return `<tr class="${has ? '' : 'none'}"><td class="pf-boss"><span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="30" height="30" loading="lazy" alt=""></span><span>${esc(e.name)}</span></td>
-        <td>${has ? pct(r.rankPercent) : '-'}</td><td class="n">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? r.totalKills : 0}</td>
+        <td>${has ? `<span class="pf-pct">${pct(r.rankPercent)}${specImg(r)}</span>` : '-'}</td><td class="n">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? r.totalKills : 0}</td>
         <td class="n">${has && r.fastestKill ? clock(r.fastestKill) : '-'}</td><td>${has ? pct(r.medianPercent) : '-'}</td>
         <td class="n">${has && a2 ? num(a2.points, 2) : '-'}</td>
         <td class="n" title="${a2 ? esc(`${num0(a2.total)} ${LL('jugadores', 'players', 'Spieler', 'joueurs')}`) : ''}">${has && a2 ? `<b style="color:${parseColor(a2.rankPercent)}">${num0(a2.rank)}</b>` : '-'}</td>
@@ -328,7 +333,7 @@ const Profile = (() => {
       <input name="realm" class="pf-in-realm" placeholder="${esc(LL('Reino (opcional)', 'Realm (optional)', 'Realm (optional)', 'Royaume (facultatif)'))}" spellcheck="false">
       <select name="region">${reg.map(([v, l]) => `<option value="${v}" ${v === last ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <button class="btn primary" type="submit">${LL('Buscar', 'Search', 'Suchen', 'Rechercher')}</button></form>
-      ${rec.length ? `<div class="chips pf-rec">${rec.map((x, i) => `<button type="button" class="chip" data-pf="recent" data-i="${i}">${flagHTML(x.locale, x.region)} ${esc(x.name)} <span class="muted">${esc(x.realm)} · ${esc(x.region.toUpperCase())}</span></button>`).join('')}</div>` : ''}`;
+      ${rec.length ? `<div class="chips pf-rec">${rec.map((x, i) => `<span class="pf-rec-i"><button type="button" class="chip" data-pf="recent" data-i="${i}">${flagHTML(x.locale, x.region)} ${esc(x.name)} <span class="muted">${esc(x.realm)} · ${esc(x.region.toUpperCase())}</span></button><button type="button" class="pf-rec-x" data-pf="recent-del" data-i="${i}" title="${esc(LL('Quitar de recientes', 'Remove from recent', 'Aus Zuletzt entfernen', 'Retirer des récents'))}" aria-label="${esc(LL('Quitar', 'Remove', 'Entfernen', 'Retirer'))}">✕</button></span>`).join('')}<button type="button" class="mini-btn" data-pf="recent-clear">${LL('Borrar todos', 'Clear all', 'Alle löschen', 'Tout effacer')}</button></div>` : ''}`;
   }
 
   function sectionHTML() {
@@ -353,6 +358,11 @@ const Profile = (() => {
     if (!el) return;
     const a = el.dataset.pf;
     if (a === 'recent') { const x = recent()[Number(el.dataset.i)]; if (x) open(x); }
+    else if (a === 'recent-del' || a === 'recent-clear') {
+      const l = a === 'recent-clear' ? [] : recent().filter((_, i) => i !== Number(el.dataset.i));
+      lsSet('prof:recent', JSON.stringify(l));
+      if (main.querySelector('.charsearch') && typeof openCharSearch === 'function') openCharSearch(); else if (!S.profileOpen) renderWelcome();
+    }
     else if (a === 'pick') { const x = sr.list[Number(el.dataset.i)]; if (x) { $('#pfSearch').close(); open({ name: x.name, realm: x.realmName, slug: x.realmSlug, region: x.region, locale: x.locale }); } }
     else if (a === 'closesearch') $('#pfSearch').close();
     else if (a === 'ext') { ev.preventDefault(); window.api.openExternal(el.dataset.u); }

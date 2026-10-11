@@ -1592,3 +1592,11 @@ select option { background: #17171a; color: var(--text); }
   --me-bg: color-mix(in srgb, var(--accent) 12%, #17171a); --me-line: color-mix(in srgb, var(--accent) 55%, #2a2a30);
   --text: #e8e8ec; --text-2: #c9c9d1; --muted: #9a9aa3; --dim: #6b6b74;
 }
+/* Mejor % con el icono de la spec del parse, y recientes que se pueden quitar */
+.pf-pct { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.pf-spec { width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--line); }
+.pf-rec { align-items: center; }
+.pf-rec-i { display: inline-flex; align-items: center; }
+.pf-rec-i .chip { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.pf-rec-x { align-self: stretch; padding: 0 9px; border: 1px solid var(--line); border-left: 0; border-radius: 0 999px 999px 0; background: var(--chip); color: var(--muted); cursor: pointer; font-size: 12px; }
+.pf-rec-x:hover { color: #fff; background: var(--neg); border-color: var(--neg); }
