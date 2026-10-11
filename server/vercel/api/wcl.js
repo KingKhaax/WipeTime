@@ -2,6 +2,7 @@ const { WCL, token, limited, send, cors } = require('./_lib');
 
 // POST /wcl  { query, variables, lang }  ->  API v2 de Warcraft Logs (solo consultas, nada de mutation)
 module.exports = async (req, res) => {
+  if (cors(req, res)) return;
   if (limited(req)) return send(res, 429, { error: 'rate limit' });
   if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
   try {

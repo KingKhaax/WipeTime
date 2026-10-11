@@ -2,6 +2,7 @@ const { token, limited, send, cors, BNET_PATH } = require('./_lib');
 
 // GET /bnet?region=eu&path=/profile/wow/character/...  ->  API pública de Blizzard (solo unas pocas rutas permitidas)
 module.exports = async (req, res) => {
+  if (cors(req, res)) return;
   if (limited(req)) return send(res, 429, { error: 'rate limit' });
   if (req.method !== 'GET') return send(res, 405, { error: 'method not allowed' });
   try {
