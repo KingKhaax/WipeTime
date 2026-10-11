@@ -1669,6 +1669,16 @@ function goHome() {
 }
 $('#homeBtn').addEventListener('click', goHome);
 
+// Botón de la barra superior resaltado según la sección abierta (al arrancar, Inicio)
+function markNav() {
+  const home = S.home && !S.cmpOpen && !S.guildOpen && !S.profileOpen && !!main.querySelector('.welcome');
+  $('#homeBtn').classList.toggle('on', home);
+  $('#cmpBtn').classList.toggle('on', !!S.cmpOpen);
+  $('#guildBtn').classList.toggle('on', !!S.guildOpen && !S.cmpOpen);
+  $('#profBtn').classList.toggle('on', !!main.querySelector('.charsearch') || (!!S.profileOpen && !S.cmpOpen && !S.guildOpen));
+}
+new MutationObserver(markNav).observe(main, { childList: true });
+
 // Evitar que soltar un archivo sobre la ventana la navegue hacia él; la tarjeta del parche sí lo acepta
 window.addEventListener('dragover', (ev) => ev.preventDefault());
 window.addEventListener('drop', (ev) => ev.preventDefault());
@@ -1680,7 +1690,18 @@ document.addEventListener('paste', (ev) => {
   const item = [...(ev.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
   if (item) { ev.preventDefault(); savePatchArt(item.getAsFile()); }
 });
-$('#profBtn').addEventListener('click', () => { goHome(); setTimeout(() => { const i = document.querySelector('#pfForm input[name="name"]'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }, 50); });
+// Personajes: pantalla propia solo con el buscador de personajes
+function openCharSearch() {
+  if (typeof Replay !== 'undefined') Replay.stop();
+  S.seq++;
+  S.home = false; S.cmpOpen = false; S.guildOpen = false; S.profileOpen = false;
+  sidebar.hidden = true;
+  $('#whoami').open && $('#whoami').close();
+  main.innerHTML = `<div class="charsearch">${typeof Profile !== 'undefined' ? Profile.sectionHTML() : ''}</div>`;
+  main.scrollTop = 0;
+  const i = document.querySelector('#pfForm input[name="name"]'); if (i) i.focus();
+}
+$('#profBtn').addEventListener('click', openCharSearch);
 $('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; S.profileOpen = false; Compare.open(); });
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);
@@ -1715,6 +1736,7 @@ function setLang(code) {
   if (S.profileOpen) Profile.render();
   else if (S.guildOpen) Guilds.render();
   else if (S.cmpOpen) Compare.render();
+  else if (main.querySelector('.charsearch')) openCharSearch();
   else if (S.code && !S.home) loadReport(S.code, { keepView: true, fightId: S.fight?.id });
   else renderWelcome();
 }

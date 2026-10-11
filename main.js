@@ -713,6 +713,17 @@ async function fetchManifest(source) {
   if (!source) throw new Error('NO_SOURCE');
   const headers = { 'user-agent': 'WipeTime-updater', accept: 'application/json' };
   if (/^[\w.-]+\/[\w.-]+$/.test(source)) {
+    // Primero latest.json de la última release (descarga normal de github.com, sin el límite de 60 consultas/hora de la API)
+    try {
+      const r = await fetch(`https://github.com/${source}/releases/latest/download/latest.json`, { headers });
+      if (r.ok) {
+        const lj = await r.json(), v = String(lj.version || '').replace(/^v/i, '');
+        if (v) {
+          const base = `https://github.com/${source}/releases/download/v${v}/`;
+          return { version: v, notes: '', setup: `${base}WipeTime.v${v}.Setup.exe`, portable: `${base}WipeTime.v${v}.exe`, sha256: lj.sha256 || '', sha256Portable: lj.sha256Portable || '' };
+        }
+      }
+    } catch { /* se intenta con la API */ }
     const res = await fetch(`https://api.github.com/repos/${source}/releases/latest`, { headers });
     if (!res.ok) throw new Error('HTTP_' + res.status);
     const j = await res.json();
