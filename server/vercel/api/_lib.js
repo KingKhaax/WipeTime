@@ -46,6 +46,6 @@ const cors = (req, res) => {
 };
 
 const send = (res, status, obj) => { res.status(status).setHeader('content-type', 'application/json'); res.send(JSON.stringify(obj)); };
-const BNET_PATH = /^\/(profile\/wow\/character\/[a-z0-9-]+\/[^/?#]+(\/(character-media|appearance|equipment|statistics))?|data\/wow\/(guild\/[a-z0-9-]+\/[^/?#]+(\/roster)?|guild-crest\/[^?#]+|media\/guild-crest\/[^?#]+|media\/item\/\d+|realm\/[^?#]+|connected-realm\/[^?#]+))(\?.*)?$/i;
+const BNET_PATH = /^\/(profile\/wow\/character\/[a-z0-9-]+\/[^/?#]+(\/(character-media|appearance|equipment|statistics|encounters\/raids))?|data\/wow\/(guild\/[a-z0-9-]+\/[^/?#]+(\/roster)?|guild-crest\/[^?#]+|media\/guild-crest\/[^?#]+|media\/item\/\d+|realm\/[^?#]+|connected-realm\/[^?#]+))(\?.*)?$/i;
 
 module.exports = { WCL, token, limited, send, cors, BNET_PATH };

@@ -1628,3 +1628,42 @@ select option { background: #17171a; color: var(--text); }
 .pn-box { background: color-mix(in srgb, var(--pn) 9%, var(--panel-2)); border-color: color-mix(in srgb, var(--pn) 45%, var(--line)); }
 .pn-box b { color: #a6e05a; }
 .pn-box small { color: color-mix(in srgb, var(--pn) 60%, var(--muted)); }
+
+/* Tarjeta del parche: borde de energía vil que gira (verde y violeta del logo «Curse of Ula'tek»), halo que late detrás del logo
+   y un brillo que recorre la cuenta atrás. Se desactiva con «Animaciones reducidas». */
+@property --pn-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.exp-card { isolation: isolate; overflow: hidden; }
+.exp-card::before {
+  content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--pn-a), transparent 0 50%, #4f8a1e 62%, #a6e05a 72%, #e4ff9e 75%, #9b5de5 84%, transparent 94%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: pn-spin 7s linear infinite;
+}
+.exp-card::after {
+  content: ''; position: absolute; z-index: -1; left: -40px; top: 50%; width: 260px; height: 260px; transform: translateY(-50%); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(143, 209, 79, .28), rgba(155, 93, 229, .14) 45%, transparent 70%);
+  filter: blur(6px); animation: pn-glow 4.5s ease-in-out infinite;
+}
+.exp-card .exp-img { position: relative; filter: drop-shadow(0 0 10px rgba(143, 209, 79, .35)); animation: pn-logo 4.5s ease-in-out infinite; }
+.pn-box { position: relative; overflow: hidden; }
+.pn-box::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 30%, rgba(214, 255, 150, .22) 50%, transparent 70%);
+  animation: pn-shine 5s ease-in-out infinite;
+}
+.pn-box:nth-child(2)::after { animation-delay: .15s; }
+.pn-box:nth-child(3)::after { animation-delay: .3s; }
+.pn-box:nth-child(4)::after { animation-delay: .45s; }
+@keyframes pn-spin { to { --pn-a: 360deg; } }
+@keyframes pn-glow { 0%, 100% { opacity: .55; transform: translateY(-50%) scale(.92); } 50% { opacity: 1; transform: translateY(-50%) scale(1.06); } }
+@keyframes pn-logo { 0%, 100% { filter: drop-shadow(0 0 8px rgba(143, 209, 79, .3)); } 50% { filter: drop-shadow(0 0 18px rgba(166, 224, 90, .6)); } }
+@keyframes pn-shine { 0%, 60% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce) { .exp-card::before, .exp-card::after, .exp-card .exp-img, .pn-box::after { animation: none; } }
+
+/* Tipografía como NinjaLoot: misma fuente (Noto Sans) con los mismos pesos y tamaños en la barra superior y el texto */
+body { line-height: 1.45; }
+.home-btn { font-size: 14.5px; font-weight: 500; }
+.home-btn.on { font-weight: 600; }
+button.brand { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+h1, h2, h3 { letter-spacing: -.01em; }
+.hdr h1, .welcome h1 { letter-spacing: -.02em; }
