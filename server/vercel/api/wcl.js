@@ -1,4 +1,4 @@
-const { WCL, token, limited, send } = require('./_lib');
+const { WCL, token, limited, send, cors } = require('./_lib');
 
 // POST /wcl  { query, variables, lang }  ->  API v2 de Warcraft Logs (solo consultas, nada de mutation)
 module.exports = async (req, res) => {

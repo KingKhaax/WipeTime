@@ -63,6 +63,7 @@ WipeTime does not collect telemetry and has no user accounts of its own. Setting
 | [Blizzard Battle.net](https://www.blizzard.com/) | Only if you choose to log in, or look up characters/guilds | Login happens on Blizzard's own page; WipeTime receives your BattleTag and a read-only `wow.profile` token |
 | [Raider.IO](https://raider.io/) | When you search characters/guilds or view Mythic+ rankings | The names searched |
 | [Wowhead](https://www.wowhead.com/), [Raidbots](https://www.raidbots.com/), assets.rpglogs.com, cdn.raidplan.io | When spells, talents, icons or boss maps are shown | Spell IDs and image requests |
+| [GitHub Pages](https://pages.github.com/) | Only if you use the web version | Serves the page; your settings, chosen character and uploaded maps stay in your browser (localStorage/IndexedDB) |
 | [GitHub](https://github.com/) | At startup and when you click update; first run downloads an icon pack | Checks for a new version and downloads updates |
 
 Only the request itself and your IP address reach these services. Their privacy policies: [Warcraft Logs](https://www.warcraftlogs.com/) (linked in its site footer), [Vercel](https://vercel.com/legal/privacy-policy), [Blizzard](https://www.blizzard.com/legal/a4380ee5-5c8d-4e3b-83b7-ea26d01a9918/blizzard-entertainment-online-privacy-policy), [Raider.IO](https://raider.io/privacy-policy), [Wowhead](https://www.wowhead.com/privacy), [Raidbots](https://www.raidbots.com/privacy), [GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).

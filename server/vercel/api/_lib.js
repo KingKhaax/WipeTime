@@ -35,7 +35,17 @@ function limited(req) {
   return h.length > 120;
 }
 
+// CORS abierto: son datos públicos de solo lectura y la versión web (GitHub Pages) los pide desde otro dominio
+const cors = (req, res) => {
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type');
+  res.setHeader('access-control-max-age', '86400');
+  if (req.method === 'OPTIONS') { res.status(204).end(); return true; }
+  return false;
+};
+
 const send = (res, status, obj) => { res.status(status).setHeader('content-type', 'application/json'); res.send(JSON.stringify(obj)); };
 const BNET_PATH = /^\/(profile\/wow\/character\/[a-z0-9-]+\/[^/?#]+(\/(character-media|appearance|equipment|statistics))?|data\/wow\/(guild\/[a-z0-9-]+\/[^/?#]+(\/roster)?|guild-crest\/[^?#]+|media\/guild-crest\/[^?#]+|media\/item\/\d+|realm\/[^?#]+|connected-realm\/[^?#]+))(\?.*)?$/i;
 
-module.exports = { WCL, token, limited, send, BNET_PATH };
+module.exports = { WCL, token, limited, send, cors, BNET_PATH };

@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/wcl", "destination": "/api/wcl" },
     { "source": "/bnet", "destination": "/api/bnet" },
+    { "source": "/map", "destination": "/api/map" },
     { "source": "/", "destination": "/api/index" }
   ]
 }
