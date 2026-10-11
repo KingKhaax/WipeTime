@@ -73,16 +73,19 @@ const PATCHES = [
   { v: '12.1.5', from: '2026-10-14' },
 ];
 
+// Fecha local (AAAA-MM-DD): el parche cambia a la misma hora que llega a 0 la cuenta atrás
+const localDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 // Arte del parche vigente: el del último parche con imagen que ya haya salido
 function patchArtKey(now = new Date()) {
-  const day = now.toISOString().slice(0, 10);
+  const day = localDay(now);
   let art = null;
   for (const p of PATCHES) if (p.from <= day && p.art) art = p.art;
   return art || PATCHES[0].art;
 }
 
 function currentPatch(now = new Date()) {
-  const day = now.toISOString().slice(0, 10);
+  const day = localDay(now);
   let cur = PATCHES[0];
   for (const p of PATCHES) if (p.from <= day) cur = p;
   return cur.v;

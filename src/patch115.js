@@ -24,7 +24,15 @@ const Patch115 = (() => {
     const el = document.getElementById('pnTimer');
     if (!el) { clearInterval(timer); timer = null; return; }
     const ms = TARGET - Date.now();
-    if (ms <= 0) { el.innerHTML = `<span class="pn-now">${L('¡Ya disponible!', 'Available now!')}</span>`; return; }
+    if (ms <= 0) {
+      // Llega a 0: el parche pasa a ser el 12.1.5 sin reiniciar la app y desaparece la cuenta atrás
+      clearInterval(timer);
+      timer = null;
+      const num = document.querySelector('#expCard .patch');
+      if (num) num.lastChild.textContent = currentPatch();
+      el.closest('.pn-count')?.remove();
+      return;
+    }
     const s = Math.floor(ms / 1000);
     const parts = [[Math.floor(s / 86400), L('días', 'days')], [Math.floor((s % 86400) / 3600), L('horas', 'hours')], [Math.floor((s % 3600) / 60), L('min', 'min')], [s % 60, L('seg', 'sec')]];
     el.innerHTML = parts.map(([v, l]) => `<div class="pn-box"><b>${pad(v)}</b><small>${l}</small></div>`).join('');
