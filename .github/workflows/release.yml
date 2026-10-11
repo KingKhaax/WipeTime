@@ -1,0 +1,148 @@
+# Compila WipeTime en GitHub, firma los .exe con SignPath y crea un borrador de release.
+# Se lanza a mano: pestaña Actions -> "Release" -> Run workflow.
+# La versión sale de package.json (sube "version" antes de lanzarlo).
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: 'Firmar con SignPath'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Comprobar requisitos de SignPath
+        shell: pwsh
+        run: |
+          if (-not (Test-Path LICENSE)) { throw "Falta el archivo LICENSE (lo exige SignPath)." }
+          $readme = Get-Content README.md -Raw
+          foreach ($s in 'Code signing policy', 'Free code signing provided by', 'Privacy policy') {
+            if (-not $readme.Contains($s)) { throw "Falta '$s' en README.md (lo exige SignPath)." }
+          }
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Leer versión de package.json
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if (gh release view "v$v" 2>$null) { throw "Ya existe la release v$v. Sube la versión en package.json." }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          $global:LASTEXITCODE = 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Decidir si se firma
+        id: sign
+        shell: pwsh
+        run: |
+          $ready = -not [string]::IsNullOrEmpty($env:SP_TOKEN) -and -not [string]::IsNullOrEmpty($env:SP_ORG)
+          $on = '${{ inputs.sign }}' -eq 'true' -and $ready
+          if ('${{ inputs.sign }}' -eq 'true' -and -not $ready) { "::warning::SignPath aún no está configurado (falta SIGNPATH_API_TOKEN o SIGNPATH_ORGANIZATION_ID): se compila SIN firmar." }
+          "on=$($on.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+        env:
+          SP_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SP_ORG: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+
+      - run: npm ci
+
+      # 1) Empaquetar la app (sin instalador) y firmar WipeTime.exe
+      - name: Empaquetar app
+        run: npx electron-builder --win dir --publish never
+
+      - name: Subir WipeTime.exe sin firmar
+        if: steps.sign.outputs.on == 'true'
+        id: upload-app
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-unsigned
+          path: dist/win-unpacked/WipeTime.exe
+
+      - name: Firmar WipeTime.exe (SignPath)
+        if: steps.sign.outputs.on == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'WipeTime' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.upload-app.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-app
+          parameters: |
+            version: ${{ toJSON(steps.ver.outputs.version) }}
+
+      - name: Sustituir por el WipeTime.exe firmado
+        if: steps.sign.outputs.on == 'true'
+        shell: pwsh
+        run: Copy-Item signed-app/WipeTime.exe dist/win-unpacked/WipeTime.exe -Force
+
+      # 2) Instalador y portable a partir de la app ya firmada, y firmarlos
+      - name: Crear instalador y portable
+        run: npx electron-builder --win nsis portable --prepackaged dist/win-unpacked --publish never
+
+      - name: Subir instaladores sin firmar
+        if: steps.sign.outputs.on == 'true'
+        id: upload-installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: installers-unsigned
+          path: |
+            dist/WipeTime v${{ steps.ver.outputs.version }} Setup.exe
+            dist/WipeTime v${{ steps.ver.outputs.version }}.exe
+
+      - name: Firmar instalador y portable (SignPath)
+        if: steps.sign.outputs.on == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'WipeTime' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.upload-installers.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-installers
+          parameters: |
+            version: ${{ toJSON(steps.ver.outputs.version) }}
+
+      # latest.json: el actualizador de la app lo usa para comprobar el SHA-256 de lo que descarga
+      - name: Reunir ficheros finales
+        shell: pwsh
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          $src = if ('${{ steps.sign.outputs.on }}' -eq 'true') { 'signed-installers' } else { 'dist' }
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item "$src/WipeTime v$v Setup.exe", "$src/WipeTime v$v.exe" out/
+          $hash = { param($f) (Get-FileHash $f -Algorithm SHA256).Hash.ToLower() }
+          [ordered]@{ version = $v; sha256 = & $hash "out/WipeTime v$v Setup.exe"; sha256Portable = & $hash "out/WipeTime v$v.exe" } |
+            ConvertTo-Json | Set-Content out/latest.json -Encoding utf8NoBOM
+          Get-Content out/latest.json
+
+      # 3) Borrador de release: revísalo en GitHub y pulsa "Publish release"
+      - name: Crear borrador de release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: v${{ steps.ver.outputs.version }}
+          draft: true
+          files: out/*

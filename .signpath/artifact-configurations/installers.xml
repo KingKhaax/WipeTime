@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration, slug "installers": NSIS installer and portable build -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="WipeTime v${version} Setup.exe" product-name="WipeTime" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="WipeTime v${version}.exe" product-name="WipeTime" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
