@@ -27,6 +27,7 @@ const S = {
   cache: new Map(),
   seq: 0,
   sortMode: lsGet('sortMode') || 'desc', // desc | asc | name
+  shieldType: 'all', // all | boss | adds
   dmgMetric: 'dps',   // dps | boss | active
   parseMode: 'all',   // all | ilvl
   combineMode: false,
@@ -913,13 +914,30 @@ function wipeCardHTML(w) {
 // ============================================================ vistas
 const VIEWS = {
   async shields(f) {
-    const shields = await shieldData(f);
-    if (!shields.length) return headerHTML(f, t('shieldsTitle')) + `<div class="empty">${t('noShields')}</div>`;
+    const all = await shieldData(f);
+    if (!all.length) return headerHTML(f, t('shieldsTitle')) + `<div class="empty">${t('noShields')}</div>`;
+    const kindOf = (s) => (S.actors.get(s.target)?.subType === 'Boss' ? 'boss' : 'adds');
+    const counts = { all: all.length, boss: all.filter((s) => kindOf(s) === 'boss').length, adds: all.filter((s) => kindOf(s) === 'adds').length };
+    const type = S.shieldType === 'boss' || S.shieldType === 'adds' ? S.shieldType : 'all';
+    const tchip = (k, label) => `<button class="chip ${type === k ? 'on' : ''}" data-action="shield-type" data-m="${k}">${label} <span class="muted">${counts[k]}</span></button>`;
+    const typeBar = `<div class="sortbar"><span class="muted">${LL('Tipo de escudo', 'Shield type')}</span>${tchip('all', LL('Todos', 'All'))}${tchip('boss', 'Boss')}${tchip('adds', 'Adds')}</div>`;
+    const shields = type === 'all' ? all : all.filter((s) => kindOf(s) === type);
+    if (!shields.length) return headerHTML(f, t('shieldsTitle')) + typeBar + `<div class="empty">${LL('No hay escudos de este tipo en este pull.', 'There are no shields of this type in this pull.')}</div>`;
     const segs = phaseSegments(S.fight);
     const multiTarget = new Set(shields.map((s) => s.target)).size > 1;
+    const dur = (s) => Math.max(1000, s.end - s.start);
+    // Tiempo con escudo activo: unión de los intervalos (los escudos de varios enemigos pueden solaparse)
+    const iv = shields.map((s) => [s.start, s.start + dur(s)]).sort((a, b) => a[0] - b[0]);
+    let active = 0;
+    let curEnd = -Infinity;
+    for (const [a, b] of iv) {
+      if (a > curEnd) { active += b - a; curEnd = b; } else if (b > curEnd) { active += b - curEnd; curEnd = b; }
+    }
+    const secs = active / 1000;
     const labels = shields.map((s, i) => {
       const ph = segs.find((p) => s.start >= p.start && s.start < p.end);
-      return [t('shieldN', { n: i + 1 }), multiTarget ? actorName(s.target) : '', ph?.name || ''].filter(Boolean).join(' · ');
+      const who = actorName(s.target);
+      return [t('shieldN', { n: i + 1 }), kindOf(s) === 'boss' ? 'Boss' : 'Add', multiTarget || kindOf(s) === 'adds' ? who : '', ph?.name || ''].filter(Boolean).join(' · ');
     });
     const per = new Map();
     shields.forEach((s, i) => {
@@ -932,14 +950,15 @@ const VIEWS = {
       }
     });
     const color = (i) => SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-    const rows = [...per.values()].map((p) => ({ ...p, segs: p.vals.map((v, i) => ({ v, color: color(i), label: labels[i] })) }))
+    const rows = [...per.values()].map((p) => ({ ...p, note: `${plain(p.total / secs)} DPS`, segs: p.vals.map((v, i) => ({ v, color: color(i), label: labels[i] })) }))
       .sort((a, b) => b.total - a.total);
     const total = shields.reduce((s, x) => s + x.total, 0);
     const bosses = [...new Set(shields.map((s) => actorName(s.target)))].join(', ');
-    const sub = t('shieldsSub', { total: plain(total), n: shields.length, boss: esc(bosses), name: esc(rows[0]?.name || ''), val: plain(rows[0]?.total || 0) });
+    const sub = t('shieldsSub', { total: plain(total), n: shields.length, boss: esc(bosses), name: esc(rows[0]?.name || ''), val: plain(rows[0]?.total || 0) })
+      + ` · ${LL('Raid', 'Raid')} <b>${plain(total / secs)} DPS</b> ${LL('durante', 'over')} ${clock(active)}`;
     const legend = `<div class="legend">${shields.map((s, i) =>
-      `<span><i style="background:${color(i)}"></i>${esc(labels[i])} <small>${clock(s.start - f.fightStart)} · ${plain(s.total)}</small></span>`).join('')}</div>`;
-    return headerHTML(f, t('shieldsTitle'), sub) + legend + rankedList(rows) + `<p class="foot">${t('shieldsFoot')}</p>`;
+      `<span><i style="background:${color(i)}"></i>${esc(labels[i])} <small>${clock(s.start - f.fightStart)} · ${plain(s.total)} · ${plain(s.total / (dur(s) / 1000))} DPS</small></span>`).join('')}</div>`;
+    return headerHTML(f, t('shieldsTitle'), sub) + typeBar + legend + rankedList(rows) + `<p class="foot">${t('shieldsFoot')}</p>`;
   },
 
   async pi(f) {
@@ -1497,6 +1516,10 @@ document.addEventListener('click', async (ev) => {
   const a = el.dataset.action;
   const id = el.dataset.id != null ? Number(el.dataset.id) : null;
   switch (a) {
+    case 'shield-type':
+      S.shieldType = el.dataset.m;
+      render();
+      break;
     case 'sort':
       S.sortMode = el.dataset.m;
       lsSet('sortMode', S.sortMode);
