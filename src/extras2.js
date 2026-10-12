@@ -2,8 +2,9 @@
 
 // Segunda tanda de funciones: Buffos ampliado (PI, prepoti, resumen de la pelea), pulls de Mítica+ en la barra lateral,
 // comparar con los mejores de tu llave, comparar con tu mejor try, informe de la noche y maná de sanadores.
-Object.assign(STRINGS.es.tabs, { night: 'Informe general', bestcmp: 'Progreso', mana: 'Maná' });
-Object.assign(STRINGS.en.tabs, { night: 'General report', bestcmp: 'Progress', mana: 'Mana' });
+Object.assign(STRINGS.es.tabs, { night: 'Informe general', bestcmp: 'Progreso', mana: 'Maná', debuffs: 'Perjuicios' });
+for (const l of ['de', 'fr']) if (STRINGS[l]?.tabs) STRINGS[l].tabs.debuffs = l === 'de' ? 'Debuffs' : 'Débuffs';
+Object.assign(STRINGS.en.tabs, { night: 'General report', bestcmp: 'Progress', mana: 'Mana', debuffs: 'Debuffs' });
 
 const Extras2 = (() => {
   const fw = (raw) => ({ ...raw, fightStart: raw.startTime, fightEnd: raw.endTime, full: true, key: `${raw.id}:${raw.startTime}-${raw.endTime}`, rangeLabel: '' });
@@ -592,11 +593,82 @@ const Extras2 = (() => {
   }
 
   // ============================================================ registro
+  // ============================================================ PERJUICIOS (debuffs de la pelea, como la pestaña Debuffs de Warcraft Logs)
+  function debuffQuery(f, body) {
+    return gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){${body}}}}`,
+      { code: S.code, f: fightIds(f), s: f.startTime, e: f.endTime }).then((d) => d.reportData.report);
+  }
+  const hostOf = (mode) => (mode === 'enemies' ? 'Enemies' : 'Friendlies');
+
+  function debuffList(f, mode) {
+    return cached(`debuffs:${mode}:${f.key}`, async () => {
+      const r = await debuffQuery(f, `t:table(fightIDs:$f,dataType:Debuffs,hostilityType:${hostOf(mode)},startTime:$s,endTime:$e)`);
+      return (r.t?.data?.auras || []).filter((a) => a.name && a.totalUses > 0).sort((x, y) => y.totalUptime - x.totalUptime);
+    });
+  }
+
+  function debuffDetail(f, mode, id) {
+    return cached(`debuffd:${mode}:${id}:${f.key}`, async () => {
+      const dmgType = mode === 'enemies' ? 'DamageDone' : 'DamageTaken';
+      const r = await debuffQuery(f, `aur:table(fightIDs:$f,dataType:Debuffs,hostilityType:${hostOf(mode)},abilityID:${id},viewBy:Target,startTime:$s,endTime:$e)
+        dmg:table(fightIDs:$f,dataType:${dmgType},abilityID:${id},startTime:$s,endTime:$e)`);
+      return { aur: r.aur?.data?.auras || [], dmg: entriesOf(r.dmg) };
+    });
+  }
+
+  async function viewDebuffs(f) {
+    const mode = S.debuffMode === 'enemies' ? 'enemies' : 'players';
+    const chip = (k, label) => `<button class="chip ${mode === k ? 'on' : ''}" data-action="debuff-mode" data-m="${k}">${label}</button>`;
+    const bar = `<div class="metricbar"><span class="muted">${LL('Ver perjuicios', 'Show debuffs')}</span>${chip('players', LL('En jugadores', 'On players'))}${chip('enemies', LL('En enemigos', 'On enemies'))}</div>`;
+    const list = await debuffList(f, mode);
+    const title = t('tabs.debuffs');
+    if (!list.length) return headerHTML(f, title) + bar + `<div class="empty">${LL('No hay perjuicios de este tipo en la pelea.', 'There are no debuffs of this kind in the fight.')}</div>`;
+    const sel = list.find((a) => a.guid === S.debuffId) || list[0];
+    const rowsHtml = list.slice(0, 150).map((a) => `<button class="dbf-row ${a.guid === sel.guid ? 'on' : ''}" data-action="debuff-pick" data-id="${a.guid}">
+      <span class="dbf-n"><span data-spell="${a.guid}">${iconImg(a.abilityIcon, 22)}</span>${esc(a.name)}</span>
+      <span class="dbf-u">${a.totalUses} ${LL('aplic.', 'applic.')}</span><span class="dbf-t">${num(a.totalUptime / 1000, 1)} s</span></button>`).join('');
+    const listHtml = `<div class="dbf-list"><div class="dbf-row dbf-head"><span>${LL('Perjuicio', 'Debuff')} <small class="muted">(${list.length})</small></span><span class="dbf-u">${LL('Aplicaciones', 'Applications')}</span><span class="dbf-t">${LL('Tiempo activo', 'Uptime')}</span></div>${rowsHtml}</div>`;
+
+    const det = await debuffDetail(f, mode, sel.guid);
+    const per = new Map();
+    const get = (e) => {
+      if (!per.has(e.id)) per.set(e.id, { ...playerInfo(e.id, e), dmg: 0, uptime: 0, uses: 0, abil: [] });
+      return per.get(e.id);
+    };
+    for (const e of det.dmg) {
+      const isP = isPlayer(e.id, e);
+      if (mode === 'players' ? !isP : !isP) continue;
+      const r = get(e);
+      r.dmg += e.total || 0;
+      r.abil = abilList(e.abilities);
+    }
+    for (const a of det.aur) {
+      if (mode === 'players' && !isPlayer(a.id, a)) continue;
+      const r = get({ id: a.id, name: a.name, type: a.type, icon: a.icon });
+      r.uptime += a.totalUptime || 0;
+      r.uses += a.totalUses || 0;
+    }
+    const all = [...per.values()];
+    const hasDmg = all.some((r) => r.dmg > 0);
+    const rows = all.map((r) => ({
+      ...r, total: hasDmg ? r.dmg : r.uptime / 1000,
+      note: `${r.uses ? `${r.uses} ${LL('aplic.', 'applic.')} · ` : ''}${num(r.uptime / 1000, 1)} s`,
+    })).filter((r) => r.total > 0).sort((x, y) => y.total - x.total);
+    const dmgTotal = all.reduce((s, r) => s + r.dmg, 0);
+    const who = mode === 'players' ? LL('jugadores afectados', 'players affected') : LL('jugadores que lo aplican', 'players applying it');
+    const sub = hasDmg
+      ? `<b>${esc(sel.name)}</b> · <b>${plain(dmgTotal)}</b> ${LL(mode === 'players' ? 'de daño recibido' : 'de daño', mode === 'players' ? 'damage taken' : 'damage')} · ${rows.length} ${who}`
+      : `<b>${esc(sel.name)}</b> · ${LL('sin daño directo: se ordena por tiempo activo', 'no direct damage: sorted by uptime')} · ${rows.length} ${who}`;
+    const detail = rows.length ? rankedList(rows, { clickable: false }) : `<div class="empty">${t('noData')}</div>`;
+    return headerHTML(f, title, sub) + bar + listHtml + detail;
+  }
+
+  VIEWS.debuffs = viewDebuffs;
   VIEWS.bestcmp = viewBestCmp;
   VIEWS.night = viewNight;
   VIEWS.mana = viewMana;
   TABS.length = 0;
-  TABS.push('night', 'summary', 'damage', 'healing', 'taken', 'deaths', 'avoidable', 'mechanics', 'cooldowns', 'utility', 'buffs', 'mana', 'rotation', 'detail', 'enemies', 'shields', 'graphs', 'mplus', 'replay');
+  TABS.push('night', 'summary', 'damage', 'healing', 'taken', 'deaths', 'avoidable', 'mechanics', 'cooldowns', 'utility', 'buffs', 'debuffs', 'mana', 'rotation', 'detail', 'enemies', 'shields', 'graphs', 'mplus', 'replay');
   const prevHidden = window.tabHidden;
   window.tabHidden = (k) => {
     if (prevHidden?.(k)) return true;

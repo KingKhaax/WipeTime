@@ -805,7 +805,7 @@ const Extras = (() => {
   VIEWS.mplus = viewMplus;
 
   TABS.length = 0;
-  TABS.push('summary', 'damage', 'healing', 'taken', 'detail', 'enemies', 'shields', 'deaths', 'mechanics', 'utility', 'cooldowns', 'buffs', 'rotation', 'graphs', 'mplus', 'replay');
+  TABS.push('summary', 'damage', 'healing', 'taken', 'detail', 'enemies', 'shields', 'deaths', 'mechanics', 'utility', 'cooldowns', 'buffs', 'debuffs', 'rotation', 'graphs', 'mplus', 'replay');
   window.tabHidden = (k) => (k === 'mplus' && !isKey(S.fight)) || (k === 'replay' && isKey(S.fight));
 
   document.addEventListener('click', (ev) => {

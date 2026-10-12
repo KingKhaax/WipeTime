@@ -681,7 +681,7 @@ function renderSidebar() {
 }
 
 // ============================================================ render principal
-const TABS = ['damage', 'healing', 'taken', 'enemies', 'shields', 'deaths', 'utility', 'buffs', 'rotation'];
+const TABS = ['damage', 'healing', 'taken', 'enemies', 'shields', 'deaths', 'utility', 'buffs', 'debuffs', 'rotation'];
 
 function parseClock(s) {
   const m = String(s || '').trim().replace(',', '.').match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/);
@@ -1616,6 +1616,15 @@ document.addEventListener('click', async (ev) => {
   const a = el.dataset.action;
   const id = el.dataset.id != null ? Number(el.dataset.id) : null;
   switch (a) {
+    case 'debuff-mode':
+      S.debuffMode = el.dataset.m;
+      S.debuffId = null;
+      render();
+      break;
+    case 'debuff-pick':
+      S.debuffId = Number(el.dataset.id);
+      render();
+      break;
     case 'export-img':
       await exportRankedImage(el.dataset.m);
       break;

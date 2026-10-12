@@ -1714,3 +1714,16 @@ h1, h2, h3 { letter-spacing: -.01em; }
 .r-healer .role-sprite { background-position: -28px 0; }
 .r-tank .role-sprite { background-position: 0 -28px; }
 .r-dps .role-sprite { background-position: -29px -28px; }
+
+/* Perjuicios: lista de debuffs de la pelea */
+.dbf-list { display: flex; flex-direction: column; max-height: 300px; overflow-y: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 10px; }
+.dbf-row { display: grid; grid-template-columns: minmax(180px, 1fr) 110px 100px; gap: 12px; align-items: center; padding: 4px 12px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; font-size: 13px; }
+.dbf-row:last-child { border-bottom: 0; }
+button.dbf-row { cursor: pointer; }
+button.dbf-row:hover { background: var(--hover); }
+.dbf-row.on { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+.dbf-head { position: sticky; top: 0; z-index: 1; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 600; }
+.dbf-n { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dbf-n img { border-radius: 5px; flex: none; }
+.dbf-u, .dbf-t { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.dbf-t { color: var(--text); font-weight: 600; }

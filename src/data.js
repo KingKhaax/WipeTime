@@ -8,7 +8,8 @@ const FALLBACK_ICON = ICON_BASE + 'inv_misc_questionmark.jpg';
 const abilityIconUrl = (icon) => (icon ? `wcicon://i/${encodeURIComponent(String(icon).replace(/\.(jpg|png)$/i, ''))}` : FALLBACK_ICON);
 // Iconos de clase incluidos en el programa (src/classes/): no dependen de descargas ni de caché. Evoker no sale en la hoja de Blizzard y usa la imagen de Warcraft Logs.
 const classIconUrl = (cls) => { const k = String(cls).toLowerCase().replace(/[^a-z]/g, ''); return `classes/${k}.${k === 'evoker' ? 'jpg' : 'png'}`; };
-const specIconUrl = (icon) => `wcicon://i/${encodeURIComponent('spec-' + icon)}`;
+// Sin especialización conocida (icono «Druid» a secas) se usa el icono de la clase
+const specIconUrl = (icon) => (icon && !String(icon).includes('-') ? classIconUrl(icon) : `wcicon://i/${encodeURIComponent('spec-' + icon)}`);
 
 const CLASSES = {
   DeathKnight: { color: '#C41E3A', es: 'Caballero de la Muerte', en: 'Death Knight', de: 'Todesritter', fr: 'Chevalier de la mort' },
