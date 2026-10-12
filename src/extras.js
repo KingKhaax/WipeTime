@@ -317,7 +317,7 @@ const Extras = (() => {
         const note = src.map((x) => `<span style="color:${classColor(x.type)}">${esc(x.name)}</span> ${num((x.total / e.total) * 100, 0)}%`).join(' · ');
         return { ...playerInfo(e.id, e), total: e.total, rate: e.total / seconds, note, abil: abilList(e.abilities) };
       }).sort((a, b) => b.total - a.total);
-      body = rankedList(rows, { clickable: false });
+      body = rankedList(rows, { clickable: false, unit: 'HPS' });
     } else if (mode === 'healability') {
       title = LL('Sanación por habilidad (toda la banda)', 'Healing by ability (whole raid)');
       body = abilityTable((await tableBy(f, 'Healing', 'Ability')).filter((e) => e.total > 0), seconds, 'heal');

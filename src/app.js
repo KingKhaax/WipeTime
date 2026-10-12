@@ -810,7 +810,7 @@ function mergeAbil(lists) {
   return [...m.values()].sort((x, y) => y.total - x.total);
 }
 
-function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
+function rankedList(rows, { parse, slots, clickable = !S.viewCombined, unit = '' } = {}) {
   if (!rows.length) return `<div class="empty">${t('noData')}</div>`;
   const max = Math.max(...rows.map((r) => r.total), 1);
   const place = new Map(rows.map((r, i) => [r, i + 1])); // posición real (de mayor a menor)
@@ -823,12 +823,12 @@ function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
   }
   const sum = rows.reduce((x, r) => x + r.total, 0) || 1;
   const tags = (h) => String(h ?? '').replace(/<[^>]*>/g, '').trim();
-  S.lastRanked = list.map((r) => ({ name: r.name, cls: r.cls, icon: r.icon, total: r.total, pct: (r.total / sum) * 100, val: tags(big(r.total)), rate: r.rate != null ? plain(r.rate) : tags(r.note), me: isMe(r.name),
+  S.lastRanked = list.map((r) => ({ name: r.name, cls: r.cls, icon: r.icon, total: r.total, pct: (r.total / sum) * 100, val: tags(big(r.total)), rate: r.rate != null ? plain(r.rate) + (unit ? ' ' + unit : '') : tags(r.note), me: isMe(r.name),
     segs: [{ v: r.total, color: rowColor(r) }], abil: r.abil || null }));
   const hasRate = rows.some((r) => r.rate != null);
   const hasNote = rows.some((r) => r.note);
   return `${sortBarHTML(!!parse)}<div class="ranked">
-    <div class="row head ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}"><span>${LL('Nombre', 'Name')}</span><span>${LL('Cantidad', 'Amount')}</span>${hasNote ? '<span></span>' : ''}${hasRate ? '<span class="rate">/s</span>' : ''}<span class="val"></span></div>${list.map((r) => {
+    <div class="row head ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}"><span>${LL('Nombre', 'Name')}</span><span>${LL('Cantidad', 'Amount')}</span>${hasNote ? '<span></span>' : ''}${hasRate ? `<span class="rate">${unit}</span>` : ''}<span class="val"></span></div>${list.map((r) => {
     const color = rowColor(r);
     const bar = `<span class="seg" style="flex:1 1 0;background:${color}"></span>`;
     const me = isMe(r.name);
@@ -1127,7 +1127,7 @@ const VIEWS = {
     </div>`;
     const real = S.parseMode === 'ilvl' ? rk.dpsB : rk.dps;
     const withParse = m === 'dps' || m === 'rdps';
-    return headerHTML(f, t('dmgTitle'), leaderSub(rows, f)) + bar + rankedList(rows, withParse ? parseOptions(f, rows, real, 'dps') : {});
+    return headerHTML(f, t('dmgTitle'), leaderSub(rows, f)) + bar + rankedList(rows, { unit: 'DPS', ...(withParse ? parseOptions(f, rows, real, 'dps') : {}) });
   },
 
   async healing(f) {
@@ -1140,7 +1140,7 @@ const VIEWS = {
         return { ...playerInfo(e.id, e), ilvl: e.itemLevel, total: e.total, rate: e.total / dur, abil: abilList(e.abilities), note: ohp ? t('overheal', { p: num(ohp, 0) }) : '' };
       })
       .sort((a, b) => b.total - a.total);
-    return headerHTML(f, t('healTitle'), leaderSub(rows, f)) + rankedList(rows, parseOptions(f, rows, S.parseMode === 'ilvl' ? rk.hpsB : rk.hps, 'hps'));
+    return headerHTML(f, t('healTitle'), leaderSub(rows, f)) + rankedList(rows, { unit: 'HPS', ...parseOptions(f, rows, S.parseMode === 'ilvl' ? rk.hpsB : rk.hps, 'hps') });
   },
 
   async taken(f) {
@@ -1165,7 +1165,7 @@ const VIEWS = {
       .filter((r) => r.total > 0)
       .sort((x, y) => y.total - x.total);
     const title = sel ? `${t('takenTitle')} · ${sel}` : t('takenTitle');
-    return headerHTML(f, title, leaderSub(rows)) + picker + rankedList(rows);
+    return headerHTML(f, title, leaderSub(rows)) + picker + rankedList(rows, { unit: 'DTPS' });
   },
 
   async enemies(f) {
@@ -1206,7 +1206,7 @@ const VIEWS = {
       ? `<div class="legend">${ids.map((id, i) => `<span><i style="background:${colorOf(id)}"></i>${esc(names[i])}</span>`).join('')}</div>` : '';
     return headerHTML(f, t('enemiesTitle'), sub)
       + `<div class="chips">${chips}</div>${legend}`
-      + (ids.length ? rankedList(rows) : '');
+      + (ids.length ? rankedList(rows, { unit: 'DPS' }) : '');
   },
 
   async deaths(f) {
