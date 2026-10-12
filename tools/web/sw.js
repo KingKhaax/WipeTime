@@ -8,7 +8,8 @@ function iconCdn(name) {
   name = name.toLowerCase();
   if (name.startsWith('class-')) return `https://assets.rpglogs.com/img/warcraft/icons/${name.slice(6).replace(/[^a-z]/g, '')}.jpg`;
   if (name.startsWith('spec-')) return `https://assets.rpglogs.com/img/warcraft/icons/${SPEC_KEYS.find((k) => k.toLowerCase() === name.slice(5)) || name.slice(5)}.jpg`;
-  return `https://assets.rpglogs.com/img/warcraft/abilities/${name}.jpg`;
+  // Wowhead no pasa por Cloudflare, que en España se bloquea a ratos (fútbol) y rompía los iconos de Warcraft Logs
+  return `https://wow.zamimg.com/images/wow/icons/large/${name}.jpg`;
 }
 
 self.addEventListener('install', () => self.skipWaiting());

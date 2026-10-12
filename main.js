@@ -493,16 +493,28 @@ async function fetchFromPack(entry) {
 const aliasesOf = (name) => [name, name.replace(/^inv_(\d+)_/, 'inv$1_'), name.replace(/^inv(\d+)_/, 'inv_$1_')];
 const safeFile = (name) => name.replace(/[^a-z0-9_.\-]/g, '_').slice(0, 120);
 
-async function fetchCdn(url, cacheFile) {
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error('CDN_' + res.status);
-  const buf = Buffer.from(await res.arrayBuffer());
-  fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
-  fs.writeFileSync(cacheFile, buf);
-  return { buf, type: 'image/jpeg' };
+// Warcraft Logs sirve los iconos desde Cloudflare, que en España se bloquea a ratos (fútbol): si falla se prueban
+// los de Wowhead y los de Blizzard, que no pasan por Cloudflare.
+async function fetchCdn(urls, cacheFile) {
+  let lastErr;
+  for (const url of [].concat(urls)) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error('CDN_' + res.status);
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length < 100) throw new Error('CDN_EMPTY');
+      fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+      fs.writeFileSync(cacheFile, buf);
+      return { buf, type: 'image/jpeg' };
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('CDN_NONE');
 }
+const mirrors = (name) => name ? [`https://wow.zamimg.com/images/wow/icons/large/${name}.jpg`, `https://render.worldofwarcraft.com/us/icons/56/${name}.jpg`] : [];
 
 async function resolveIcon(name) {
+  const bundled = path.join(__dirname, 'src', 'icons', safeFile(name) + '.jpg');
+  if (fs.existsSync(bundled)) return { buf: fs.readFileSync(bundled), type: 'image/jpeg' };
   const hd = readConfig().hdIcons !== false;
   const png = path.join(iconDir(), safeFile(name) + '.png');
   const cdn = path.join(iconDir(), safeFile(name) + '.cdn.jpg');
@@ -518,14 +530,14 @@ async function resolveIcon(name) {
     candidates = [`classicon_${cls}`, `classicon_${cls}_256`, `classicon_${cls}_64`];
     // el CDN distingue mayúsculas: Priest.jpg, DeathKnight.jpg, DemonHunter.jpg (en minúsculas devuelve 403)
     const proper = { deathknight: 'DeathKnight', demonhunter: 'DemonHunter' }[cls] || (cls.charAt(0).toUpperCase() + cls.slice(1));
-    cdnUrl = `https://assets.rpglogs.com/img/warcraft/icons/${proper}.jpg`;
+    cdnUrl = [`https://assets.rpglogs.com/img/warcraft/icons/${proper}.jpg`];
   } else if (isSpec) {
     const specKey = Object.keys(SPEC_ICONS).find((k) => k.toLowerCase() === name.slice(5));
     candidates = specKey ? SPEC_ICONS[specKey] : [];
-    cdnUrl = `${WCL_SPEC_CDN}${specKey || name.slice(5)}.jpg`;
+    cdnUrl = [`${WCL_SPEC_CDN}${specKey || name.slice(5)}.jpg`, ...mirrors(candidates.find((c) => !c.startsWith('classicon_')))];
   } else {
     candidates = aliasesOf(name);
-    cdnUrl = `${WCL_ABILITY_CDN}${name}.jpg`;
+    cdnUrl = [`${WCL_ABILITY_CDN}${name}.jpg`, ...mirrors(name)];
   }
   try {
     const index = hd ? await loadPackIndex() : new Map();

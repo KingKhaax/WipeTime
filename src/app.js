@@ -116,7 +116,18 @@ function isMe(name) {
 // Iconos rotos -> interrogación (sin manejadores inline por la CSP)
 document.addEventListener('error', (e) => {
   const el = e.target;
-  if (el.tagName === 'IMG' && !el.dataset.fb) { el.dataset.fb = '1'; el.src = FALLBACK_ICON; }
+  if (el.tagName !== 'IMG') return;
+  // un icono que no llega (red lenta o cortada) se reintenta dos veces antes de rendirse
+  if (/^wcicon:/.test(el.src)) {
+    const n = Number(el.dataset.retry || 0);
+    if (n < 2) {
+      el.dataset.retry = String(n + 1);
+      const base = el.src.replace(/\?r=\d+$/, '');
+      setTimeout(() => { el.src = `${base}?r=${n + 1}`; }, 1500 * (n + 1));
+      return;
+    }
+  }
+  if (!el.dataset.fb) { el.dataset.fb = '1'; el.src = FALLBACK_ICON; }
 }, true);
 
 // ============================================================ API
@@ -1958,20 +1969,3 @@ document.addEventListener('change', (ev) => {
   document.addEventListener('scroll', hide, true);
 })();
 
-// Si un icono no llega (descarga lenta o cortada), se reintenta solo hasta 3 veces en vez de dejar el «?»
-document.addEventListener('error', (ev) => {
-  const im = ev.target;
-  if (!(im instanceof HTMLImageElement) || !/^wcicon:/.test(im.src)) return;
-  const n = Number(im.dataset.retry || 0);
-  if (n >= 3) return;
-  im.dataset.retry = String(n + 1);
-  const base = im.src.replace(/\?r=\d+$/, '');
-  setTimeout(() => { im.src = `${base}?r=${n + 1}`; }, 1500 * (n + 1));
-}, true);
-
-document.addEventListener('change', (ev) => {
-  const sel = ev.target.closest?.('select[data-taken-ability]');
-  if (!sel) return;
-  S.takenAbility = sel.value;
-  render();
-});

@@ -2,7 +2,7 @@
 
 const ICON_BASE = 'https://assets.rpglogs.com/img/warcraft/abilities/';
 const SPEC_ICON_BASE = 'https://assets.rpglogs.com/img/warcraft/icons/';
-const FALLBACK_ICON = ICON_BASE + 'inv_misc_questionmark.jpg';
+const FALLBACK_ICON = 'icons/inv_misc_questionmark.jpg'; // incluida en el programa
 
 // Iconos HD servidos por el programa (paquete Clean Icons, con respaldo al CDN de Warcraft Logs)
 const abilityIconUrl = (icon) => (icon ? `wcicon://i/${encodeURIComponent(String(icon).replace(/\.(jpg|png)$/i, ''))}` : FALLBACK_ICON);
