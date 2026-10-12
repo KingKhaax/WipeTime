@@ -645,15 +645,16 @@ function renderSidebar() {
   }
   const fightBtn = (f) => {
     const p = pctOf(f.fightPercentage ?? f.bossPercentage);
-    const bar = f.encounterID && !f.kill && p != null
-      ? `<span class="hpbar"><span style="width:${Math.min(100, p)}%"></span></span>` : '';
+    const bar = f.encounterID && f.kill ? '<span class="hpbar kill"><span style="width:100%"></span></span>'
+      : f.encounterID && p != null
+        ? `<span class="hpbar" title="${esc(LL('Vida restante del jefe', 'Boss health remaining'))}"><span style="width:${Math.max(3, Math.min(100, p))}%;--h:${Math.round((100 - Math.min(100, p)) * 1.2)}"></span></span>` : '';
     return `<button class="fight ${f.kill ? 'kill' : ''} ${S.fight?.id === f.id && !S.combineMode ? 'active' : ''} ${S.combine.includes(f.id) ? 'combined' : ''}" data-action="fight" data-id="${f.id}">${S.combineMode ? `<span class="cbox">${S.combine.includes(f.id) ? '✓' : ''}</span>` : ''}
       <span class="fl">${esc(fightLabel(f))}</span><span class="ft">${clock(fightDur(f))}</span>${bar}</button>${typeof Extras2 !== 'undefined' && S.fight?.id === f.id && f.dungeonPulls?.length ? Extras2.sidePulls(f) : ''}`;
   };
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
     <div class="rep-sub">${esc(zoneName(r.zone?.name))}${r.owner?.name ? ' · ' + esc(r.owner.name) : ''}<br>${new Date(r.startTime).toLocaleString(locale())}</div>
-    <div class="combine-bar"><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
+    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span>' : '↻'} ${LL('Actualizar', 'Refresh')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
@@ -1509,6 +1510,19 @@ document.addEventListener('click', async (ev) => {
       S.parseMode = el.dataset.m;
       render();
       break;
+    case 'refresh-report': {
+      if (S.refreshing || !S.code) break;
+      S.refreshing = true;
+      renderSidebar();
+      const before = S.fights.length;
+      try {
+        await loadReport(S.code, { keepView: true, fightId: S.fight?.id });
+      } finally { S.refreshing = false; }
+      renderSidebar();
+      const added = S.fights.length - before;
+      toast(added > 0 ? LL(`${added} pulls nuevos`, `${added} new pulls`, `${added} neue Versuche`, `${added} nouveaux essais`) : LL('Sin pulls nuevos', 'No new pulls', 'Keine neuen Versuche', 'Aucun nouvel essai'));
+      break;
+    }
     case 'combine-toggle':
       S.combineMode = !S.combineMode;
       if (!S.combineMode) S.combine = [];
