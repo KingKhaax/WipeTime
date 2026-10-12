@@ -1,8 +1,8 @@
 'use strict';
 
 // Replay: reproduce la pelea sobre un radar 2D a partir de los eventos con posición del log.
-// Las coordenadas del log van en centésimas de yarda (100 unidades = 1 yd). El campo "facing"
-// del log no coincide con la dirección real de movimiento, así que no se dibuja orientación.
+// Las coordenadas del log van en centésimas de yarda (100 unidades = 1 yd). El campo "facing" va en centésimas de radián, medido
+// desde +x igual que las coordenadas: con él se dibuja el cono de visión del jugador elegido (el jugador puede moverse sin mirar hacia donde va).
 const Replay = (() => {
   const SPEEDS = [0.5, 1, 2, 4];
   const BOSS_COLORS = ['#f0646f', '#f0a23b', '#a77bf3'];
@@ -60,9 +60,9 @@ const Replay = (() => {
               const inst = e.resourceActor === 1 ? e.sourceInstance : e.targetInstance;
               const key = inst != null && kindOf(id) && kindOf(id) !== 'player' ? `${id}#${inst}` : id;
               let tk = tr.get(key);
-              if (!tk) { tk = { t: [], x: [], y: [], hp: [], mx: [], map: [] }; tr.set(key, tk); }
+              if (!tk) { tk = { t: [], x: [], y: [], hp: [], mx: [], map: [], fc: [] }; tr.set(key, tk); }
               tk.t.push(e.timestamp); tk.x.push(e.x); tk.y.push(e.y);
-              tk.hp.push(e.hitPoints ?? -1); tk.mx.push(e.maxHitPoints ?? -1); tk.map.push(e.mapID ?? 0);
+              tk.hp.push(e.hitPoints ?? -1); tk.mx.push(e.maxHitPoints ?? -1); tk.map.push(e.mapID ?? 0); tk.fc.push(e.facing ?? null);
             }
             if (isDmg && e.type === 'damage' && !isPlayer(e.targetID)) {
               const owner = ownerOf(e.sourceID);
@@ -96,7 +96,7 @@ const Replay = (() => {
         tracks.set(key, {
           id, key, kind,
           t: Float64Array.from(keep, (i) => tk.t[i]), x: Float64Array.from(keep, (i) => tk.x[i]), y: Float64Array.from(keep, (i) => tk.y[i]),
-          hp: Float64Array.from(keep, (i) => tk.hp[i]), mx: Float64Array.from(keep, (i) => tk.mx[i]),
+          hp: Float64Array.from(keep, (i) => tk.hp[i]), mx: Float64Array.from(keep, (i) => tk.mx[i]), fc: Float64Array.from(keep, (i) => (tk.fc[i] == null ? NaN : tk.fc[i])),
         });
       }
 
@@ -178,6 +178,31 @@ const Replay = (() => {
       return { x: tk.x[i] + (tk.x[i + 1] - tk.x[i]) * k, y: tk.y[i] + (tk.y[i + 1] - tk.y[i]) * k, hp: tk.hp[i], mx: tk.mx[i], stale: false, age: 0 };
     }
     return { x: tk.x[i], y: tk.y[i], hp: tk.hp[i], mx: tk.mx[i], stale: T - t[i] > hold, age: T - t[i] };
+  }
+
+  // Hacia dónde mira un jugador en el instante T (radianes, mismo sistema que x/y del log). null si el log no lo dice.
+  function facingAt(tk, T) {
+    const t = tk.t;
+    const fc = tk.fc;
+    if (!fc || T < t[0]) return null;
+    let lo = 0;
+    let hi = t.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (t[mid] <= T) lo = mid; else hi = mid - 1;
+    }
+    let i = lo;
+    for (let k = 0; k < 6 && i >= 0 && !Number.isFinite(fc[i]); k++) i--;
+    if (i < 0 || !Number.isFinite(fc[i]) || T - t[i] > 8000) return null;
+    const a0 = fc[i] / 100;
+    let j = i + 1;
+    while (j < t.length && !Number.isFinite(fc[j])) j++;
+    if (j < t.length && t[j] - t[i] <= INTERP_MS && T >= t[i]) {
+      let d = fc[j] / 100 - a0;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      return a0 + d * clamp((T - t[i]) / (t[j] - t[i]), 0, 1);
+    }
+    return a0;
   }
 
   function cumAt(m, T) {
@@ -321,6 +346,7 @@ const Replay = (() => {
           <canvas id="rpCanvas"></canvas>
           <div class="rp-hud rp-tl" id="rpHudL"></div>
           <div class="rp-hud rp-tr" id="rpHudR"></div>
+          <div class="rp-frames" id="rpFrames" hidden></div>
           <div class="rp-tip" id="rpTip" hidden></div>
           <div class="rp-mapnote" id="rpMapNote"></div>
           <div class="rp-mappanel" id="rpMapPanel" hidden></div>
@@ -1299,6 +1325,24 @@ const Replay = (() => {
           ctx.lineWidth = 3;
           ctx.beginPath(); ctx.arc(sx, sy, rp + 4 + k * 34, 0, Math.PI * 2); ctx.stroke();
         }
+        if (sel && !dead) {
+          const fa = facingAt(tk, T);
+          if (fa != null) {
+            const th = -fa; // la pantalla tiene la y invertida
+            const cr = 24 * UNITS_PER_YD * R.scale;
+            const half = Math.PI / 4;
+            const grad = ctx.createRadialGradient(sx, sy, rp, sx, sy, cr);
+            grad.addColorStop(0, color + 'aa');
+            grad.addColorStop(1, color + '00');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.arc(sx, sy, cr, th - half, th + half); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = color + '88'; ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(sx + Math.cos(th - half) * rp, sy + Math.sin(th - half) * rp); ctx.lineTo(sx + Math.cos(th - half) * cr * 0.8, sy + Math.sin(th - half) * cr * 0.8);
+            ctx.moveTo(sx + Math.cos(th + half) * rp, sy + Math.sin(th + half) * rp); ctx.lineTo(sx + Math.cos(th + half) * cr * 0.8, sy + Math.sin(th + half) * cr * 0.8);
+            ctx.stroke();
+          }
+        }
         ctx.globalAlpha = alpha;
         if (sel || hov) {
           ctx.shadowColor = color; ctx.shadowBlur = 16;
@@ -1641,12 +1685,43 @@ const Replay = (() => {
     const mine = R;
     allEvents(fullWin(R.raw), 'Casts', `,sourceID:${id}`).then((ev) => {
       if (R !== mine) return;
+      R.au.set(`casts:${id}`, ev.filter((e) => (e.type === 'cast' || e.type === 'begincast') && !e.fake && e.abilityGameID)
+        .map((e) => ({ t: e.timestamp, aid: e.abilityGameID, begin: e.type === 'begincast', dur: e.duration || 0 })).sort((a, b) => a.t - b.t));
       R.au.set(key, ev.filter((e) => e.type === 'cast' && !e.fake && e.targetID > 0 && S.actors.get(e.targetID)?.type !== 'Player' && S.actors.get(e.targetID)?.type !== 'Pet')
         .map((e) => ({ t: e.timestamp, id: e.targetID })).sort((a, b) => a.t - b.t));
       R.auWait.delete(key);
       R.lastUi = 0;
     }).catch(() => { if (R === mine) { R.au.set(key, []); R.auWait.delete(key); } });
     return null;
+  }
+
+  // objetivo del jefe: a quién golpea cuerpo a cuerpo (si no, a quién lanza sus hechizos)
+  function wantBossTarget(bossId) {
+    const key = `btgt:${bossId}`;
+    R.au = R.au || new Map();
+    R.auWait = R.auWait || new Set();
+    if (R.au.has(key) || R.auWait.has(key)) return R.au.get(key) || null;
+    R.auWait.add(key);
+    const mine = R;
+    allEvents(fullWin(R.raw), 'DamageDone', `,sourceID:${bossId},hostilityType:Enemies`).then((ev) => {
+      if (R !== mine) return;
+      const hits = ev.filter((e) => e.type === 'damage' && isPlayer(e.targetID) && !e.tick);
+      const melee = hits.filter((e) => e.abilityGameID === 1);
+      const list = (melee.length ? melee : hits).map((e) => ({ t: e.timestamp, id: e.targetID })).sort((a, b) => a.t - b.t);
+      R.au.set(key, list);
+      R.auWait.delete(key);
+      R.lastUi = 0;
+    }).catch(() => { if (R === mine) { R.au.set(key, []); R.auWait.delete(key); } });
+    return null;
+  }
+
+  function lastBefore(list, T, maxAge) {
+    if (!list) return null;
+    let lo = 0;
+    let hi = list.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid].t <= T) lo = mid + 1; else hi = mid; }
+    const hit = list[lo - 1];
+    return hit && T - hit.t < maxAge ? hit : null;
   }
 
   function targetAt(id, T) {
@@ -1670,32 +1745,101 @@ const Replay = (() => {
     }).join('') : '<span class="muted">—</span>'}</div></div>`;
   }
 
+  // número de vida corto como en Warcraft Logs: 921k, 307m
+  const shortNum = (n) => (n >= 1e9 ? `${num(n / 1e9, 1)}b` : n >= 1e6 ? `${Math.round(n / 1e6)}m` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(Math.round(n)));
+
+  function frameAuras(buffs, debuffs, T) {
+    const icon = (a, cls) => {
+      const ab = ability(a.guid);
+      return `<span class="rpf-au ${cls}">${iconImg(ab.icon, 24, `${esc(ab.name)}${a.stacks > 1 ? ` ×${a.stacks}` : ''} · ${clock(Math.max(0, a.e - T))}`, a.guid)}${a.stacks > 1 ? `<i>${a.stacks}</i>` : ''}</span>`;
+    };
+    const b = activeAuras(buffs, T).slice(0, 14);
+    const d = activeAuras(debuffs, T).slice(0, 14);
+    return `<div class="rpf-auras">${b.map((a) => icon(a, 'g')).join('')}${d.map((a) => icon(a, 'b')).join('')}</div>`;
+  }
+
+  function trackFor(id, T) {
+    let best = null;
+    let bestAge = Infinity;
+    for (const tk of R.data.tracks.values()) {
+      if (tk.id !== id) continue;
+      const s = sample(tk, T);
+      const age = s.age ?? 0;
+      if (!best || age < bestAge) { best = { tk, s }; bestAge = age; }
+    }
+    return best;
+  }
+
+  function hpBar(color, hp, mx) {
+    if (!(mx > 0)) return '<div class="rpf-hp"><b>—</b></div>';
+    const fr = clamp(hp / mx, 0, 1);
+    return `<div class="rpf-hp"><span style="width:${fr * 100}%;background:${color}"></span><b>${shortNum(Math.max(0, hp))} - ${num(fr * 100, 1)}%</b></div>`;
+  }
+
+  function castBar(pid, T) {
+    const list = R.au?.get(`casts:${pid}`);
+    if (!list) return `<div class="rpf-cast"><small class="muted">${t('loading')}</small></div>`;
+    const last = lastBefore(list, T, 4000);
+    if (!last) return '<div class="rpf-cast idle"></div>';
+    const ab = ability(last.aid);
+    let total = last.begin ? (last.dur || 2000) : 1500; // los instantáneos se muestran durante el tiempo global de reutilización
+    let left = Math.max(0, total - (T - last.t));
+    if (last.begin) { // si ya hubo otro lanzamiento después, termina ahí
+      const next = list.find((c) => c.t > last.t && !c.begin);
+      if (next && next.t <= T) left = 0;
+    }
+    if (left <= 0 && T - last.t > 2200) return '<div class="rpf-cast idle"></div>';
+    const fr = 1 - left / total;
+    return `<div class="rpf-cast"><span class="rpf-cf" style="width:${clamp(fr, 0, 1) * 100}%"></span>${iconImg(ab.icon, 18, esc(ab.name), last.aid)}<b>${esc(ab.name)}</b><em>${num(left / 1000, 1)}s</em></div>`;
+  }
+
   function renderAuras() {
-    const el = $('#rpAuras');
+    const el = $('#rpFrames');
+    const old = $('#rpAuras');
+    if (old) old.hidden = true;
     if (!el) return;
     if (R.selected == null || R.data.tracks.get(R.selected)?.kind !== 'player') { el.hidden = true; return; }
-    el.hidden = false;
     const T = R.T;
     const pid = R.selected;
     const p = playerInfo(pid);
+    const ptk = R.data.tracks.get(pid);
+    const ps = sample(ptk, T);
     wantTargets(pid);
     const bossTk = R.bosses[0];
     const bossId = bossTk?.id ?? null;
     const tid = targetAt(pid, T) ?? bossId;
     const mineB = wantAuras('friendly', 'Buffs', pid);
     const mineD = wantAuras('friendly', 'Debuffs', pid);
-    const col = (title, color, sections) => `<div class="au-col"><div class="au-h" style="--cc:${color}">${title}</div>${sections}</div>`;
-    let html = col(`${LL('Jugador', 'Player')}: <b>${esc(p.name)}</b>`, classColor(p.cls), auraRow(LL('Buffos', 'Buffs'), mineB, T, 'au-g') + auraRow(LL('Debuffos', 'Debuffs'), mineD, T, 'au-b'));
+    const dead = deathAt(pid, T);
+
+    const playerHtml = `<div class="rpf rpf-p">${frameAuras(mineB, mineD, T)}
+      <div class="rpf-name" style="--cc:${classColor(p.cls)}">${esc(p.name)}</div>
+      ${dead ? `<div class="rpf-hp"><b>✕ ${clock(dead.timestamp - R.raw.startTime)}</b></div>` : hpBar(classColor(p.cls), ps.hp, ps.mx)}
+      ${castBar(pid, T)}</div>`;
+
+    let midHtml = '';
+    let bossHtml = '';
     if (tid != null) {
       const tb = wantAuras('enemy', 'Buffs', tid);
       const td = wantAuras('enemy', 'Debuffs', tid);
-      html += col(`${LL('Objetivo', 'Target')}: <b>${esc(actorName(tid))}</b>`, '#ff8a5c', auraRow(LL('Buffos', 'Buffs'), tb, T, 'au-g') + auraRow(LL('Debuffos', 'Debuffs'), td, T, 'au-b'));
+      const found = trackFor(tid, T);
+      const s = found?.s;
+      bossHtml = `<div class="rpf rpf-b">${frameAuras(tb, td, T)}
+        <div class="rpf-name boss">${esc(actorName(tid))}</div>
+        ${s ? hpBar('#c1272d', s.hp, s.mx) : '<div class="rpf-hp"><b>—</b></div>'}</div>`;
+      // a quién ataca ese objetivo (tanque): marco pequeño con sus perjuicios
+      const bt = lastBefore(wantBossTarget(tid), T, 7000);
+      if (bt) {
+        const q = playerInfo(bt.id);
+        const qb = wantAuras('friendly', 'Buffs', bt.id);
+        const qd = wantAuras('friendly', 'Debuffs', bt.id);
+        const qs = R.data.tracks.get(bt.id) ? sample(R.data.tracks.get(bt.id), T) : null;
+        midHtml = `<div class="rpf rpf-m">${frameAuras(qb, qd, T)}
+          <div class="rpf-name" style="--cc:${classColor(q.cls)}">${esc(q.name)}</div>${qs ? hpBar(classColor(q.cls), qs.hp, qs.mx) : ''}</div>`;
+      }
     }
-    if (bossId != null && bossId !== tid) {
-      const bb = wantAuras('enemy', 'Buffs', bossId);
-      const bd = wantAuras('enemy', 'Debuffs', bossId);
-      html += col(`${LL('Jefe', 'Boss')}: <b>${esc(actorName(bossId))}</b>`, '#e7b84a', auraRow(LL('Buffos', 'Buffs'), bb, T, 'au-g') + auraRow(LL('Debuffos', 'Debuffs'), bd, T, 'au-b'));
-    }
+    const html = playerHtml + midHtml + bossHtml;
+    el.hidden = false;
     if (R.auSig !== html) { R.auSig = html; el.innerHTML = html; }
   }
 
