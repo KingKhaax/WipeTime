@@ -647,11 +647,15 @@ function renderSidebar() {
   }
   const fightBtn = (f) => {
     const p = pctOf(f.fightPercentage ?? f.bossPercentage);
-    const bar = f.encounterID && f.kill ? '<span class="hpbar kill"><span style="width:100%"></span></span>'
+    // Color estilo parse pero invertido: cuanto menos vida le queda al jefe, mejor «parse»
+    const pcol = p != null ? parseColor(100 - Math.min(100, p)) : '';
+    let label = esc(fightLabel(f));
+    if (!f.kill && p != null) label = label.replace(`${num(p, 1)} %`, `<b class="fl-pct" style="color:${pcol}">    const bar = f.encounterID && f.kill ?</b>`);
+    const bar = f.encounterID && f.kill ? '<span class="hpbar kill"><span style="width:100%;--c:${parseColor(100)}"></span></span>'
       : f.encounterID && p != null
-        ? `<span class="hpbar" title="${esc(LL('Vida restante del jefe', 'Boss health remaining'))}"><span style="width:${Math.max(3, Math.min(100, p))}%;--h:${Math.round((100 - Math.min(100, p)) * 1.2)}"></span></span>` : '';
+        ? `<span class="hpbar" title="${esc(LL('Vida restante del jefe', 'Boss health remaining'))}"><span style="width:${Math.max(3, Math.min(100, p))}%;--c:${pcol}"></span></span>` : '';
     return `<button class="fight ${f.kill ? 'kill' : ''} ${S.fight?.id === f.id && !S.combineMode ? 'active' : ''} ${S.combine.includes(f.id) ? 'combined' : ''}" data-action="fight" data-id="${f.id}">${S.combineMode ? `<span class="cbox">${S.combine.includes(f.id) ? '✓' : ''}</span>` : ''}
-      <span class="fl">${esc(fightLabel(f))}</span><span class="ft">${clock(fightDur(f))}</span>${bar}</button>${typeof Extras2 !== 'undefined' && S.fight?.id === f.id && f.dungeonPulls?.length ? Extras2.sidePulls(f) : ''}`;
+      <span class="fl">${label}</span><span class="ft">${clock(fightDur(f))}</span>${bar}</button>${typeof Extras2 !== 'undefined' && S.fight?.id === f.id && f.dungeonPulls?.length ? Extras2.sidePulls(f) : ''}`;
   };
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
