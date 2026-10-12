@@ -27,7 +27,7 @@ const S = {
   cache: new Map(),
   seq: 0,
   sortMode: lsGet('sortMode') || 'desc', // desc | asc | name
-  shieldHidden: [], // objetivos de escudo ocultos en la pestaña Daño a escudos
+  shieldKind: 'all', // all | boss | allies | adds
   dmgMetric: 'dps',   // dps | boss | active
   parseMode: 'all',   // all | ilvl
   combineMode: false,
@@ -988,23 +988,16 @@ const VIEWS = {
   async shields(f) {
     const all = await shieldData(f);
     if (!all.length) return headerHTML(f, t('shieldsTitle')) + `<div class="empty">${t('noShields')}</div>`;
-    // Cada objetivo con escudo (boss, adds, jugadores controlados) es una opción que se puede mostrar u ocultar
-    const keyOf = (s) => (s.mc ? 'mc:' : 'npc:') + actorName(s.target);
-    const labelOf = (s) => (s.mc ? `${actorName(s.target)} (${LL('control mental', 'mind control')})` : actorName(s.target));
-    const groups = new Map();
-    for (const s of all) {
-      const k = keyOf(s);
-      if (!groups.has(k)) groups.set(k, { key: k, label: labelOf(s), boss: !s.mc && S.actors.get(s.target)?.subType === 'Boss', mc: !!s.mc, n: 0, total: 0 });
-      const g = groups.get(k);
-      g.n++;
-      g.total += s.total;
-    }
-    const order = [...groups.values()].sort((x, y) => (y.boss - x.boss) || (x.mc - y.mc) || (y.total - x.total));
-    const hidden = new Set(S.shieldHidden || []);
-    const tchip = (g) => `<button class="chip ${hidden.has(g.key) ? '' : 'on'}" data-action="shield-type" data-key="${esc(g.key)}">${esc(g.label)} <span class="muted">${plain(g.total)}</span></button>`;
-    const typeBar = `<div class="sortbar"><span class="muted">${LL('Escudos a mostrar', 'Shields to show')}</span>${order.map(tchip).join('')}</div>`;
-    const shields = all.filter((s) => !hidden.has(keyOf(s)));
-    if (!shields.length) return headerHTML(f, t('shieldsTitle')) + typeBar + `<div class="empty">${LL('Activa al menos un escudo para verlo.', 'Turn on at least one shield to see it.')}</div>`;
+    // Tipos de escudo: boss, aliados (jugadores controlados mentalmente) y adds; se elige con un desplegable
+    const kindOf = (s) => (s.mc ? 'allies' : S.actors.get(s.target)?.subType === 'Boss' ? 'boss' : 'adds');
+    const labelOf = (s) => (s.mc ? `${actorName(s.target)} (${LL('aliado', 'ally')})` : actorName(s.target));
+    const KINDS = [['all', LL('Todos', 'All')], ['boss', 'Boss'], ['allies', LL('Aliados', 'Allies')], ['adds', 'Adds']];
+    const stat = (k) => { const l = k === 'all' ? all : all.filter((s) => kindOf(s) === k); return { n: l.length, total: l.reduce((x, s) => x + s.total, 0) }; };
+    const kind = KINDS.some(([k]) => k === S.shieldKind) ? S.shieldKind : 'all';
+    const opts = KINDS.map(([k, label]) => { const st = stat(k); return `<option value="${k}" ${k === kind ? 'selected' : ''} ${k !== 'all' && !st.n ? 'disabled' : ''}>${esc(label)} · ${st.n ? plain(st.total) : '0'}</option>`; }).join('');
+    const typeBar = `<div class="sortbar"><span class="muted">${LL('Tipo de daño a escudos', 'Shield damage type')}</span><select data-shield-kind>${opts}</select></div>`;
+    const shields = kind === 'all' ? all : all.filter((s) => kindOf(s) === kind);
+    if (!shields.length) return headerHTML(f, t('shieldsTitle')) + typeBar + `<div class="empty">${LL('No hay escudos de este tipo en este pull.', 'There are no shields of this type in this pull.')}</div>`;
     const segs = phaseSegments(S.fight);
         const dur = (s) => Math.max(1000, s.end - s.start);
     // Tiempo con escudo activo: unión de los intervalos (los escudos de varios enemigos pueden solaparse)
@@ -1598,10 +1591,6 @@ document.addEventListener('click', async (ev) => {
     case 'export-img':
       await exportRankedImage(el.dataset.m);
       break;
-    case 'shield-type':
-      { const h = new Set(S.shieldHidden || []); h.has(el.dataset.key) ? h.delete(el.dataset.key) : h.add(el.dataset.key); S.shieldHidden = [...h]; }
-      render();
-      break;
     case 'sort':
       S.sortMode = el.dataset.m;
       lsSet('sortMode', S.sortMode);
@@ -1879,3 +1868,10 @@ function openDeepLink(link) {
 }
 window.api.onDeepLink?.(openDeepLink);
 window.api.takeDeepLink?.().then((l) => { if (l) setTimeout(() => openDeepLink(l), 600); });
+
+document.addEventListener('change', (ev) => {
+  const sel = ev.target.closest?.('select[data-shield-kind]');
+  if (!sel) return;
+  S.shieldKind = sel.value;
+  render();
+});
