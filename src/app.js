@@ -27,7 +27,7 @@ const S = {
   cache: new Map(),
   seq: 0,
   sortMode: lsGet('sortMode') || 'desc', // desc | asc | name
-  shieldType: 'all', // all | boss | adds
+  shieldHidden: [], // objetivos de escudo ocultos en la pestaña Daño a escudos
   dmgMetric: 'dps',   // dps | boss | active
   parseMode: 'all',   // all | ilvl
   combineMode: false,
@@ -503,14 +503,15 @@ function ownerOf(id) {
 function shieldData(f) {
   return cached(`shield:${f.key}`, async () => {
     const evs = await allEvents(f, 'DamageDone');
-    const abs = evs.filter((e) => e.absorbed > 0 && ['NPC', 'Boss'].includes(S.actors.get(e.targetID)?.type))
+    const isMc = (e) => S.actors.get(e.targetID)?.type === 'Player' && isPlayer(ownerOf(e.sourceID)) && ownerOf(e.sourceID) !== e.targetID;
+    const abs = evs.filter((e) => e.absorbed > 0 && (['NPC', 'Boss'].includes(S.actors.get(e.targetID)?.type) || isMc(e)))
       .sort((a, b) => a.timestamp - b.timestamp);
     const shields = [];
     const lastByTarget = new Map();
     for (const e of abs) {
       let sh = lastByTarget.get(e.targetID);
       if (!sh || e.timestamp - sh.end > SHIELD_GAP) {
-        sh = { target: e.targetID, start: e.timestamp, end: e.timestamp, total: 0, byPlayer: new Map() };
+        sh = { target: e.targetID, mc: S.actors.get(e.targetID)?.type === 'Player', start: e.timestamp, end: e.timestamp, total: 0, byPlayer: new Map() };
         shields.push(sh);
         lastByTarget.set(e.targetID, sh);
       }
@@ -915,16 +916,25 @@ const VIEWS = {
   async shields(f) {
     const all = await shieldData(f);
     if (!all.length) return headerHTML(f, t('shieldsTitle')) + `<div class="empty">${t('noShields')}</div>`;
-    const kindOf = (s) => (S.actors.get(s.target)?.subType === 'Boss' ? 'boss' : 'adds');
-    const counts = { all: all.length, boss: all.filter((s) => kindOf(s) === 'boss').length, adds: all.filter((s) => kindOf(s) === 'adds').length };
-    const type = S.shieldType === 'boss' || S.shieldType === 'adds' ? S.shieldType : 'all';
-    const tchip = (k, label) => `<button class="chip ${type === k ? 'on' : ''}" data-action="shield-type" data-m="${k}">${label} <span class="muted">${counts[k]}</span></button>`;
-    const typeBar = `<div class="sortbar"><span class="muted">${LL('Tipo de escudo', 'Shield type')}</span>${tchip('all', LL('Todos', 'All'))}${tchip('boss', 'Boss')}${tchip('adds', 'Adds')}</div>`;
-    const shields = type === 'all' ? all : all.filter((s) => kindOf(s) === type);
-    if (!shields.length) return headerHTML(f, t('shieldsTitle')) + typeBar + `<div class="empty">${LL('No hay escudos de este tipo en este pull.', 'There are no shields of this type in this pull.')}</div>`;
+    // Cada objetivo con escudo (boss, adds, jugadores controlados) es una opción que se puede mostrar u ocultar
+    const keyOf = (s) => (s.mc ? 'mc:' : 'npc:') + actorName(s.target);
+    const labelOf = (s) => (s.mc ? `${actorName(s.target)} (${LL('control mental', 'mind control')})` : actorName(s.target));
+    const groups = new Map();
+    for (const s of all) {
+      const k = keyOf(s);
+      if (!groups.has(k)) groups.set(k, { key: k, label: labelOf(s), boss: !s.mc && S.actors.get(s.target)?.subType === 'Boss', mc: !!s.mc, n: 0, total: 0 });
+      const g = groups.get(k);
+      g.n++;
+      g.total += s.total;
+    }
+    const order = [...groups.values()].sort((x, y) => (y.boss - x.boss) || (x.mc - y.mc) || (y.total - x.total));
+    const hidden = new Set(S.shieldHidden || []);
+    const tchip = (g) => `<button class="chip ${hidden.has(g.key) ? '' : 'on'}" data-action="shield-type" data-key="${esc(g.key)}">${esc(g.label)} <span class="muted">${plain(g.total)}</span></button>`;
+    const typeBar = `<div class="sortbar"><span class="muted">${LL('Escudos a mostrar', 'Shields to show')}</span>${order.map(tchip).join('')}</div>`;
+    const shields = all.filter((s) => !hidden.has(keyOf(s)));
+    if (!shields.length) return headerHTML(f, t('shieldsTitle')) + typeBar + `<div class="empty">${LL('Activa al menos un escudo para verlo.', 'Turn on at least one shield to see it.')}</div>`;
     const segs = phaseSegments(S.fight);
-    const multiTarget = new Set(shields.map((s) => s.target)).size > 1;
-    const dur = (s) => Math.max(1000, s.end - s.start);
+        const dur = (s) => Math.max(1000, s.end - s.start);
     // Tiempo con escudo activo: unión de los intervalos (los escudos de varios enemigos pueden solaparse)
     const iv = shields.map((s) => [s.start, s.start + dur(s)]).sort((a, b) => a[0] - b[0]);
     let active = 0;
@@ -935,8 +945,7 @@ const VIEWS = {
     const secs = active / 1000;
     const labels = shields.map((s, i) => {
       const ph = segs.find((p) => s.start >= p.start && s.start < p.end);
-      const who = actorName(s.target);
-      return [t('shieldN', { n: i + 1 }), kindOf(s) === 'boss' ? 'Boss' : 'Add', multiTarget || kindOf(s) === 'adds' ? who : '', ph?.name || ''].filter(Boolean).join(' · ');
+      return [t('shieldN', { n: i + 1 }), labelOf(s), ph?.name || ''].filter(Boolean).join(' · ');
     });
     const per = new Map();
     shields.forEach((s, i) => {
@@ -1515,7 +1524,7 @@ document.addEventListener('click', async (ev) => {
   const id = el.dataset.id != null ? Number(el.dataset.id) : null;
   switch (a) {
     case 'shield-type':
-      S.shieldType = el.dataset.m;
+      { const h = new Set(S.shieldHidden || []); h.has(el.dataset.key) ? h.delete(el.dataset.key) : h.add(el.dataset.key); S.shieldHidden = [...h]; }
       render();
       break;
     case 'sort':
