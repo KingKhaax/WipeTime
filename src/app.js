@@ -766,7 +766,7 @@ function parsePill(p, estimated = false, low = false) {
 // Selector de orden común a todas las listas con barras
 function sortBarHTML(hasParse = false) {
   const chip = (k, label) => `<button class="chip ${S.sortMode === k ? 'on' : ''}" data-action="sort" data-m="${k}">${label}</button>`;
-  return `<div class="sortbar"><span class="muted">${LL('Ordenar', 'Sort')}</span>${chip('desc', LL('↓ Mayor a menor', '↓ High to low'))}${chip('asc', LL('↑ Menor a mayor', '↑ Low to high'))}${chip('name', LL('A–Z', 'A–Z'))}${hasParse ? `<span class="sep"></span>${chip('parse-desc', LL('Parse: mejor a peor', 'Parse: best to worst'))}${chip('parse-asc', LL('Parse: peor a mejor', 'Parse: worst to best'))}` : ''}</div>`;
+  return `<div class="sortbar"><span class="muted">${LL('Ordenar', 'Sort')}</span>${chip('desc', LL('↓ Mayor a menor', '↓ High to low'))}${chip('asc', LL('↑ Menor a mayor', '↑ Low to high'))}${chip('name', LL('A–Z', 'A–Z'))}<span class="grow"></span><button class="chip" data-action="export-img" data-m="copy" title="${esc(LL('Copiar esta lista como imagen', 'Copy this list as an image'))}">📋 ${LL('Copiar imagen', 'Copy image')}</button><button class="chip" data-action="export-img" data-m="save">💾 ${LL('Guardar PNG', 'Save PNG')}</button>${hasParse ? `<span class="sep"></span>${chip('parse-desc', LL('Parse: mejor a peor', 'Parse: best to worst'))}${chip('parse-asc', LL('Parse: peor a mejor', 'Parse: worst to best'))}` : ''}</div>`;
 }
 
 function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
@@ -780,30 +780,98 @@ function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
     const pv = (r) => { const v = parse.get(r.name); return typeof v === 'number' ? v : -1; };
     list = [...rows].sort((x, y) => (S.sortMode === 'parse-asc' ? pv(x) - pv(y) : pv(y) - pv(x)));
   }
-  return `${sortBarHTML(!!parse)}<div class="ranked">${list.map((r) => {
-    const i = place.get(r) - 1;
+  const sum = rows.reduce((x, r) => x + r.total, 0) || 1;
+  const tags = (h) => String(h ?? '').replace(/<[^>]*>/g, '').trim();
+  S.lastRanked = list.map((r) => ({ name: r.name, cls: r.cls, icon: r.icon, total: r.total, pct: (r.total / sum) * 100, val: tags(big(r.total)), rate: r.rate != null ? plain(r.rate) : tags(r.note), me: isMe(r.name),
+    segs: (r.segs || [{ v: r.total, color: classColor(r.cls) }]).filter((x) => x.v > 0).map((x) => ({ v: x.v, color: x.color })) }));
+  const hasRate = rows.some((r) => r.rate != null);
+  const hasNote = rows.some((r) => r.note);
+  return `${sortBarHTML(!!parse)}<div class="ranked">
+    <div class="row head ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}"><span>${LL('Nombre', 'Name')}</span><span>${LL('Cantidad', 'Amount')}</span>${hasNote ? '<span></span>' : ''}${hasRate ? '<span class="rate">/s</span>' : ''}<span class="val"></span></div>${list.map((r) => {
     const color = classColor(r.cls);
     const segs = r.segs || [{ v: r.total, color }];
-    const bar = segs.filter((s) => s.v > 0).map((s) =>
-      `<span class="seg" style="flex:${s.v} 1 0;background:${s.color}"${s.label ? ` title="${esc(s.label)}: ${plain(s.v)}"` : ''}></span>`).join('');
+    const bar = segs.filter((x) => x.v > 0).map((x) =>
+      `<span class="seg" style="flex:${x.v} 1 0;background:${x.color}"${x.label ? ` title="${esc(x.label)}: ${plain(x.v)}"` : ''}></span>`).join('');
     const me = isMe(r.name);
-    return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
-      <div class="rank ${i < 3 ? 'top' : ''}">${i + 1}</div>
-      <div class="rbody">
-        <div class="line">
-          ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="24" height="24" alt="" style="--cc:${color}">` : `<span class="dot" style="background:${color}"></span>`}
-          <span class="name">${esc(r.name)}</span>
-          ${me ? `<span class="you">${t('you')}</span>` : ''}
-          ${parse ? parsePill(parse.get(r.name)) : ''}
-          ${slots?.has(r.name) ? `<span class="pill-slot" data-name="${esc(r.name)}"></span>` : ''}
-          <span class="grow"></span>
-          ${r.note ? `<span class="note">${r.note}</span>` : ''}
-          ${r.rate != null ? `<span class="rate">${plain(r.rate)}${t('perSec')}</span>` : ''}
-          <span class="val">${big(r.total)}</span>
-        </div>
-        <div class="bar"><div class="bar-in" style="width:${(r.total / max) * 100}%">${bar}</div></div>
-      </div></div>`;
+    return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''} ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
+      <div class="r-name">
+        ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="22" height="22" alt="" style="--cc:${color}">` : `<span class="dot" style="background:${color}"></span>`}
+        <span class="name" style="color:${color}">${esc(r.name)}</span>
+        ${me ? `<span class="you">${t('you')}</span>` : ''}
+        ${parse ? parsePill(parse.get(r.name)) : ''}
+        ${slots?.has(r.name) ? `<span class="pill-slot" data-name="${esc(r.name)}"></span>` : ''}
+      </div>
+      <div class="r-bar"><span class="r-pct">${num((r.total / sum) * 100, 2)}%</span><div class="bar"><div class="bar-in" style="width:${(r.total / max) * 100}%">${bar}</div></div></div>
+      ${hasNote ? `<span class="note">${r.note || ''}</span>` : ''}
+      ${hasRate ? `<span class="rate">${r.rate != null ? plain(r.rate) : ''}</span>` : ''}
+      <span class="val">${big(r.total)}</span>
+    </div>`;
   }).join('')}</div>`;
+}
+
+// ---- Exportar la lista actual (daño, sanación, escudos…) como imagen para copiar o guardar
+function exportRankedImage(mode) {
+  const rows = S.lastRanked || [];
+  if (!rows.length) return toast(LL('No hay nada que exportar', 'Nothing to export'));
+  const txt = (sel) => ($(sel)?.textContent || '').replace(/\s+/g, ' ').trim();
+  const eyebrowT = txt('#view .eyebrow'), title = txt('#view .hdr h1'), sub = txt('#view .hdr .sub');
+  const draw = (withIcons) => new Promise((resolve) => {
+    const W = 1100, rowH = 30, headH = 96 + (sub ? 26 : 0), pad = 24, scale = 2;
+    const nameW = 230, valW = 90, rateW = rows.some((r) => r.rate) ? 110 : 0;
+    const barX = pad + nameW, barW = W - pad - valW - rateW - barX - 12;
+    const cv = document.createElement('canvas');
+    cv.width = W * scale;
+    cv.height = (headH + rows.length * rowH + pad + 8) * scale;
+    const g = cv.getContext('2d');
+    g.scale(scale, scale);
+    g.fillStyle = '#0f1013'; g.fillRect(0, 0, W, cv.height);
+    const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    g.textBaseline = 'middle';
+    g.fillStyle = '#8b93a1'; g.font = `12px ${font}`; g.fillText(eyebrowT.toUpperCase().slice(0, 140), pad, 26);
+    g.fillStyle = '#ffffff'; g.font = `700 28px ${font}`; g.fillText(title, pad, 56);
+    if (sub) { g.fillStyle = '#b4bac6'; g.font = `14px ${font}`; g.fillText(sub.slice(0, 150), pad, 86); }
+    const max = Math.max(...rows.map((r) => r.total), 1);
+    const imgs = rows.map((r) => (withIcons && r.icon
+      ? new Promise((ok) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = specIconUrl(r.icon); })
+      : Promise.resolve(null)));
+    Promise.all(imgs).then((ims) => {
+      rows.forEach((r, i) => {
+        const y = headH + i * rowH, cy = y + rowH / 2;
+        g.fillStyle = i % 2 ? '#13151a' : '#0f1013'; g.fillRect(0, y, W, rowH);
+        const color = classColor(r.cls);
+        if (ims[i]) g.drawImage(ims[i], pad, y + 4, 22, 22);
+        else { g.fillStyle = color; g.beginPath(); g.arc(pad + 11, cy, 5, 0, 7); g.fill(); }
+        g.fillStyle = color; g.font = `600 14px ${font}`; g.fillText(r.name + (r.me ? `  (${t('you')})` : ''), pad + 30, cy, nameW - 36);
+        g.fillStyle = '#c9ced8'; g.font = `12px ${font}`; g.textAlign = 'right'; g.fillText(`${r.pct.toFixed(2)}%`, barX + 50, cy); g.textAlign = 'left';
+        const bx = barX + 58, bw = Math.max(4, (barW - 58) * (r.total / max)), tot = r.segs.reduce((x, q) => x + q.v, 0) || 1;
+        let cx = bx;
+        for (const q of r.segs) { const w = bw * (q.v / tot); g.fillStyle = q.color; g.fillRect(cx, y + 7, Math.max(1, w - 1), rowH - 14); cx += w; }
+        g.textAlign = 'right';
+        g.fillStyle = '#ffffff'; g.font = `700 14px ${font}`; g.fillText(r.val, W - pad, cy);
+        if (rateW) { g.fillStyle = '#a8e060'; g.font = `13px ${font}`; g.fillText(r.rate, W - pad - valW, cy); }
+        g.textAlign = 'left';
+      });
+      g.fillStyle = '#5d6572'; g.font = `11px ${font}`; g.textAlign = 'right'; g.fillText('WipeTime', W - pad, cv.height / scale - 10); g.textAlign = 'left';
+      try { cv.toBlob((b) => resolve(b), 'image/png'); } catch { resolve(null); }
+    });
+  });
+  return (async () => {
+    let blob = await draw(true);
+    if (!blob) blob = await draw(false); // si los iconos manchan el lienzo, se repite sin ellos
+    if (!blob) return toast(LL('No se pudo crear la imagen', 'Could not create the image'));
+    if (mode === 'save') {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `WipeTime - ${title || 'log'}.png`.replace(/[\\/:*?"<>|]/g, '-');
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      return toast(LL('Imagen guardada', 'Image saved'));
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      toast(LL('Imagen copiada: ya puedes pegarla', 'Image copied: you can paste it now'));
+    } catch { toast(LL('No se pudo copiar; usa Guardar PNG', 'Could not copy; use Save PNG')); }
+  })();
 }
 
 // Parses: reales en kills, estimados en wipes; con una fase/rango no se muestran (no son comparables).
@@ -1523,6 +1591,9 @@ document.addEventListener('click', async (ev) => {
   const a = el.dataset.action;
   const id = el.dataset.id != null ? Number(el.dataset.id) : null;
   switch (a) {
+    case 'export-img':
+      await exportRankedImage(el.dataset.m);
+      break;
     case 'shield-type':
       { const h = new Set(S.shieldHidden || []); h.has(el.dataset.key) ? h.delete(el.dataset.key) : h.add(el.dataset.key); S.shieldHidden = [...h]; }
       render();
