@@ -653,7 +653,7 @@ function renderSidebar() {
     // Color estilo parse pero invertido: cuanto menos vida le queda al jefe, mejor «parse»
     const pcol = p != null ? parseColor(100 - Math.min(100, p)) : '';
     let label = esc(fightLabel(f));
-    if (!f.kill && p != null) label = label.replace(`${num(p, 1)} %`, `<b class="fl-pct" style="color:${pcol}">    const bar = f.encounterID && f.kill ?</b>`);
+    if (!f.kill && p != null) label = label.replace(`${num(p, 1)} %`, (m) => `<b class="fl-pct" style="color:${pcol}">${m}</b>`);
     const bar = f.encounterID && f.kill ? '<span class="hpbar kill"><span style="width:100%;--c:${parseColor(100)}"></span></span>'
       : f.encounterID && p != null
         ? `<span class="hpbar" title="${esc(LL('Vida restante del jefe', 'Boss health remaining'))}"><span style="width:${Math.max(3, Math.min(100, p))}%;--c:${pcol}"></span></span>` : '';
@@ -1923,3 +1923,14 @@ document.addEventListener('change', (ev) => {
   document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('.ranked')) hide(); });
   document.addEventListener('scroll', hide, true);
 })();
+
+// Si un icono no llega (descarga lenta o cortada), se reintenta solo hasta 3 veces en vez de dejar el «?»
+document.addEventListener('error', (ev) => {
+  const im = ev.target;
+  if (!(im instanceof HTMLImageElement) || !/^wcicon:/.test(im.src)) return;
+  const n = Number(im.dataset.retry || 0);
+  if (n >= 3) return;
+  im.dataset.retry = String(n + 1);
+  const base = im.src.replace(/\?r=\d+$/, '');
+  setTimeout(() => { im.src = `${base}?r=${n + 1}`; }, 1500 * (n + 1));
+}, true);

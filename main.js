@@ -380,14 +380,14 @@ async function withNetSlot(fn) { // máximo 6 descargas a la vez
 
 async function packUrl(force) {
   if (!force && packRedirect.url && Date.now() - packRedirect.at < 3 * 60 * 1000) return packRedirect.url;
-  const r = await fetch(PACK_URL, { redirect: 'manual', headers: { Range: 'bytes=0-0' } });
+  const r = await fetch(PACK_URL, { redirect: 'manual', headers: { Range: 'bytes=0-0' }, signal: AbortSignal.timeout(15000) });
   packRedirect = { url: r.headers.get('location') || PACK_URL, at: Date.now() };
   return packRedirect.url;
 }
 
 async function packRange(from, to) {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch(await packUrl(attempt > 0), { headers: { Range: `bytes=${from}-${to}` } });
+    const res = await fetch(await packUrl(attempt > 0), { headers: { Range: `bytes=${from}-${to}` }, signal: AbortSignal.timeout(20000) });
     if (res.status === 206) return Buffer.from(await res.arrayBuffer());
   }
   throw new Error('RANGE_FAILED');
@@ -395,7 +395,7 @@ async function packRange(from, to) {
 
 // Directorio central del zip (zip64): [nombre_en_minúsculas, offset, tamaño_comprimido, método, largo_del_nombre]
 async function readZipIndex() {
-  const head = await fetch(await packUrl(true), { headers: { Range: 'bytes=0-0' } });
+  const head = await fetch(await packUrl(true), { headers: { Range: 'bytes=0-0' }, signal: AbortSignal.timeout(15000) });
   const total = Number(head.headers.get('content-range').split('/')[1]);
   const tail = await packRange(total - 262144, total - 1);
   const eocd = tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
@@ -494,7 +494,7 @@ const aliasesOf = (name) => [name, name.replace(/^inv_(\d+)_/, 'inv$1_'), name.r
 const safeFile = (name) => name.replace(/[^a-z0-9_.\-]/g, '_').slice(0, 120);
 
 async function fetchCdn(url, cacheFile) {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error('CDN_' + res.status);
   const buf = Buffer.from(await res.arrayBuffer());
   fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
