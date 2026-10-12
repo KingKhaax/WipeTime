@@ -792,7 +792,6 @@ function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
         <div class="line">
           ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="24" height="24" alt="" style="--cc:${color}">` : `<span class="dot" style="background:${color}"></span>`}
           <span class="name">${esc(r.name)}</span>
-          <span class="spec">${esc(specName(r.spec) || className(r.cls))}</span>
           ${me ? `<span class="you">${t('you')}</span>` : ''}
           ${parse ? parsePill(parse.get(r.name)) : ''}
           ${slots?.has(r.name) ? `<span class="pill-slot" data-name="${esc(r.name)}"></span>` : ''}
@@ -949,15 +948,14 @@ const VIEWS = {
         p.vals[i] += v;
       }
     });
-    const color = (i) => SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-    const rows = [...per.values()].map((p) => ({ ...p, note: `${plain(p.total / secs)} DPS`, segs: p.vals.map((v, i) => ({ v, color: color(i), label: labels[i] })) }))
+    const rows = [...per.values()].map((p) => ({ ...p, note: `${plain(p.total / secs)} DPS` }))
       .sort((a, b) => b.total - a.total);
     const total = shields.reduce((s, x) => s + x.total, 0);
     const bosses = [...new Set(shields.map((s) => actorName(s.target)))].join(', ');
     const sub = t('shieldsSub', { total: plain(total), n: shields.length, boss: esc(bosses), name: esc(rows[0]?.name || ''), val: plain(rows[0]?.total || 0) })
       + ` · ${LL('Raid', 'Raid')} <b>${plain(total / secs)} DPS</b> ${LL('durante', 'over')} ${clock(active)}`;
     const legend = `<div class="legend">${shields.map((s, i) =>
-      `<span><i style="background:${color(i)}"></i>${esc(labels[i])} <small>${clock(s.start - f.fightStart)} · ${plain(s.total)} · ${plain(s.total / (dur(s) / 1000))} DPS</small></span>`).join('')}</div>`;
+      `<span><i style="background:var(--muted)"></i>${esc(labels[i])} <small>${clock(s.start - f.fightStart)} · ${plain(s.total)} · ${plain(s.total / (dur(s) / 1000))} DPS</small></span>`).join('')}</div>`;
     return headerHTML(f, t('shieldsTitle'), sub) + typeBar + legend + rankedList(rows) + `<p class="foot">${t('shieldsFoot')}</p>`;
   },
 
