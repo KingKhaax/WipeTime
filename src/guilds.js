@@ -50,7 +50,7 @@ const Guilds = (() => {
     if (!S.guildOpen) return;
     const s = st.status || {};
     const hasClient = s.canLogin;
-    const glyph = '<img class="wi" src="wcicon://i/inv_shirt_guildtabard_01" width="30" height="30" alt="">';
+    const glyph = '<img class="wi" src="icons/inv_shirt_guildtabard_01.jpg" width="30" height="30" alt="">';
     const saved = !s.loggedIn && s.cachedGuilds?.list?.length;
     const login = !s.canLogin && !s.loggedIn ? '' : saved
       ? `<div class="bn-card ok"><div class="bn-ic ok">${glyph}</div><div class="bn-txt"><h2>${esc(s.battletag || LL('Cuenta guardada', 'Saved account'))}</h2><p>${LL('Guilds guardadas de tu última sesión. Inicia sesión solo si quieres actualizar la lista.', 'Guilds saved from your last session. Sign in only to refresh the list.')}</p></div><div class="bn-actions"><button class="btn ghost sm" data-gd="login">↻ ${LL('Actualizar guilds', 'Refresh guilds')}</button></div></div>`

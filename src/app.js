@@ -117,6 +117,9 @@ function isMe(name) {
 document.addEventListener('error', (e) => {
   const el = e.target;
   if (el.tagName !== 'IMG') return;
+  // spec sin icono propio: se usa el de su clase
+  const sp = el.src.match(/\/specs\/([a-z]+)-[a-z]+\.png$/);
+  if (sp && !el.dataset.cls) { el.dataset.cls = '1'; el.src = classIconUrl(sp[1]); return; }
   // un icono que no llega (red lenta o cortada) se reintenta dos veces antes de rendirse
   if (/^wcicon:/.test(el.src)) {
     const n = Number(el.dataset.retry || 0);
@@ -126,6 +129,15 @@ document.addEventListener('error', (e) => {
       setTimeout(() => { el.src = `${base}?r=${n + 1}`; }, 1500 * (n + 1));
       return;
     }
+  }
+  // sin respuesta del programa: se pide directamente al CDN de Warcraft Logs antes de rendirse
+  if (/^wcicon:/.test(el.src) && !el.dataset.direct) {
+    el.dataset.direct = '1';
+    const raw = decodeURIComponent(el.src.replace(/^wcicon:\/\/i\//, '').replace(/\?r=\d+$/, ''));
+    const m = raw.match(/^spec-([a-z]+)-([a-z]+)$/);
+    const cap = (w) => ({ deathknight: 'DeathKnight', demonhunter: 'DemonHunter', beastmastery: 'BeastMastery' }[w] || w.charAt(0).toUpperCase() + w.slice(1));
+    el.src = m ? SPEC_ICON_BASE + cap(m[1]) + '-' + cap(m[2]) + '.jpg' : ICON_BASE + raw + '.jpg';
+    return;
   }
   if (!el.dataset.fb) { el.dataset.fb = '1'; el.src = FALLBACK_ICON; }
 }, true);
@@ -675,7 +687,7 @@ function renderSidebar() {
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
     <div class="rep-sub">${esc(zoneName(r.zone?.name))}${r.owner?.name ? ' · ' + esc(r.owner.name) : ''}<br>${new Date(r.startTime).toLocaleString(locale())}</div>
-    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span>' : '↻'} ${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
+    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span>' : '↻'} ${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="icons/spell_nature_chainlightning.jpg" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
@@ -729,10 +741,10 @@ async function render() {
   const f = combined ? combinedFight() : windowed(raw);
   S.viewCombined = combined;
   const seq = ++S.seq;
-  const rkBtn = S.player ? '' : `<button class="rank-btn ${S.tab === 'rankings' ? 'active' : ''}" data-action="tab" data-tab="rankings"><img class="wi" src="wcicon://i/achievement_bg_winwsg" width="22" height="22" alt="">${t('tabs.rankings')}</button>`;
+  const rkBtn = S.player ? '' : `<button class="rank-btn ${S.tab === 'rankings' ? 'active' : ''}" data-action="tab" data-tab="rankings"><img class="wi" src="icons/achievement_bg_winwsg.jpg" width="22" height="22" alt="">${t('tabs.rankings')}</button>`;
   const nav = S.player ? '' : `${rkBtn}<nav class="tabs">${TABS.filter((k) => !window.tabHidden?.(k)).map((k) =>
     `<button class="tab ${S.tab === k ? 'active' : ''}" data-action="tab" data-tab="${k}">${t('tabs.' + k)}</button>`).join('')}</nav>`;
-  const banner = S.combine.length > 1 ? `<div class="combine-banner"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL(`Combinando ${S.combine.length} pulls`, `Combining ${S.combine.length} pulls`, `${S.combine.length} Versuche kombinieren`, `Combinaison de ${S.combine.length} essais`)}${combined ? '' : ` · <span class="muted">${LL('esta pestaña muestra solo el pull seleccionado', 'this tab only shows the selected pull')}</span>`}<span class="grow"></span><button class="chip" data-action="combine-clear">${LL('Salir', 'Exit')}</button></div>` : '';
+  const banner = S.combine.length > 1 ? `<div class="combine-banner"><img class="wi" src="icons/spell_nature_chainlightning.jpg" width="16" height="16" alt=""> ${LL(`Combinando ${S.combine.length} pulls`, `Combining ${S.combine.length} pulls`, `${S.combine.length} Versuche kombinieren`, `Combinaison de ${S.combine.length} essais`)}${combined ? '' : ` · <span class="muted">${LL('esta pestaña muestra solo el pull seleccionado', 'this tab only shows the selected pull')}</span>`}<span class="grow"></span><button class="chip" data-action="combine-clear">${LL('Salir', 'Exit')}</button></div>` : '';
   main.innerHTML = `${nav}${banner}${combined ? '' : raw.encounterID || fightDur(raw) > 20000 ? rangeBar(raw) : ''}<section id="view">${loadingHTML()}</section>`;
   S.post = null;
   try {
@@ -1466,7 +1478,7 @@ function renderWelcome() {
             <input id="heroInput" type="text" spellcheck="false" autocomplete="off" placeholder="${esc(t('urlPlaceholder'))}">
             <button class="btn primary" type="submit">${t('load')}</button>
           </form>
-          <button class="btn ghost cmp-cta" data-cmp="open"><img class="wi" src="wcicon://i/spell_holy_crusade" width="18" height="18" alt=""> ${t('cmpOpen')}</button>
+          <button class="btn ghost cmp-cta" data-cmp="open"><img class="wi" src="icons/spell_holy_crusade.jpg" width="18" height="18" alt=""> ${t('cmpOpen')}</button>
         </div>
         <div class="exp-card" id="expCard">
           <img class="exp-img" id="expImg" src="${img}" alt="${esc(exp.name)}">

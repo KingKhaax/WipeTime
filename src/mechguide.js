@@ -61,7 +61,7 @@ const MechGuide = (() => {
   const forSpell = (id, hint) => lookupName(S.abilities?.get(id)?.name || hint);
   const ringType = (id) => { const m = forSpell(id); return m && RING_TYPES.has(m.type) ? m.type : null; };
 
-  const skullSvg = (kind) => `<span class="mg-skull ${kind}" title="${esc(kind === 'M' ? L('Cambios de mítico', 'Mythic changes') : L('Cambios de heroico', 'Heroic changes'))}"><img class="wi" src="wcicon://i/inv_misc_bone_humanskull_01" width="18" height="18" alt=""></span>`;
+  const skullSvg = (kind) => `<span class="mg-skull ${kind}" title="${esc(kind === 'M' ? L('Cambios de mítico', 'Mythic changes') : L('Cambios de heroico', 'Heroic changes'))}"><img class="wi" src="icons/inv_misc_bone_humanskull_01.jpg" width="18" height="18" alt=""></span>`;
 
   function legendHTML() {
     const chip = (k) => `<span class="mg-leg"><i style="background:${ringColor(k)}"></i>${esc(MECH_DATA.types[k].label)}</span>`;

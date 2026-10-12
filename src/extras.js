@@ -39,7 +39,7 @@ const Extras = (() => {
       <div class="ar-gear"><h4>${LL('Equipo', 'Gear')}${avg ? ` <small>· ${LL('nivel medio', 'average')} ${num(avg, 1)}</small>` : ''}</h4>
         <div class="ag-cols"><div>${SLOT_L.map((x) => gearSlot(gear, x)).join('')}</div><div>${SLOT_R.map((x) => gearSlot(gear, x)).join('')}</div></div></div>
       <div class="ar-tal"><h4>${LL('Talentos usados en este jefe', 'Talents used on this boss')} <small>· ${tal.length}</small></h4>
-        <div class="tl-grid">${tal.length ? tal.map((t) => `<span class="tl" data-spell="${t.id}" data-tid="${t.id}"><img src="wcicon://i/inv_misc_questionmark" width="26" height="26" alt="">${t.rank > 1 ? `<em>×${t.rank}</em>` : ''}<b>…</b></span>`).join('') : `<span class="muted">${LL('Este log no incluye talentos de este jugador.', 'This log has no talent data for this player.')}</span>`}</div></div>
+        <div class="tl-grid">${tal.length ? tal.map((t) => `<span class="tl" data-spell="${t.id}" data-tid="${t.id}"><img src="icons/inv_misc_questionmark.jpg" width="26" height="26" alt="">${t.rank > 1 ? `<em>×${t.rank}</em>` : ''}<b>…</b></span>`).join('') : `<span class="muted">${LL('Este log no incluye talentos de este jugador.', 'This log has no talent data for this player.')}</span>`}</div></div>
     </div>`;
   }
   async function fillTalents(box) {
@@ -677,7 +677,7 @@ const Extras = (() => {
       const boss = (p.enemyNPCs || []).some((m) => bossIds.has(m.id));
       const top = [...mobs.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => `${esc(k)}${v > 1 ? ` ×${v}` : ''}`).join(', ');
       const on = S.range && S.range.fight === raw.id && S.range.phaseIdx === i;
-      return `<button class="pullcard ${on ? 'on' : ''} ${boss ? 'boss' : ''}" data-action="range" data-phase="${i}"><b>${boss ? '<img class="wi" src="wcicon://i/inv_misc_bone_humanskull_01" width="16" height="16" alt=""> ' : ''}Pull ${p.id}</b><span class="muted">${clock(p.startTime - raw.startTime)} · ${clock(p.endTime - p.startTime)} · ${n} ${LL('enemigos', 'enemies')}</span><small>${top}</small></button>`;
+      return `<button class="pullcard ${on ? 'on' : ''} ${boss ? 'boss' : ''}" data-action="range" data-phase="${i}"><b>${boss ? '<img class="wi" src="icons/inv_misc_bone_humanskull_01.jpg" width="16" height="16" alt=""> ' : ''}Pull ${p.id}</b><span class="muted">${clock(p.startTime - raw.startTime)} · ${clock(p.endTime - p.startTime)} · ${n} ${LL('enemigos', 'enemies')}</span><small>${top}</small></button>`;
     }).join('');
     S.post = async () => drawRoute(raw);
     return headerHTML(f0, t('tabs.mplus'), `<b>+${raw.keystoneLevel}</b> · ${chests} · ${clock(total)}`)
@@ -768,10 +768,10 @@ const Extras = (() => {
     m.id = 'exportMenu';
     m.className = 'xmenu surface-dark';
     const items = [
-      ['png', '<img class="wi" src="wcicon://i/inv_misc_eye_01" width="20" height="20" alt="">', LL('Guardar captura (PNG) de esta vista', 'Save screenshot (PNG) of this view')],
-      ['csv', '<img class="wi" src="wcicon://i/inv_misc_note_06" width="20" height="20" alt="">', LL('Guardar tabla como CSV', 'Save table as CSV')],
-      ['text', '<img class="wi" src="wcicon://i/inv_scroll_11" width="20" height="20" alt="">', LL('Copiar resumen para Discord', 'Copy summary for Discord')],
-      ['wcl', '<img class="wi" src="wcicon://i/inv_misc_spyglass_03" width="20" height="20" alt="">', LL('Copiar enlace de Warcraft Logs', 'Copy Warcraft Logs link')],
+      ['png', '<img class="wi" src="icons/inv_misc_eye_01.jpg" width="20" height="20" alt="">', LL('Guardar captura (PNG) de esta vista', 'Save screenshot (PNG) of this view')],
+      ['csv', '<img class="wi" src="icons/inv_misc_note_06.jpg" width="20" height="20" alt="">', LL('Guardar tabla como CSV', 'Save table as CSV')],
+      ['text', '<img class="wi" src="icons/inv_scroll_11.jpg" width="20" height="20" alt="">', LL('Copiar resumen para Discord', 'Copy summary for Discord')],
+      ['wcl', '<img class="wi" src="icons/inv_misc_spyglass_03.jpg" width="20" height="20" alt="">', LL('Copiar enlace de Warcraft Logs', 'Copy Warcraft Logs link')],
     ];
     m.innerHTML = items.map(([k, ic, l]) => `<button type="button" data-x="${k}"><span>${ic}</span>${l}</button>`).join('');
     document.body.appendChild(m);

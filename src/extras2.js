@@ -185,7 +185,7 @@ const Extras2 = (() => {
     const rows = f.dungeonPulls.map((p, i) => {
       const boss = (p.enemyNPCs || []).some((m) => bossIds.has(m.id));
       return `<button class="pullrow ${cur === i ? 'active' : ''}" data-action="range" data-phase="${i}">
-        <span class="pr-n">${boss ? '<img class="wi" src="wcicon://i/inv_misc_bone_humanskull_01" width="14" height="14" alt="">' : ''}Pull ${p.id}</span><span class="pr-t">${clock(p.endTime - p.startTime)}</span><span class="pr-d" data-pull-dmg="${i}">…</span><i class="pr-bar" data-pull-bar="${i}"></i></button>`;
+        <span class="pr-n">${boss ? '<img class="wi" src="icons/inv_misc_bone_humanskull_01.jpg" width="14" height="14" alt="">' : ''}Pull ${p.id}</span><span class="pr-t">${clock(p.endTime - p.startTime)}</span><span class="pr-d" data-pull-dmg="${i}">…</span><i class="pr-bar" data-pull-bar="${i}"></i></button>`;
     }).join('');
     return `<div class="pullside"><button class="pullrow ${cur == null ? 'active' : ''}" data-action="range" data-phase="full"><span class="pr-n">${LL('Clave completa', 'Whole key')}</span><span class="pr-t">${clock(fightDur(f))}</span></button>${rows}</div>`;
   }
