@@ -27,6 +27,7 @@ const S = {
   cache: new Map(),
   seq: 0,
   sortMode: lsGet('sortMode') || 'desc', // desc | asc | name
+  takenAbility: '', // habilidad elegida en Daño recibido ('' = todas)
   shieldKind: 'all', // all | boss | allies | adds
   dmgMetric: 'dps',   // dps | boss | active
   parseMode: 'all',   // all | ilvl
@@ -1122,10 +1123,26 @@ const VIEWS = {
   async taken(f) {
     const d = await fightData(f);
     const dur = fightDur(f) / 1000;
-    const rows = d.taken.filter((e) => isPlayer(e.id, e))
-      .map((e) => ({ ...playerInfo(e.id, e), total: e.total, rate: e.total / dur, abil: abilList(e.abilities) }))
-      .sort((a, b) => b.total - a.total);
-    return headerHTML(f, t('takenTitle'), leaderSub(rows)) + rankedList(rows);
+    const players = d.taken.filter((e) => isPlayer(e.id, e));
+    // Todas las habilidades que han golpeado a la banda, para poder ver el daño de una sola
+    const byAbil = new Map();
+    for (const e of players) for (const a of abilList(e.abilities)) byAbil.set(a.name, (byAbil.get(a.name) || 0) + a.total);
+    const abilities = [...byAbil.entries()].sort((x, y) => y[1] - x[1]);
+    const sel = byAbil.has(S.takenAbility) ? S.takenAbility : '';
+    const opts = `<option value="">${esc(LL('Todas las habilidades (total)', 'All abilities (total)'))} · ${plain(players.reduce((x, e) => x + e.total, 0))}</option>` +
+      abilities.map(([name, tot]) => `<option value="${esc(name)}" ${name === sel ? 'selected' : ''}>${esc(name)} · ${plain(tot)}</option>`).join('');
+    const picker = abilities.length ? `<div class="sortbar"><span class="muted">${LL('Habilidad', 'Ability')}</span><select data-taken-ability>${opts}</select></div>` : '';
+    const rows = players
+      .map((e) => {
+        const ab = abilList(e.abilities);
+        if (!sel) return { ...playerInfo(e.id, e), total: e.total, rate: e.total / dur, abil: ab };
+        const v = ab.find((x) => x.name === sel)?.total || 0;
+        return { ...playerInfo(e.id, e), total: v, rate: v / dur, abil: ab.filter((x) => x.name === sel) };
+      })
+      .filter((r) => r.total > 0)
+      .sort((x, y) => y.total - x.total);
+    const title = sel ? `${t('takenTitle')} · ${sel}` : t('takenTitle');
+    return headerHTML(f, title, leaderSub(rows)) + picker + rankedList(rows);
   },
 
   async enemies(f) {
@@ -1934,3 +1951,10 @@ document.addEventListener('error', (ev) => {
   const base = im.src.replace(/\?r=\d+$/, '');
   setTimeout(() => { im.src = `${base}?r=${n + 1}`; }, 1500 * (n + 1));
 }, true);
+
+document.addEventListener('change', (ev) => {
+  const sel = ev.target.closest?.('select[data-taken-ability]');
+  if (!sel) return;
+  S.takenAbility = sel.value;
+  render();
+});
