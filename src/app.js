@@ -511,7 +511,7 @@ function shieldData(f) {
     for (const e of abs) {
       let sh = lastByTarget.get(e.targetID);
       if (!sh || e.timestamp - sh.end > SHIELD_GAP) {
-        sh = { target: e.targetID, mc: S.actors.get(e.targetID)?.type === 'Player', start: e.timestamp, end: e.timestamp, total: 0, byPlayer: new Map() };
+        sh = { target: e.targetID, mc: S.actors.get(e.targetID)?.type === 'Player', start: e.timestamp, end: e.timestamp, total: 0, byPlayer: new Map(), byAbil: new Map() };
         shields.push(sh);
         lastByTarget.set(e.targetID, sh);
       }
@@ -519,6 +519,9 @@ function shieldData(f) {
       sh.total += e.absorbed;
       const p = ownerOf(e.sourceID);
       sh.byPlayer.set(p, (sh.byPlayer.get(p) || 0) + e.absorbed);
+      if (!sh.byAbil.has(p)) sh.byAbil.set(p, new Map());
+      const ba = sh.byAbil.get(p);
+      ba.set(e.abilityGameID, (ba.get(e.abilityGameID) || 0) + e.absorbed);
     }
     const grand = shields.reduce((s, x) => s + x.total, 0);
     return shields.filter((s) => s.total >= grand * 0.002).sort((a, b) => a.start - b.start);
@@ -773,6 +776,16 @@ function sortBarHTML(hasParse = false) {
   return `<div class="sortbar"><span class="muted">${LL('Ordenar', 'Sort')}</span>${chip('desc', LL('↓ Mayor a menor', '↓ High to low'))}${chip('asc', LL('↑ Menor a mayor', '↑ Low to high'))}${chip('name', LL('A–Z', 'A–Z'))}<span class="grow"></span><button class="chip" data-action="export-img" data-m="copy" title="${esc(LL('Copiar esta lista como imagen', 'Copy this list as an image'))}">📋 ${LL('Copiar imagen', 'Copy image')}</button><button class="chip" data-action="export-img" data-m="save">💾 ${LL('Guardar PNG', 'Save PNG')}</button>${hasParse ? `<span class="sep"></span>${chip('parse-desc', LL('Parse: mejor a peor', 'Parse: best to worst'))}${chip('parse-asc', LL('Parse: peor a mejor', 'Parse: worst to best'))}` : ''}</div>`;
 }
 
+const ENEMY_RED = '#e5484d';
+const rowColor = (r) => (CLASSES[r.cls] ? classColor(r.cls) : ENEMY_RED);
+// Lista de habilidades {name,total}: acepta la tabla de Warcraft Logs y la ordena de mayor a menor
+const abilList = (arr) => (arr || []).filter((a) => a && a.total > 0).map((a) => ({ name: a.name, total: a.total, icon: a.abilityIcon || a.icon || '' })).sort((x, y) => y.total - x.total);
+function mergeAbil(lists) {
+  const m = new Map();
+  for (const l of lists) for (const a of l || []) { const c = m.get(a.name); if (c) c.total += a.total; else m.set(a.name, { ...a }); }
+  return [...m.values()].sort((x, y) => y.total - x.total);
+}
+
 function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
   if (!rows.length) return `<div class="empty">${t('noData')}</div>`;
   const max = Math.max(...rows.map((r) => r.total), 1);
@@ -787,17 +800,15 @@ function rankedList(rows, { parse, slots, clickable = !S.viewCombined } = {}) {
   const sum = rows.reduce((x, r) => x + r.total, 0) || 1;
   const tags = (h) => String(h ?? '').replace(/<[^>]*>/g, '').trim();
   S.lastRanked = list.map((r) => ({ name: r.name, cls: r.cls, icon: r.icon, total: r.total, pct: (r.total / sum) * 100, val: tags(big(r.total)), rate: r.rate != null ? plain(r.rate) : tags(r.note), me: isMe(r.name),
-    segs: (r.segs || [{ v: r.total, color: classColor(r.cls) }]).filter((x) => x.v > 0).map((x) => ({ v: x.v, color: x.color })) }));
+    segs: [{ v: r.total, color: rowColor(r) }], abil: r.abil || null }));
   const hasRate = rows.some((r) => r.rate != null);
   const hasNote = rows.some((r) => r.note);
   return `${sortBarHTML(!!parse)}<div class="ranked">
     <div class="row head ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}"><span>${LL('Nombre', 'Name')}</span><span>${LL('Cantidad', 'Amount')}</span>${hasNote ? '<span></span>' : ''}${hasRate ? '<span class="rate">/s</span>' : ''}<span class="val"></span></div>${list.map((r) => {
-    const color = classColor(r.cls);
-    const segs = r.segs || [{ v: r.total, color }];
-    const bar = segs.filter((x) => x.v > 0).map((x) =>
-      `<span class="seg" style="flex:${x.v} 1 0;background:${x.color}"${x.label ? ` title="${esc(x.label)}: ${plain(x.v)}"` : ''}></span>`).join('');
+    const color = rowColor(r);
+    const bar = `<span class="seg" style="flex:1 1 0;background:${color}"></span>`;
     const me = isMe(r.name);
-    return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''} ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
+    return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''} ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}" data-ri="${list.indexOf(r)}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
       <div class="r-name">
         ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="22" height="22" alt="" style="--cc:${color}">` : `<span class="dot" style="background:${color}"></span>`}
         <span class="name" style="color:${color}">${esc(r.name)}</span>
@@ -1016,13 +1027,14 @@ const VIEWS = {
     shields.forEach((s, i) => {
       for (const [pid, v] of s.byPlayer) {
         if (!isPlayer(pid)) continue;
-        if (!per.has(pid)) per.set(pid, { ...playerInfo(pid), total: 0, vals: shields.map(() => 0) });
+        if (!per.has(pid)) per.set(pid, { ...playerInfo(pid), total: 0, vals: shields.map(() => 0), lists: [] });
         const p = per.get(pid);
         p.total += v;
         p.vals[i] += v;
+        p.lists.push([...(s.byAbil.get(pid) || new Map())].map(([id, tot]) => ({ name: ability(id).name, total: tot, icon: ability(id).icon })));
       }
     });
-    const rows = [...per.values()].map((p) => ({ ...p, note: `${plain(p.total / secs)} DPS` }))
+    const rows = [...per.values()].map((p) => ({ ...p, note: `${plain(p.total / secs)} DPS`, abil: mergeAbil(p.lists) }))
       .sort((a, b) => b.total - a.total);
     const total = shields.reduce((s, x) => s + x.total, 0);
     const bosses = [...new Set(shields.map((s) => actorName(s.target)))].join(', ');
@@ -1072,7 +1084,7 @@ const VIEWS = {
     const bossOf = (e) => (e.targets || []).filter((x) => x.type === 'Boss').reduce((s, x) => s + x.total, 0);
     const rows = d.dmg.filter((e) => isPlayer(e.id, e))
       .map((e) => {
-        const base = { ...playerInfo(e.id, e), ilvl: e.itemLevel };
+        const base = { ...playerInfo(e.id, e), ilvl: e.itemLevel, abil: abilList(e.abilities) };
         if (m === 'rdps') { const v = Math.max(0, e.total - (e.totalRDPSTaken || 0) + (e.totalRDPSGiven || 0)); return { ...base, total: v, rate: v / dur }; }
         if (m === 'boss') { const v = bossOf(e); return { ...base, total: v, rate: v / dur }; }
         if (m === 'active') return { ...base, total: e.total, rate: e.total / Math.max(1, (e.activeTime || dur * 1000) / 1000) };
@@ -1101,7 +1113,7 @@ const VIEWS = {
       .map((e) => {
         const oh = e.overheal || 0;
         const ohp = oh > 0 ? (oh / (oh + e.total)) * 100 : 0;
-        return { ...playerInfo(e.id, e), ilvl: e.itemLevel, total: e.total, rate: e.total / dur, note: ohp ? t('overheal', { p: num(ohp, 0) }) : '' };
+        return { ...playerInfo(e.id, e), ilvl: e.itemLevel, total: e.total, rate: e.total / dur, abil: abilList(e.abilities), note: ohp ? t('overheal', { p: num(ohp, 0) }) : '' };
       })
       .sort((a, b) => b.total - a.total);
     return headerHTML(f, t('healTitle'), leaderSub(rows, f)) + rankedList(rows, parseOptions(f, rows, S.parseMode === 'ilvl' ? rk.hpsB : rk.hps, 'hps'));
@@ -1111,7 +1123,7 @@ const VIEWS = {
     const d = await fightData(f);
     const dur = fightDur(f) / 1000;
     const rows = d.taken.filter((e) => isPlayer(e.id, e))
-      .map((e) => ({ ...playerInfo(e.id, e), total: e.total, rate: e.total / dur }))
+      .map((e) => ({ ...playerInfo(e.id, e), total: e.total, rate: e.total / dur, abil: abilList(e.abilities) }))
       .sort((a, b) => b.total - a.total);
     return headerHTML(f, t('takenTitle'), leaderSub(rows)) + rankedList(rows);
   },
@@ -1134,15 +1146,16 @@ const VIEWS = {
     tables.forEach((entries, i) => {
       for (const e of entries) {
         if (!isPlayer(e.id, e)) continue;
-        if (!per.has(e.id)) per.set(e.id, { ...playerInfo(e.id, e), total: 0, segs: ids.map(() => 0) });
+        if (!per.has(e.id)) per.set(e.id, { ...playerInfo(e.id, e), total: 0, segs: ids.map(() => 0), lists: [] });
         const p = per.get(e.id);
+        p.lists.push(abilList(e.abilities));
         p.total += e.total;
         p.segs[i] += e.total;
       }
     });
     const names = ids.map((id) => targets.find((e) => e.id === id)?.name || '?');
     const rows = [...per.values()].map((p) => ({
-      ...p, segs: p.segs.map((v, i) => ({ v, color: colorOf(ids[i]), label: names[i] })),
+      ...p, abil: mergeAbil(p.lists), segs: p.segs.map((v, i) => ({ v, color: colorOf(ids[i]), label: names[i] })),
     })).sort((a, b) => b.total - a.total);
 
     const total = rows.reduce((s, r) => s + r.total, 0);
@@ -1218,7 +1231,7 @@ const VIEWS = {
     return headerHTML(f, t('rotationTitle'), t('pickPlayer'))
       + `<div class="pgrid">${uniq.map((p) => `<button class="pcard ${isMe(p.name) ? 'me' : ''}" data-action="player" data-id="${p.id}" data-ptab="rotation" style="--cc:${classColor(p.cls)}">
           <img class="spec-ic" src="${specIconUrl(esc(p.icon))}" alt="">
-          <span><b>${esc(p.name)}</b><small>${esc(specName(p.spec) || className(p.cls))}</small></span></button>`).join('')}</div>`;
+          <span><b>${esc(p.name)}</b></span></button>`).join('')}</div>`;
   },
 };
 
@@ -1325,8 +1338,7 @@ async function viewPlayer(f, id) {
       <div class="eyebrow">${eyebrow(f)}</div>
       <div class="phead">
         <img class="spec-ic lg" src="${specIconUrl(esc(p.icon))}" alt="">
-        <div><h1 style="color:${color}">${esc(p.name)} ${isMe(p.name) ? `<span class="you">${t('you')}</span>` : ''}</h1>
-        <div class="sub">${esc(specName(p.spec))} ${esc(className(p.cls))}</div></div>
+        <div><h1 style="color:${color}">${esc(p.name)} ${isMe(p.name) ? `<span class="you">${t('you')}</span>` : ''}</h1></div>
         <div class="stats">${stats}</div>
       </div>
     </div>
@@ -1554,7 +1566,7 @@ function askWhoAmI() {
     ${guess ? `<button class="pcard big ${S.me === guess.name ? 'me' : ''}" data-action="iam" data-name="${esc(guess.name)}" style="--cc:${classColor(guess.cls)}">
       <img class="spec-ic" src="${specIconUrl(esc(guess.icon))}" alt=""><span><b>${esc(guess.name)}</b><small>${t('whoGuess')}</small></span></button>` : ''}
     <div class="pgrid">${players.filter((p) => p !== guess).map((p) => `<button class="pcard" data-action="iam" data-name="${esc(p.name)}" style="--cc:${classColor(p.cls)}">
-      <img class="spec-ic" src="${specIconUrl(esc(p.icon))}" alt=""><span><b>${esc(p.name)}</b><small>${esc(specName(p.spec) || className(p.cls))}</small></span></button>`).join('')}</div>
+      <img class="spec-ic" src="${specIconUrl(esc(p.icon))}" alt=""><span><b>${esc(p.name)}</b></span></button>`).join('')}</div>
     <div class="dlg-actions"><span class="grow"></span><button class="btn ghost" data-action="iam" data-name="">${t('notInLog')}</button></div>`;
   if (!dlg.open) dlg.showModal();
 }
@@ -1874,3 +1886,40 @@ document.addEventListener('change', (ev) => {
   S.shieldKind = sel.value;
   render();
 });
+
+// ---- Tooltip de cada barra: daño (o sanación) por habilidad, como en Warcraft Logs
+(() => {
+  let tip = null;
+  let iconByName = null;
+  let iconSrc = null;
+  const iconOf = (a) => {
+    if (a.icon) return a.icon;
+    if (iconSrc !== S.abilities) { iconSrc = S.abilities; iconByName = new Map([...S.abilities.values()].map((x) => [x.name, x.icon])); }
+    return iconByName.get(a.name) || '';
+  };
+  const hide = () => { if (tip) tip.hidden = true; };
+  document.addEventListener('mouseover', (ev) => {
+    const row = ev.target.closest?.('.ranked .row[data-ri]');
+    const r = row && S.lastRanked?.[Number(row.dataset.ri)];
+    if (!r || !r.abil?.length) return hide();
+    if (!tip) { tip = document.createElement('div'); tip.className = 'bartip surface-dark'; document.body.appendChild(tip); }
+    const sum = r.abil.reduce((x, a) => x + a.total, 0) || 1;
+    const color = r.segs?.[0]?.color || '#9aa3b2';
+    const shown = r.abil.slice(0, 14);
+    const more = r.abil.length - shown.length;
+    tip.innerHTML = `<div class="bt-h" style="color:${color}"><b>${esc(r.name)}</b><span>${plain(sum)}</span></div>${shown.map((a) =>
+      `<div class="bt-r"><span class="bt-n">${iconOf(a) ? iconImg(iconOf(a), 18) : '<i class="bt-i"></i>'}${esc(a.name)}</span><span class="bt-b"><i style="width:${(a.total / r.abil[0].total) * 100}%;background:${color}"></i></span><b>${plain(a.total)}</b><em>${num((a.total / sum) * 100, 1)}%</em></div>`).join('')}${more > 0 ? `<div class="bt-m">+ ${more} ${LL('más', 'more')}</div>` : ''}`;
+    tip.hidden = false;
+  });
+  document.addEventListener('mousemove', (ev) => {
+    if (!tip || tip.hidden) return;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = ev.clientX + 16, y = ev.clientY + 16;
+    if (x + w > window.innerWidth - 8) x = ev.clientX - w - 16;
+    if (y + h > window.innerHeight - 8) y = Math.max(8, window.innerHeight - h - 8);
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+  });
+  document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('.ranked')) hide(); });
+  document.addEventListener('scroll', hide, true);
+})();

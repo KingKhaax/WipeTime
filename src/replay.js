@@ -572,7 +572,7 @@ const Replay = (() => {
       const s = sample(R.data.tracks.get(h.id), R.T);
       const hp = s.mx > 0 ? clamp((s.hp / s.mx) * 100, 0, 100) : null;
       const st = liveStats(h.id);
-      html = `<b style="color:${classColor(p.cls)}">${esc(p.name)}</b><small>${esc(specName(p.spec) || className(p.cls))}</small>
+      html = `<b style="color:${classColor(p.cls)}">${esc(p.name)}</b>
         ${hp != null ? `<div class="tipbar"><span style="width:${hp}%"></span></div><div class="tiprow"><span>${t('hp')}</span><b>${num(hp, 0)} %</b></div>` : ''}
         <div class="tiprow"><span>${t('tabs.damage')}</span><b>${plain(st.dmg)}</b></div>
         <div class="tiprow"><span>DPS</span><b>${plain(st.dps)}</b></div>`;

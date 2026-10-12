@@ -95,7 +95,7 @@ const Extras2 = (() => {
     const body = rows.map((r) => {
       const pi = playerInfo(r.p.id);
       return `<div class="pp-row ${isMe(r.p.name) ? 'me' : ''}">
-        <span class="who"><span class="dot" style="background:${classColor(pi.cls)}"></span><b style="color:${classColor(pi.cls)}">${esc(r.p.name)}</b> <small>${esc(specName(pi.spec) || className(pi.cls))}</small></span>
+        <span class="who"><span class="dot" style="background:${classColor(pi.cls)}"></span><b style="color:${classColor(pi.cls)}">${esc(r.p.name)}</b></span>
         <span class="pp-pre ${r.pre ? 'ok' : 'no'}">${r.pre ? `${ab(r.pre)} ${LL('Prepoti', 'Prepot')} <b>${sec(r.pre.t)}</b>${r.inferred ? `<small class="muted" title="${esc(LL('El log no guarda el lanzamiento, pero el buff ya estaba activo al empezar: se tomó 1-2 s antes del pull', 'The log has no cast, but the buff was already active at the pull: taken 1-2 s before it'))}"> *</small>` : ''}` : `✗ ${LL('Sin prepoti', 'No prepot')}`}</span>
         <span class="pp-combat">${r.combat.length ? r.combat.map((u) => `${ab(u)} <b>${sec(u.t)}</b>`).join(' · ') : '<span class="muted">—</span>'}</span>
         <span class="pp-hs">${r.stones.length ? r.stones.map((u) => `${ab(u)} <b>${sec(u.t)}</b>`).join(' · ') : '<span class="muted">—</span>'}</span>

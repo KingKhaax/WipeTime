@@ -270,7 +270,7 @@ const Extras = (() => {
       const me = isMe(p.name);
       sumPlayers.set(String(p.id), p);
       return `<div class="sum-row clickable ${me ? 'me' : ''}" data-pid="${p.id}" title="${esc(LL('Clic para ver talentos y equipo', 'Click to see talents and gear'))}">
-        <span class="who">${p.icon && /-/.test(p.icon) ? `<img class="spec-ic-sm" src="${specIconUrl(esc(p.icon))}" width="24" height="24" alt="" style="--cc:${classColor(p.type)}">` : `<img class="spec-ic-sm" src="${classIconUrl(p.type)}" width="24" height="24" alt="" style="--cc:${classColor(p.type)}">`}<b style="color:${classColor(p.type)}">${esc(p.name)}</b> <small>${esc(specName(sp) || className(p.type))}</small></span>
+        <span class="who">${p.icon && /-/.test(p.icon) ? `<img class="spec-ic-sm" src="${specIconUrl(esc(p.icon))}" width="24" height="24" alt="" style="--cc:${classColor(p.type)}">` : `<img class="spec-ic-sm" src="${classIconUrl(p.type)}" width="24" height="24" alt="" style="--cc:${classColor(p.type)}">`}<b style="color:${classColor(p.type)}">${esc(p.name)}</b></span>
         ${roleIcon(p.role)}
         <span class="ilvl">${avg ? num(avg, 0) : '–'}</span>
         <span class="ench ${missing.length ? 'bad' : 'ok'}">${missing.length ? `⚠ ${LL('Sin encantar', 'Unenchanted')}: ${esc(missNames.join(', '))}<span class="etip"><b>${LL('Piezas sin encantamiento', 'Pieces without an enchant')}</b>${missTip}</span>` : `✓ ${LL('Encantado', 'Enchanted')}`}${gems ? ` · ${gems} ${LL('gemas', 'gems')}` : ''}</span>
@@ -315,7 +315,7 @@ const Extras = (() => {
       const rows = (await tableBy(f, 'Healing', 'Target')).filter((e) => isPlayer(e.id, e) && e.total > 0).map((e) => {
         const src = (e.sources || []).filter((x) => x.total > 0).sort((a, b) => b.total - a.total).slice(0, 3);
         const note = src.map((x) => `<span style="color:${classColor(x.type)}">${esc(x.name)}</span> ${num((x.total / e.total) * 100, 0)}%`).join(' · ');
-        return { ...playerInfo(e.id, e), total: e.total, rate: e.total / seconds, note };
+        return { ...playerInfo(e.id, e), total: e.total, rate: e.total / seconds, note, abil: abilList(e.abilities) };
       }).sort((a, b) => b.total - a.total);
       body = rankedList(rows, { clickable: false });
     } else if (mode === 'healability') {
@@ -340,7 +340,7 @@ const Extras = (() => {
         .map((x) => `<span style="color:${classColor(x.type)}">${esc(x.name)}</span> ${plain(x.total)}`).join(' · ');
       return `<div class="atr"><span class="dnum">${i + 1}</span>
         <span class="ab" data-spell="${e.guid}">${iconImg(e.abilityIcon || e.icon, 22)}${esc(e.name)}${src ? ` <small class="muted">${esc(src)}</small>` : ''}</span>
-        <span class="bar"><span class="bar-in" style="width:${(e.total / max) * 100}%;background:${kind === 'heal' ? '#4ade80' : '#ff6b6b'}"></span></span>
+        <span class="bar"><span class="bar-in" style="width:${(e.total / max) * 100}%;background:${kind === 'heal' ? (CLASSES[e.type || (e.sources || [])[0]?.type] ? classColor(e.type || (e.sources || [])[0]?.type) : '#4ade80') : '#e5484d'}"></span></span>
         <span class="r muted">${hits != null ? hits : ''}</span><span class="r"><b>${plain(e.total)}</b></span><span class="r muted">${num((e.total / sum) * 100, 1)}%</span>
         ${top ? `<span class="atop muted">${top}</span>` : ''}</div>`;
     }).join('');

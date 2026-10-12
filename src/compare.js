@@ -146,7 +146,7 @@ const Compare = (() => {
     const rows = [a.M, ...a.O].map((p, i) => {
       const label = i === 0 ? L('Tú', 'You') : a.labels[i - 1];
       const ratio = a.M.rate ? p.rate / a.M.rate : 0;
-      return `<div class="sc-tr ${i === 0 ? 'me' : ''}"><span class="sc-l" style="--cc:${classColor(p.cls)}"><b>${esc(label)}</b><small>${esc(p.name)} · ${esc(specName(p.spec) || className(p.cls))}</small></span>
+      return `<div class="sc-tr ${i === 0 ? 'me' : ''}"><span class="sc-l" style="--cc:${classColor(p.cls)}"><b>${esc(label)}</b><small>${esc(p.name)}</small></span>
         <span>${p.kill ? `<span class="sc-kill">${t('kill')}</span>` : p.bossPct != null ? `${num(p.bossPct, 1)} %` : '—'}</span>
         <span class="r">${clock(p.durationMs)}</span>
         <span class="r"><b>${plain(p.rate)}</b>${t('perSec')}</span>

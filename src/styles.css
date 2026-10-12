@@ -1693,3 +1693,18 @@ h1, h2, h3 { letter-spacing: -.01em; }
 .combine-bar .chip { padding: 3px 9px; font-size: 12px; white-space: nowrap; display: inline-flex; flex-direction: row; align-items: center; gap: 5px; }
 .combine-bar .chip img { width: 14px; height: 14px; }
 .refresh-btn { font-weight: 600; }
+
+/* Tooltip de las barras: habilidades de cada jugador */
+.bartip { position: fixed; z-index: 9999; min-width: 300px; max-width: 420px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: #15161a; box-shadow: 0 10px 30px rgba(0,0,0,.55); pointer-events: none; font-size: 12.5px; }
+.bartip[hidden] { display: none; }
+.bt-h { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.bt-h span { color: var(--text); font-weight: 700; }
+.bt-r { display: grid; grid-template-columns: minmax(120px, 1.3fr) 1fr 58px 44px; align-items: center; gap: 8px; padding: 2px 0; }
+.bt-n { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.bt-n img { border-radius: 4px; flex: none; }
+.bt-i { width: 18px; height: 18px; border-radius: 4px; background: var(--panel-2); flex: none; }
+.bt-b { height: 6px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden; }
+.bt-b i { display: block; height: 100%; border-radius: 3px; }
+.bt-r b { text-align: right; font-variant-numeric: tabular-nums; }
+.bt-r em { text-align: right; font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bt-m { margin-top: 4px; color: var(--muted); font-size: 11.5px; }

@@ -92,7 +92,7 @@
       const color = classColor(r.cls);
       return `<div class="rk-row ${isMe(r.name) ? 'me' : ''}" ${S.viewCombined ? '' : `data-action="player" data-id="${r.id}"`}>
         <span class="rk-pos" ${crowns && i < 3 ? `style="color:${crown[i]}"` : ''}>${i + 1}</span>
-        <span class="rk-who">${r.icon && r.icon.includes('-') ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="26" height="26" alt="" style="--cc:${color}">` : `<img class="spec-ic-sm" src="${classIconUrl(r.cls)}" width="26" height="26" alt="" style="--cc:${color}">`}<b style="color:${color}">${esc(r.name)}</b><small>${esc(specName(r.spec) || className(r.cls))}</small></span>
+        <span class="rk-who">${r.icon && r.icon.includes('-') ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="26" height="26" alt="" style="--cc:${color}">` : `<img class="spec-ic-sm" src="${classIconUrl(r.cls)}" width="26" height="26" alt="" style="--cc:${color}">`}<b style="color:${color}">${esc(r.name)}</b></span>
         <span class="rk-il">${r.ilvl ? r.ilvl : '–'}</span>
         <span class="rk-parse">${r.parse != null ? parsePill(r.parse) : '<span class="muted">–</span>'}</span>
         <span class="rk-parse">${r.parseIlvl != null ? parsePill(r.parseIlvl) : '<span class="muted">–</span>'}${r.pa.length > 1 ? `<small class="muted">${LL('media de', 'avg of')} ${r.pa.length}</small>` : ''}</span>
