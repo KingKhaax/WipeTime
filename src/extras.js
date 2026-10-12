@@ -130,7 +130,6 @@ const Extras = (() => {
     ['flask', /flask|frasco|phial|vial|ampolla|elixir/i, 'Frasco', 'Flask'],
     ['food', /well fed|bien alimentado|food|comida|feast|banquete|hearty|abundante/i, 'Comida', 'Food'],
     ['rune', /augment|aumento|crystalliz|cristaliz|void-touched|tocado por el vac[ií]o/i, 'Runa', 'Rune'],
-    ['oil', /\boil\b|aceite|whetstone|weightstone|piedra de afilar|sharpening|afilad|grindstone/i, 'Aceite', 'Weapon buff'],
     ['pot', /potion|poci[oó]n|tonic|t[oó]nico/i, 'Poción', 'Potion'],
   ];
 
@@ -156,7 +155,7 @@ const Extras = (() => {
     for (const a of auras) {
       for (const [key, re] of CONSUMABLES) {
         if (!re.test(a.name)) continue;
-        // frasco, comida, runa y aceite deben estar activos al empezar el pull
+        // frasco, comida y runa deben estar activos al empezar el pull
         const early = key === 'pot' || (a.bands || []).some((b) => b.startTime <= f.startTime + 4000);
         if (early) (out[key] = out[key] || []).push(a);
       }
@@ -178,7 +177,8 @@ const Extras = (() => {
     dps: '<path d="M46 14 52 12l-2 6-17 22-7-2z" fill="#d6d9e0" stroke="#7b0f12" stroke-width="1.500"/><path d="M26 38l7 2-2 5-4 1-2 4-5-5 4-2 1-4z" fill="#c13a2c" stroke="#3b0a08" stroke-width="1.200"/>',
   };
   const ROLE_BG = { tank: '#1c2a4a', healer: '#103a22', dps: '#4a1214' };
-  const roleIcon = (role) => `<span class="role r-${role}" title="${{ tank: LL('Tanque', 'Tank'), healer: LL('Sanador', 'Healer'), dps: 'DPS' }[role]}"><svg viewBox="0 0 64 64" width="28" height="28"><defs><radialGradient id="rg-${role}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient></defs><circle cx="32" cy="32" r="29" fill="#16110a" stroke="#b8924a" stroke-width="3"/><circle cx="32" cy="32" r="25" fill="${ROLE_BG[role]}" stroke="#6e5428" stroke-width="1.500"/><circle cx="32" cy="32" r="25" fill="url(#rg-${role})"/>${ROLE_SVG[role]}</svg></span>`;
+  // Iconos de rol originales de Blizzard (UI-LFG-ICON-ROLES), recortados de la hoja src/roles.png
+  const roleIcon = (role) => `<span class="role r-${role}" title="${{ tank: LL('Tanque', 'Tank'), healer: LL('Sanador', 'Healer'), dps: 'DPS' }[role]}"><i class="role-sprite"></i></span>`;
 
   // ---- Buffos y debuffs de banda por clase: verde si están en el log, rojo si faltan
   const RAID_BUFFS = [
@@ -289,7 +289,7 @@ const Extras = (() => {
       ${alertsHTML(alerts, list.length)}
       <h3 class="sec">${LL('Jugadores, equipo y consumibles', 'Players, gear and consumables')}</h3>
       <div class="sum-table"><div class="sum-row th"><span>${LL('Jugador', 'Player')}</span><span></span><span>ilvl</span><span>${LL('Encantamientos', 'Enchants')}</span><span>${LL('Consumibles al pull', 'Consumables at pull')}</span><span>${LL('Estadísticas', 'Stats')}</span></div>${rows}</div>
-      <p class="foot">${LL('Los consumibles se detectan por el nombre de las auras activas al empezar el pull (frasco, comida, runa y aceite) o usadas durante la pelea (poción); si algo no sale, puede ser una aura con otro nombre. Pasa el ratón por una etiqueta verde para ver qué detectó.', 'Consumables are detected from the names of auras active at pull (flask, food, rune and oil) or used during the fight (potion); a miss may just be an aura with a different name. Hover a green tag to see what was detected.')}</p>
+      <p class="foot">${LL('Los consumibles se detectan por el nombre de las auras activas al empezar el pull (frasco, comida y runa) o usadas durante la pelea (poción); si algo no sale, puede ser una aura con otro nombre. Pasa el ratón por una etiqueta verde para ver qué detectó.', 'Consumables are detected from the names of auras active at pull (flask, food and rune) or used during the fight (potion); a miss may just be an aura with a different name. Hover a green tag to see what was detected.')}</p>
       <div class="cov-grid"><div><h3 class="sec">${LL('Cobertura de buffos de la banda', 'Raid buff coverage')}</h3>${buffsHtml || `<div class="empty">${t('noData')}</div>`}</div>
       <div><h3 class="sec">${LL('Debuffs sobre enemigos', 'Debuffs on enemies')}</h3>${debuffsHtml || `<div class="empty">${t('noData')}</div>`}</div></div>`;
   }

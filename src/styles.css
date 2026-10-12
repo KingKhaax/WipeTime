@@ -1708,3 +1708,9 @@ h1, h2, h3 { letter-spacing: -.01em; }
 .bt-r b { text-align: right; font-variant-numeric: tabular-nums; }
 .bt-r em { text-align: right; font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bt-m { margin-top: 4px; color: var(--muted); font-size: 11.5px; }
+
+/* Iconos de rol originales de Blizzard (UI-LFG-ICON-ROLES, de github.com/Gethe/wow-ui-textures): hoja 256x256 con celdas de 64x64 */
+.role-sprite { display: block; width: 28px; height: 28px; background: url(roles.png) 0 0 / 112px 112px no-repeat; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55)); }
+.r-healer .role-sprite { background-position: -28px 0; }
+.r-tank .role-sprite { background-position: 0 -28px; }
+.r-dps .role-sprite { background-position: -29px -28px; }

@@ -516,7 +516,9 @@ async function resolveIcon(name) {
   if (isClass) {
     const cls = name.slice(6).replace(/[^a-z]/g, '');
     candidates = [`classicon_${cls}`, `classicon_${cls}_256`, `classicon_${cls}_64`];
-    cdnUrl = `https://assets.rpglogs.com/img/warcraft/icons/${cls}.jpg`;
+    // el CDN distingue mayúsculas: Priest.jpg, DeathKnight.jpg, DemonHunter.jpg (en minúsculas devuelve 403)
+    const proper = { deathknight: 'DeathKnight', demonhunter: 'DemonHunter' }[cls] || (cls.charAt(0).toUpperCase() + cls.slice(1));
+    cdnUrl = `https://assets.rpglogs.com/img/warcraft/icons/${proper}.jpg`;
   } else if (isSpec) {
     const specKey = Object.keys(SPEC_ICONS).find((k) => k.toLowerCase() === name.slice(5));
     candidates = specKey ? SPEC_ICONS[specKey] : [];
