@@ -403,7 +403,12 @@ details.enc > summary::-webkit-details-marker { display: none; }
 
 /* ---------- detector de PI ---------- */
 .pitable { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.pirow { display: grid; grid-template-columns: 34px 64px minmax(160px, 1.2fr) 60px minmax(160px, 1.2fr) 70px 100px 90px; gap: 10px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line-soft); }
+.pirow { display: grid; grid-template-columns: 64px minmax(170px, 1fr) 64px minmax(170px, 1fr) 110px 90px; gap: 12px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line-soft); }
+.pirow:not(.th) .pitime { justify-self: start; padding: 2px 9px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; }
+.pirow:not(.th) .pifrom, .pirow:not(.th) .pito { padding: 4px 10px; border-radius: 10px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid var(--line); min-width: 0; display: flex; align-items: center; gap: 8px; }
+.pirow .piarrow { justify-content: center; }
+.pirow .piarrow i { font-style: normal; font-size: 18px; color: var(--accent); }
+.pirow .piarrow img { border-radius: 6px; }
 .pirow.th { border-top: 0; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; background: var(--head); }
 .pirow.me { background: var(--panel-2); box-shadow: inset 3px 0 0 #fff8; }
 .pirow .r { text-align: right; font-variant-numeric: tabular-nums; }

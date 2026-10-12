@@ -1044,18 +1044,17 @@ const VIEWS = {
     }).join('');
     const who = (id) => {
       const p = playerInfo(id);
-      return `<span class="who ${isMe(p.name) ? 'me' : ''}"><span class="dot" style="background:${classColor(p.cls)}"></span><b style="color:${classColor(p.cls)}">${esc(p.name)}</b> <small>${esc(specName(p.spec) || className(p.cls))}</small></span>`;
+      const cc = classColor(p.cls);
+      return `<span class="who ${isMe(p.name) ? 'me' : ''}">${p.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(p.icon))}" width="24" height="24" alt="" style="--cc:${cc}">` : `<span class="dot" style="background:${cc}"></span>`}<b style="color:${cc}">${esc(p.name)}</b></span>`;
     };
     const pi = ability(POWER_INFUSION);
     const rows = list.map((p, i) => {
       const dur = Math.max(1, p.end - p.start);
       return `<div class="pirow ${isMe(playerInfo(p.target).name) ? 'me' : ''}">
-        <span class="dnum">${i + 1}</span>
         <span class="pitime">${clock(p.start - f.fightStart)}${p.cut ? '*' : ''}</span>
         <span class="pifrom">${who(p.source)}${p.selfAlso ? ` <span class="tag" title="${esc(t('selfAlsoTip'))}">${t('selfAlso')}</span>` : ''}</span>
-        <span class="piarrow">${iconImg(pi.icon, 22, '', POWER_INFUSION)} →</span>
+        <span class="piarrow">${iconImg(pi.icon, 26, '', POWER_INFUSION)}<i>→</i></span>
         <span class="pito">${who(p.target)}${p.source === p.target ? ` <span class="tag">${t('selfPi')}</span>` : ''}</span>
-        <span class="r">${num(dur / 1000, 1)} s</span>
         <span class="r"><b>${plain(p.damage || 0)}</b></span>
         <span class="r muted">${plain(((p.damage || 0) / dur) * 1000)}${t('perSec')}</span>
       </div>`;
@@ -1063,7 +1062,7 @@ const VIEWS = {
     const targets = byTarget.size;
     return headerHTML(f, t('piTitle'), t('piSub', { n: list.length, k: targets }))
       + `<div class="chips">${chips}</div>`
-      + `<div class="pitable"><div class="pirow th"><span>#</span><span>${t('minute')}</span><span>${t('giver')}</span><span></span><span>${t('receiver')}</span><span class="r">${t('duration')}</span><span class="r">${t('dmgDuringPi')}</span><span class="r">${t('rate')}</span></div>${rows}</div>`;
+      + `<div class="pitable"><div class="pirow th"><span>${t('minute')}</span><span>${t('giver')}</span><span></span><span>${t('receiver')}</span><span class="r">${t('dmgDuringPi')}</span><span class="r">${t('rate')}</span></div>${rows}</div>`;
   },
 
   async damage(f) {
