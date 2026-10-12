@@ -211,7 +211,7 @@ function combinedFight() {
   const start = Math.min(...fs.map((x) => x.startTime));
   const end = Math.max(...fs.map((x) => x.endTime));
   return {
-    ...fs[0], id: 'c', ids, startTime: start, endTime: end, dur: fs.reduce((s, x) => s + (x.endTime - x.startTime), 0),
+    ...fs[0], name: new Set(fs.map((x) => x.encounterID)).size > 1 ? LL('Todos los jefes', 'All bosses') : fs[0].name, id: 'c', ids, startTime: start, endTime: end, dur: fs.reduce((s, x) => s + (x.endTime - x.startTime), 0),
     fightStart: start, fightEnd: end, kill: false, full: true, combined: true, key: `c:${ids.join(',')}`, rangeLabel: '',
     phaseTransitions: [], fightPercentage: null, bossPercentage: null, tryNo: null,
   };
@@ -664,11 +664,11 @@ function renderSidebar() {
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
     <div class="rep-sub">${esc(zoneName(r.zone?.name))}${r.owner?.name ? ' · ' + esc(r.owner.name) : ''}<br>${new Date(r.startTime).toLocaleString(locale())}</div>
-    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span>' : '↻'} ${LL('Actualizar', 'Refresh')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
+    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span>' : '↻'} ${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="wcicon://i/spell_nature_chainlightning" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
-    html += `<div class="enc"><div class="enc-h"><span>${esc(f0.name)}</span><span class="enc-d">${esc(diffName(f0.difficulty))} · ${fights.length}${kills ? ' · ✓' : ''}${S.combineMode ? ` <button class="mini-btn" data-action="combine-group" data-key="${esc(f0.groupKey)}">${LL('todos', 'all')}</button>` : ''}</span></div>
+    html += `<div class="enc"><div class="enc-h"><span>${esc(f0.name)}</span><span class="enc-d">${esc(diffName(f0.difficulty))} · ${fights.length}${kills ? ' · ✓' : ''} <button class="mini-btn" data-action="combine-group" data-key="${esc(f0.groupKey)}" title="${esc(LL('Combinar todos los trys de este jefe', 'Combine every try of this boss'))}">${LL('Todos los trys', 'All tries')}</button></span></div>
       ${fights.map(fightBtn).join('')}</div>`;
   }
   if (trash.length) {
@@ -1658,7 +1658,15 @@ document.addEventListener('click', async (ev) => {
       renderSidebar();
       render();
       break;
+    case 'combine-all':
+      S.combineMode = true;
+      S.combine = S.fights.filter((x) => x.encounterID).map((x) => x.id);
+      S.fight = S.fights.find((x) => x.id === S.combine[S.combine.length - 1]) || S.fight;
+      renderSidebar();
+      render();
+      break;
     case 'combine-group':
+      S.combineMode = true;
       S.combine = S.fights.filter((x) => x.groupKey === el.dataset.key).map((x) => x.id);
       S.fight = S.fights.find((x) => x.id === S.combine[S.combine.length - 1]);
       renderSidebar();

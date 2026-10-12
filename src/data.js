@@ -6,7 +6,8 @@ const FALLBACK_ICON = ICON_BASE + 'inv_misc_questionmark.jpg';
 
 // Iconos HD servidos por el programa (paquete Clean Icons, con respaldo al CDN de Warcraft Logs)
 const abilityIconUrl = (icon) => (icon ? `wcicon://i/${encodeURIComponent(String(icon).replace(/\.(jpg|png)$/i, ''))}` : FALLBACK_ICON);
-const classIconUrl = (cls) => `wcicon://i/${encodeURIComponent('class-' + String(cls).toLowerCase())}`;
+// Iconos de clase incluidos en el programa (src/classes/): no dependen de descargas ni de caché. Evoker no sale en la hoja de Blizzard y usa la imagen de Warcraft Logs.
+const classIconUrl = (cls) => { const k = String(cls).toLowerCase().replace(/[^a-z]/g, ''); return `classes/${k}.${k === 'evoker' ? 'jpg' : 'png'}`; };
 const specIconUrl = (icon) => `wcicon://i/${encodeURIComponent('spec-' + icon)}`;
 
 const CLASSES = {

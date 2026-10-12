@@ -592,29 +592,6 @@ const Extras2 = (() => {
   }
 
   // ============================================================ registro
-  // Resumen de cada pelea: top 5 de quién corta más
-  const origSummary = VIEWS.summary;
-  VIEWS.summary = async (f) => {
-    const html = await origSummary(f);
-    const prev = S.post;
-    S.post = async (seq) => {
-      await prev?.(seq);
-      const box = document.getElementById('sumInts');
-      if (!box) return;
-      try {
-        const util = await utilityData(f);
-        if (seq !== S.seq || !document.getElementById('sumInts')) return;
-        const tally = new Map();
-        for (const e of util.interrupts) if (isPlayer(e.sourceID)) tally.set(e.sourceID, (tally.get(e.sourceID) || 0) + 1);
-        const rows = [...tally.entries()].map(([id, n]) => ({ id, icon: playerInfo(id).icon, v: n })).sort((a, b) => b.v - a.v).slice(0, 5);
-        box.innerHTML = topCard(LL('Top 5 cortes', 'Top 5 interrupts'), LL('Quién interrumpe más hechizos enemigos en esta pelea', 'Who interrupts the most enemy spells in this fight'), rows, (v) => `${v} ${v === 1 ? LL('corte', 'interrupt') : LL('cortes', 'interrupts')}`);
-      } catch (err) { box.innerHTML = ''; console.warn('sumInts', err); }
-    };
-    const i = html.indexOf('</div></div>');
-    const slot = '<div class="night-tops" id="sumInts"></div>';
-    return i >= 0 ? html.slice(0, i + 12) + slot + html.slice(i + 12) : html + slot;
-  };
-
   VIEWS.bestcmp = viewBestCmp;
   VIEWS.night = viewNight;
   VIEWS.mana = viewMana;
