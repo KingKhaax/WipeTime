@@ -6,7 +6,7 @@
   Object.assign(STRINGS.en.tabs, { rankings: 'Rankings' });
 
   const TANK_SPECS = new Set(['Blood', 'Vengeance', 'Guardian', 'Brewmaster', 'Protection']);
-  const rk = { scope: 'sel', sort: 'parse-desc', cls: '', metric: 'dmg' };
+  const rk = { scope: 'sel', sort: 'parse-desc', cls: '', metric: 'dmg', view: 'wcl', tab: 'dmg' };
   const roleOf = (spec) => (HEALER_SPECS.has(spec) ? 'healer' : TANK_SPECS.has(spec) ? 'tank' : 'dps');
   const ROLE_NAME = { tank: ['Tanque', 'Tank'], healer: ['Sanador', 'Healer'], dps: ['DPS', 'DPS'] };
 
@@ -57,9 +57,107 @@
     return [...by.values()].map((r) => ({ ...r, parse: avg(r.pa), parseIlvl: avg(r.pb), }));
   }
 
+  // ---------------------------------------------------------------- vista con el formato de Warcraft Logs
+  // Ranking de ejecución, ranking de velocidad y clasificación de jugadores (Daño · Sanación · Daño al jefe) del intento (kill) elegido.
+  function rankFull(raw) {
+    return cached(`rankfull:${raw.id}`, async () => {
+      try {
+        const d = await gql(`query($code:String!,$f:[Int]){reportData{report(code:$code){
+          dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps) bd:rankings(fightIDs:$f,playerMetric:bossdps)}}}`, { code: S.code, f: [raw.id] }, true);
+        const r = d.reportData.report;
+        const one = (x) => x?.data?.[0] || null;
+        const out = { dps: one(r.dps), hps: one(r.hps), bd: one(r.bd) };
+        const chars = Object.values(out.dps?.roles || {}).flatMap((ro) => ro?.characters || []);
+        // valores provisionales (sin parses totales): no se dan por buenos, la próxima vez se vuelven a pedir
+        if (!out.dps || !chars.length || chars.some((c) => !c.totalParses)) setTimeout(() => S.cache.delete(`rankfull:${raw.id}`), 0);
+        return out;
+      } catch (e) {
+        console.warn('rankFull', e);
+        setTimeout(() => S.cache.delete(`rankfull:${raw.id}`), 0);
+        return { dps: null, hps: null, bd: null };
+      }
+    });
+  }
+
+  const nf = (n) => Number(n).toLocaleString(locale());
+  // posición: puede venir como número o como «~1125» (aproximada)
+  const fmtRank = (v) => {
+    if (v == null || v === '-' || v === '') return '–';
+    const m = String(v).match(/^(~?)(\d+)$/);
+    return m ? m[1] + nf(m[2]) : String(v);
+  };
+  const pctCell = (v) => (typeof v === 'number' ? `<span class="wl-pct" style="color:${parseColor(v)}">${Math.floor(v)}</span>` : '<span class="wl-muted">–</span>');
+  const ilvlFmt = (v) => (v == null ? '–' : Number.isInteger(v) ? String(v) : num(v, 1));
+  const guildColor = (g) => (g?.faction === 1 ? '#e5484d' : '#4da3ff');
+
+  async function viewWcl(f) {
+    const raw = S.fight;
+    const all = await rankFull(raw);
+    const fd = all.dps;
+    if (!fd) return null;
+    const tab = ['dmg', 'heal', 'boss'].includes(rk.tab) ? rk.tab : 'dmg';
+    const src = tab === 'heal' ? all.hps : tab === 'boss' ? all.bd : all.dps;
+    const roles = src?.roles || fd.roles || {};
+    const unit = tab === 'heal' ? 'HPS' : 'DPS';
+    const chip = (attr, v, label, on) => `<button class="chip ${on ? 'on' : ''}" data-rk="${attr}" data-v="${esc(v)}">${label}</button>`;
+    const th = (cells) => `<div class="wl-row th">${cells.map(([l, cls]) => `<span class="${cls || ''}">${l}</span>`).join('')}</div>`;
+    const table = (cols, head, rows) => `<div class="wl-wrap"><div class="wl-table" style="--wl-cols:${cols}">${th(head)}${rows}</div></div>`;
+    const g = fd.guild;
+    const guildCell = g?.name ? `<span class="wl-l wl-guild" style="color:${guildColor(g)}">${esc(g.name)}</span>` : '<span class="wl-l wl-muted">–</span>';
+    const hdrPos = [[LL('% rango', 'Rank %'), 'wl-c'], [LL('Rango', 'Rank')], [LL('De', 'Out of')], [LL('Mejor rango', 'Best rank')]];
+    const posCells = (x) => `<span class="wl-c">${pctCell(x?.rankPercent)}</span><span>${fmtRank(x?.rank)}</span><span class="wl-muted">${x?.totalParses != null ? nf(x.totalParses) : '–'}</span><span class="wl-muted">${fmtRank(x?.best)}</span>`;
+
+    // ---- ejecución y velocidad
+    const exec = table('78px 84px 84px 100px minmax(180px,1fr) 80px 150px 80px',
+      [...hdrPos, [LL('Hermandad', 'Guild'), 'wl-l'], [LL('Muertes', 'Deaths')], [LL('Daño recibido', 'Damage taken')], ['Ilvl']],
+      `<div class="wl-row">${posCells(fd.execution)}${guildCell}<span>${fd.deaths ?? '–'}</span><span class="wl-dps">${fd.damageTakenExcludingTanks != null ? nf(fd.damageTakenExcludingTanks) : '–'}</span><span>${ilvlFmt(fd.bracketData)}</span></div>`);
+    const speed = table('78px 84px 84px 100px minmax(180px,1fr) 90px 80px',
+      [...hdrPos, [LL('Hermandad', 'Guild'), 'wl-l'], [LL('Duración', 'Duration')], ['Ilvl']],
+      `<div class="wl-row">${posCells(fd.speed)}${guildCell}<span class="wl-dps">${clock(fd.duration ?? (raw.endTime - raw.startTime))}</span><span>${ilvlFmt(fd.bracketData)}</span></div>`);
+
+    // ---- jugadores
+    const actorByName = new Map([...S.actors.values()].filter((a) => a.type === 'Player').map((a) => [a.name, a]));
+    const playerRow = (c) => {
+      const color = classColor(c.class);
+      const icon = c.spec ? `${c.class}-${c.spec}` : c.class;
+      const a = actorByName.get(c.name);
+      const me = isMe(c.name);
+      const click = a && !S.viewCombined;
+      const srv = c.server?.name ? `${esc(c.server.name)}${c.server.region ? ` (${esc(c.server.region)})` : ''}` : '';
+      return `<div class="wl-row ${me ? 'me' : ''} ${click ? 'click' : ''}" ${click ? `data-action="player" data-id="${a.id}"` : ''}>
+        <span class="wl-c">${pctCell(c.rankPercent)}</span><span>${fmtRank(c.rank)}</span><span class="wl-muted">${c.totalParses != null ? nf(c.totalParses) : '–'}</span><span class="wl-muted">${fmtRank(c.best)}</span>
+        <span class="wl-player"><img src="${specIconUrl(esc(icon))}" width="26" height="26" alt="" style="--cc:${color}"><b style="color:${color}">${esc(c.name)}</b>${me ? `<span class="you">${t('you')}</span>` : ''}<span class="wl-srv">${srv}</span></span>
+        <span class="wl-dps">${c.amount != null ? num(c.amount, 1) : '–'}</span><span class="wl-muted">${ilvlFmt(c.bracketData)}</span><span class="wl-c">${pctCell(c.bracketPercent)}</span></div>`;
+    };
+    const ROLE_ORDER = tab === 'heal' ? ['healers', 'tanks', 'dps'] : ['dps', 'tanks', 'healers'];
+    const ROLE_TITLE = { dps: LL('Dañadores', 'Damage dealers'), tanks: LL('Tanques', 'Tanks'), healers: LL('Sanadores', 'Healers') };
+    const ROLE_KEY = { dps: 'dps', tanks: 'tank', healers: 'healer' };
+    const playerCols = '78px 84px 84px 100px minmax(240px,1fr) 130px 70px 76px';
+    const playerHead = [...hdrPos, [LL('Jugador', 'Player'), 'wl-l'], [unit], ['Ilvl'], ['Ilvl %', 'wl-c']];
+    const blocks = ROLE_ORDER.map((role) => {
+      const list = [...(roles[role]?.characters || [])].sort((a, b) => (b.rankPercent ?? -1) - (a.rankPercent ?? -1) || (b.amount || 0) - (a.amount || 0));
+      if (!list.length) return '';
+      return `<h4 class="wl-sec">${Extras.roleIcon(ROLE_KEY[role])}<span>${ROLE_TITLE[role]}</span><small>${list.length}</small></h4>${table(playerCols, playerHead, list.map(playerRow).join(''))}`;
+    }).join('');
+
+    const viewBar = `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), true)}${chip('view', 'adv', LL('Vista avanzada (varios intentos, filtros)', 'Advanced view (several pulls, filters)'), false)}</div>`;
+    const tabs = `<div class="metricbar wl-tabs"><span class="muted">${LL('Clasificación de jugadores', 'Player rankings')}</span>${chip('tab', 'dmg', LL('Daño', 'Damage'), tab === 'dmg')}${chip('tab', 'heal', LL('Sanación', 'Healing'), tab === 'heal')}${chip('tab', 'boss', LL('Daño al jefe', 'Boss damage'), tab === 'boss')}</div>`;
+    const sub = LL(`<b>${esc(fd.encounter?.name || raw.name)}</b> · ${esc(diffName(raw.difficulty))} · tamaño ${fd.size ?? '–'} · datos de Warcraft Logs`, `<b>${esc(fd.encounter?.name || raw.name)}</b> · ${esc(diffName(raw.difficulty))} · size ${fd.size ?? '–'} · data from Warcraft Logs`);
+    return headerHTML(f, t('tabs.rankings'), sub) + viewBar
+      + `<h3 class="wl-sec">${LL('Ranking de ejecución', 'Execution ranking')}</h3>${exec}`
+      + `<h3 class="wl-sec">${LL('Ranking de velocidad', 'Speed ranking')}</h3>${speed}`
+      + tabs + blocks
+      + `<p class="foot">${LL('Posiciones y porcentajes tal como los calcula Warcraft Logs para este kill; «~» indica posición aproximada. Para varios intentos, wipes o filtros por clase usa la vista avanzada.', 'Positions and percentages as Warcraft Logs computes them for this kill; “~” means an approximate position. For several pulls, wipes or class filters use the advanced view.')}</p>`;
+  }
+
   const METRICS = [['dmg', 'Daño', 'Damage'], ['heal', 'Sanación', 'Healing'], ['boss', 'Daño al jefe', 'Boss damage']];
 
   async function viewRankings(f) {
+    const canWcl = !f.combined && !!S.fight?.kill && !!S.fight?.encounterID && f.full !== false && rk.scope === 'sel';
+    if (rk.view !== 'adv' && canWcl) {
+      const html = await viewWcl(f);
+      if (html) return html;
+    }
     const list = scopeFights(f);
     if (!list.length) return headerHTML(f, t('tabs.rankings')) + `<div class="empty">${t('noData')}</div>`;
     const all = await collect(list);
@@ -80,7 +178,8 @@
     const classes = [...new Set(rows.map((r) => r.cls))].sort((a, b) => className(a).localeCompare(className(b), locale()));
     const chip = (attr, v, label, on, extra = '') => `<button class="chip ${on ? 'on' : ''}" data-rk="${attr}" data-v="${esc(v)}" ${extra}>${label}</button>`;
     const sorts = [['parse-desc', LL('Parse ↓ mejor a peor', 'Parse ↓ best to worst')], ['parse-asc', LL('Parse ↑ peor a mejor', 'Parse ↑ worst to best')], ['pilvl-desc', LL('Parse ilvl ↓', 'Parse ilvl ↓')], ['pilvl-asc', LL('Parse ilvl ↑', 'Parse ilvl ↑')], ['rate-desc', LL('Por segundo ↓', 'Per second ↓')], ['rate-asc', LL('Por segundo ↑', 'Per second ↑')], ['ilvl-desc', LL('Nivel de objeto ↓', 'Item level ↓')], ['ilvl-asc', LL('Nivel de objeto ↑', 'Item level ↑')], ['name', 'A–Z']];
-    const bar = `<div class="metricbar"><span class="muted">${LL('Clasificación por', 'Rank by')}</span>${METRICS.map(([k, es, en]) => chip('metric', k, LL(es, en), rk.metric === k)).join('')}
+    const viewBar = canWcl ? `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), false)}${chip('view', 'adv', LL('Vista avanzada', 'Advanced view'), true)}</div>` : '';
+    const bar = viewBar + `<div class="metricbar"><span class="muted">${LL('Clasificación por', 'Rank by')}</span>${METRICS.map(([k, es, en]) => chip('metric', k, LL(es, en), rk.metric === k)).join('')}
       <span class="sep"></span><span class="muted">${LL('Alcance', 'Scope')}</span>
       ${chip('scope', 'sel', f.combined ? LL(`Pulls combinados (${list.length})`, `Combined pulls (${list.length})`, `Kombinierte Versuche (${list.length})`, `Essais combinés (${list.length})`) : LL('Este intento', 'This pull'), rk.scope === 'sel')}
       ${S.fight?.encounterID ? chip('scope', 'boss', LL('Todos los intentos del jefe', 'All attempts on this boss'), rk.scope === 'boss') : ''}</div>

@@ -1806,3 +1806,29 @@ button.dbf-row:hover { background: var(--hover); }
 
 /* Replay: los iconos de buffos y debuffos reciben el ratón para mostrar su tooltip con la duración en vivo */
 .rp-frames .rpf-au { pointer-events: auto; cursor: help; }
+
+/* Clasificaciones con el formato de Warcraft Logs (ejecución, velocidad y jugadores) */
+.wl-sec { display: flex; align-items: center; gap: 10px; margin: 24px 0 10px; font-size: 16px; font-weight: 700; color: var(--title, var(--text)); }
+.wl-sec small { color: var(--muted); font-weight: 500; font-size: 12px; }
+.wl-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
+.wl-table { min-width: 760px; }
+.wl-row { display: grid; grid-template-columns: var(--wl-cols); align-items: center; column-gap: 10px; padding: 7px 14px; border-top: 1px solid var(--line); font-size: 14px; font-variant-numeric: tabular-nums; }
+.wl-row:first-child { border-top: 0; }
+.wl-row:not(.th):nth-child(even) { background: rgba(255, 255, 255, .02); }
+.wl-row.th { background: var(--panel-2); color: var(--muted); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; padding-top: 9px; padding-bottom: 9px; }
+.wl-row > span { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wl-row > .wl-l { text-align: left; }
+.wl-row > .wl-c { text-align: center; }
+.wl-row.me { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+.wl-row.click { cursor: pointer; }
+.wl-row.click:hover { background: var(--hover); }
+.wl-pct { font-weight: 800; font-size: 15px; }
+.wl-player { display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; }
+.wl-player img { border-radius: 7px; flex: none; box-shadow: 0 0 0 1.5px var(--cc, #888); }
+.wl-player b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.wl-player .you { flex: none; }
+.wl-srv { margin-left: auto; padding-left: 12px; color: var(--muted); font-size: 12px; white-space: nowrap; font-weight: 400; }
+.wl-dps { color: #a8e060; font-weight: 700; }
+.wl-muted { color: var(--muted); }
+.wl-guild { font-weight: 600; }
+.wl-tabs { margin: 22px 0 4px; }
