@@ -1032,7 +1032,8 @@ function exportRankedImage(mode) {
 function parseOptions(f, rows, realMap, metric, realMapIlvl) {
   if (!f.full || !f.encounterID || f.combined) return {};
   if (f.kill) return { parse: realMap, parseIlvl: realMapIlvl };
-  const est = rows.filter((r) => (metric === 'hps') === HEALER_SPECS.has(r.spec));
+  // todos los jugadores, como en Warcraft Logs: los sanadores también tienen parse de daño y los DPS y tanques parse de sanación
+  const est = rows;
   fillEstimatedPills(f, est, metric);
   const names = new Set(est.map((r) => r.name));
   return { slots: names, slotsIlvl: names };
