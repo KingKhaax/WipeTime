@@ -1,4 +1,4 @@
-// Servidor intermedio de WipeTime en Vercel (plan Hobby, gratis). Mismo comportamiento que server/worker.js.
+// Servidor intermedio de WipeTime en Vercel (plan Hobby, gratis).
 // Las claves de Warcraft Logs y Blizzard viven como variables de entorno del proyecto (WCL_ID, WCL_SECRET, BNET_ID, BNET_SECRET):
 // nunca viajan en la aplicación. Solo se reenvían lecturas de datos públicos; no hay ninguna operación de escritura.
 

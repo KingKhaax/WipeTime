@@ -1,7 +1,7 @@
 {
   "name": "wipetime",
   "productName": "WipeTime",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "WipeTime: visor, replay y analizador local de reportes de Warcraft Logs",
   "main": "main.js",
   "author": "sr.kitkat",
@@ -16,7 +16,7 @@
     "electron-builder": "^26.0.0"
   },
   "build": {
-    "appId": "com.rafael.wipetime",
+    "appId": "com.kingkhaax.wipetime",
     "productName": "WipeTime",
     "files": [
       "main.js",
@@ -28,7 +28,6 @@
         "from": "build",
         "to": ".",
         "filter": [
-          "secrets.json",
           "proxy.json",
           "app-update.yml"
         ]
@@ -45,6 +44,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
+      "guid": "e683fbfb-6c7a-5984-ab36-67880b4d5c2c",
       "artifactName": "WipeTime v${version} Setup.${ext}"
     },
     "portable": {

@@ -2,6 +2,10 @@
 
 Programa de Windows para **ver, analizar y comparar logs de World of Warcraft** a partir de un enlace público de [Warcraft Logs](https://www.warcraftlogs.com). Hecho por Drakko · sr.kitkat ♥ · España 🇪🇸
 
+[![Última versión](https://img.shields.io/github/v/release/KingKhaax/WipeTime?label=versi%C3%B3n)](https://github.com/KingKhaax/WipeTime/releases/latest)
+[![Descargas](https://img.shields.io/github/downloads/KingKhaax/WipeTime/total?label=descargas)](https://github.com/KingKhaax/WipeTime/releases)
+[![Licencia: MIT](https://img.shields.io/github/license/KingKhaax/WipeTime?label=licencia)](LICENSE)
+
 ## Web
 
 Usa WipeTime directamente en el navegador, sin instalar nada:
@@ -23,23 +27,35 @@ Usa WipeTime directamente en el navegador, sin instalar nada:
 
 ## Cómo usarlo
 
-1. Instala `WipeTime vX.Y.Z Setup.exe` (o abre la versión portable `WipeTime vX.Y.Z.exe`).
+1. Instala `WipeTime.vX.Y.Z.Setup.exe` (o abre la versión portable `WipeTime.vX.Y.Z.exe`).
 2. Pega el enlace de un log de Warcraft Logs y pulsa **Cargar**.
 3. Elige tu personaje cuando te lo pida y navega por las pestañas.
 
-> La primera vez puede pedir claves de la API de Warcraft Logs (Ajustes → Cuenta de Warcraft Logs). Si el programa trae el servidor intermedio (carpeta `server/`), no pide nada.
+> No necesitas claves: por defecto WipeTime usa un servidor intermedio propio (`server/vercel`, desplegado en Vercel) que hace las consultas de solo lectura a Warcraft Logs y Blizzard. Si prefieres usar tus propias claves de la API de Warcraft Logs, ponlas en Ajustes → Cuenta de Warcraft Logs; tienen prioridad sobre el servidor.
+
+## Requisitos
+
+- Windows 10 u 11 (64 bits) para el programa de escritorio.
+- O cualquier navegador moderno para la [versión web](https://kingkhaax.github.io/WipeTime/).
+- Un enlace público de un informe de [Warcraft Logs](https://www.warcraftlogs.com).
 
 ## Descarga
 
-Descarga la última versión desde [Releases](https://github.com/KingKhaax/WipeTime/releases/latest):
+Descarga la última versión desde [Releases](https://github.com/KingKhaax/WipeTime/releases/latest) (GitHub sustituye los espacios del nombre por puntos):
 
-- `WipeTime vX.Y.Z Setup.exe`: instalador (se desinstala desde *Configuración → Aplicaciones* de Windows).
-- `WipeTime vX.Y.Z.exe`: versión portable, no necesita instalación.
+- `WipeTime.vX.Y.Z.Setup.exe`: instalador (se desinstala desde *Configuración → Aplicaciones* de Windows).
+- `WipeTime.vX.Y.Z.exe`: versión portable, no necesita instalación.
 - `latest.json`: versión y hashes SHA-256 (los usa el actualizador del programa).
 
 Los ejecutables están firmados digitalmente (ver [Code signing policy](#code-signing-policy)).
 
+## Novedades
+
+El historial de versiones está en el propio programa (Ajustes → Versión) y en [Releases](https://github.com/KingKhaax/WipeTime/releases) (solo se conserva la última).
+
 ## Para desarrollar
+
+Requiere [Node.js](https://nodejs.org/) 20 o superior.
 
 ```
 npm install
@@ -48,6 +64,10 @@ npm run dist      # generar los instaladores en dist/
 ```
 
 Las releases oficiales se compilan y firman en GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)).
+
+Para desarrollar con claves propias puedes crear `build/secrets.json` (está en `.gitignore` y **nunca se incluye en los instaladores**); sin él se usa el servidor intermedio.
+
+> Las secciones *Code signing policy* y *Privacy policy* están en inglés a propósito (requisito de la firma de código y de las políticas de privacidad).
 
 ## Code signing policy
 
