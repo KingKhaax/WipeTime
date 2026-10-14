@@ -299,33 +299,59 @@ function zoneBrackets(encounterID) {
 }
 const bracketIndex = (b, ilvl) => (b && ilvl ? Math.max(1, Math.floor((Math.min(ilvl, b.max) - b.min) / b.bucket) + 1) : 0);
 
+// Partición (parche dentro de la zona) a la que pertenece el log: la da Warcraft Logs en el ranking de cualquier kill del mismo informe.
+// Los parses de un log se calculan contra su propia partición; sin esto se compararía con la partición actual (casi vacía tras un parche).
+function reportPartition() {
+  return cached(`partition:${S.code}`, async () => {
+    const kills = (S.fights || []).filter((x) => x.kill && x.encounterID && !x.keystoneLevel).slice(0, 3);
+    for (const k of kills) {
+      try {
+        const d = await gql(`query($code:String!,$f:[Int]){reportData{report(code:$code){r:rankings(fightIDs:$f,playerMetric:dps)}}}`, { code: S.code, f: [k.id] });
+        const p = d.reportData.report.r?.data?.[0]?.partition;
+        if (p != null) return p;
+      } catch { /* siguiente kill */ }
+    }
+    return null;
+  });
+}
+
+// Descarga una lista de characterRankings (hasta 20 páginas de 100). Devuelve { amounts, capped }.
+async function rankingPages(encounterID, difficulty, metric, cls, spec, extra) {
+  const amounts = [];
+  let more = true;
+  for (let start = 1; more && start <= RANK_PAGES_MAX; start += RANK_PAGES_PER_QUERY) {
+    const pages = [];
+    for (let p = start; p < start + RANK_PAGES_PER_QUERY && p <= RANK_PAGES_MAX; p++) pages.push(p);
+    const aliases = pages.map((p) =>
+      `p${p}:characterRankings(className:"${cls}",specName:"${spec}",difficulty:${difficulty},metric:${metric}${extra},page:${p})`).join(' ');
+    const d = await gql(`{worldData{encounter(id:${encounterID}){${aliases}}}}`);
+    const enc = d.worldData?.encounter;
+    more = false;
+    if (!enc) break;
+    for (const p of pages) {
+      const pg = enc[`p${p}`];
+      if (!pg || pg.error) { more = false; break; }
+      for (const r of pg.rankings || []) amounts.push(r.amount);
+      more = !!pg.hasMorePages;
+      if (!more) break;
+    }
+  }
+  return { amounts, capped: more };
+}
+
 function specDistribution(encounterID, difficulty, metric, cls, spec, bracket = 0) {
-  const key = `dist:${encounterID}:${difficulty}:${metric}:${cls}:${spec}${bracket ? ':b' + bracket : ''}`;
-  return cached(key, async () => {
+  return cached(`distp:${encounterID}:${difficulty}:${metric}:${cls}:${spec}:${bracket}`, async () => {
+    const partition = await reportPartition();
+    const part = partition != null ? `,partition:${partition}` : '';
+    const key = `dist:v2:${encounterID}:${difficulty}:${metric}:${cls}:${spec}${bracket ? ':b' + bracket : ''}:p${partition ?? 'x'}`;
     try {
       const saved = JSON.parse(lsGet(key) || 'null');
       if (saved && Date.now() - saved.at < DIST_TTL) return saved;
     } catch { /* caché corrupta: se vuelve a descargar */ }
-    const amounts = [];
-    let more = true;
-    for (let start = 1; more && start <= RANK_PAGES_MAX; start += RANK_PAGES_PER_QUERY) {
-      const pages = [];
-      for (let p = start; p < start + RANK_PAGES_PER_QUERY && p <= RANK_PAGES_MAX; p++) pages.push(p);
-      const aliases = pages.map((p) =>
-        `p${p}:characterRankings(className:"${cls}",specName:"${spec}",difficulty:${difficulty},metric:${metric}${bracket ? `,bracket:${bracket}` : ''},page:${p})`).join(' ');
-      const d = await gql(`{worldData{encounter(id:${encounterID}){${aliases}}}}`);
-      const enc = d.worldData?.encounter;
-      more = false;
-      if (!enc) break;
-      for (const p of pages) {
-        const pg = enc[`p${p}`];
-        if (!pg || pg.error) { more = false; break; }
-        for (const r of pg.rankings || []) amounts.push(r.amount);
-        more = !!pg.hasMorePages;
-        if (!more) break;
-      }
-    }
-    const dist = { at: Date.now(), amounts: amounts.sort((a, b) => b - a), capped: more };
+    const base = await rankingPages(encounterID, difficulty, metric, cls, spec, `${bracket ? `,bracket:${bracket}` : ''}${part}`);
+    const amounts = base.amounts;
+    const capped = base.capped; // más de 2000 entradas: la API no deja pedir más, así que el percentil no se puede calcular con exactitud
+    const dist = { at: Date.now(), amounts: amounts.map(Math.round).sort((x, y) => y - x), capped };
     lsSet(key, JSON.stringify(dist));
     return dist;
   });
@@ -360,6 +386,7 @@ async function estimateParses(f, rows, metric) {
   await Promise.all([...bySpec.values()].map(async (list) => {
     try {
       const dist = await specDistribution(f.encounterID, f.difficulty, metric, list[0].cls, list[0].spec, list[0].bracket);
+      if (dist.capped) return; // lista truncada por la API (más de 2000): un porcentaje sería falso, no se muestra
       for (const r of list) {
         const p = percentileOf(dist, r.total / dur);
         if (p != null) out.set(r.name, p);
@@ -380,6 +407,7 @@ function fillEstimatedPills(f, rows, metric) {
     document.querySelectorAll('.pill-slot').forEach((el) => {
       const p = est.get(el.dataset.name);
       if (p != null) el.outerHTML = parsePill(p, true, lowConf);
+      else el.remove(); // sin estimación fiable: no se deja el hueco cargando
     });
   };
 }
