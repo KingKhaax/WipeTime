@@ -415,7 +415,7 @@ const Extras2 = (() => {
   const crownSvg = (rank) => `<svg class="crown" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><defs><linearGradient id="cr${rank}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs><path d="M3 18.500 1.800 7.500l5 4L12 4.500l5.200 7 5-4L21 18.500z" fill="${CROWNS[rank - 1]}" stroke="#00000066" stroke-width="1" stroke-linejoin="round"/><path d="M3 18.500 1.800 7.500l5 4L12 4.500l5.200 7 5-4L21 18.500z" fill="url(#cr${rank})" opacity=".3"/><path d="M3.500 20.500h17" stroke="${CROWNS[rank - 1]}" stroke-width="2.200" stroke-linecap="round"/><circle cx="12" cy="4.200" r="1.500" fill="${CROWNS[rank - 1]}"/><circle cx="1.800" cy="7" r="1.200" fill="${CROWNS[rank - 1]}"/><circle cx="22.200" cy="7" r="1.200" fill="${CROWNS[rank - 1]}"/></svg>`;
 
   function nightTopsData() {
-    return cached(`nighttops:v2:${S.code}`, async () => {
+    return cached(`nighttops:v3:${S.code}`, async () => {
       const fights = S.fights.filter((x) => x.encounterID && !x.keystoneLevel);
       const agg = new Map(); // id -> { id, icon, dmg, durD, heal, durH }
       const rec = (e) => {
@@ -447,6 +447,12 @@ const Extras2 = (() => {
         const batch = await Promise.all(fights.slice(i, i + 4).map((x) => allEvents(x, 'Interrupts').catch(() => [])));
         for (const ev of batch) for (const q of ev) if (q.type === 'interrupt' && isPlayer(q.sourceID)) ints.set(q.sourceID, (ints.get(q.sourceID) || 0) + 1);
       }
+      // dispels: disipaciones de jugadores en todos los intentos
+      const disp = new Map();
+      for (let i = 0; i < fights.length; i += 4) {
+        const batch = await Promise.all(fights.slice(i, i + 4).map((x) => allEvents(x, 'Dispels').catch(() => [])));
+        for (const ev of batch) for (const q of ev) if (q.type === 'dispel' && isPlayer(q.sourceID)) disp.set(q.sourceID, (disp.get(q.sourceID) || 0) + 1);
+      }
       const all = [...agg.values()];
       const spec = (r) => (r.icon || '').split('-')[1] || '';
       return {
@@ -454,6 +460,7 @@ const Extras2 = (() => {
         dps: all.filter((r) => r.dmg > 0 && !HEAL_SPECS.has(spec(r)) && !TANK_SPECS.has(spec(r))).map((r) => ({ id: r.id, icon: r.icon, v: r.dmg / r.durD })).sort((a, b) => b.v - a.v).slice(0, 5),
         heal: all.filter((r) => HEAL_SPECS.has(spec(r)) && r.heal > 0).map((r) => ({ id: r.id, icon: r.icon, v: r.heal / r.durH })).sort((a, b) => b.v - a.v).slice(0, 3),
         ints: [...ints.entries()].map(([id, n]) => ({ id, icon: agg.get(id)?.icon || playerInfo(id).icon, v: n })).sort((a, b) => b.v - a.v).slice(0, 5),
+        disp: [...disp.entries()].map(([id, n]) => ({ id, icon: agg.get(id)?.icon || playerInfo(id).icon, v: n })).sort((a, b) => b.v - a.v).slice(0, 5),
         died: [...deaths.entries()].map(([id, n]) => ({ id, icon: agg.get(id)?.icon || playerInfo(id).icon, v: n })).sort((a, b) => b.v - a.v).slice(0, 5),
       };
     });
@@ -479,7 +486,8 @@ const Extras2 = (() => {
       box.innerHTML = topCard(LL('Quién ha muerto más', 'Who died the most'), LL('Solo las 2 primeras muertes de cada intento', 'Only the first 2 deaths of each pull'), d.died, (v) => `${v} ${v === 1 ? LL('muerte', 'death') : LL('muertes', 'deaths')}`)
         + topCard(LL('Top 5 DPS de la noche', 'Top 5 DPS of the night'), LL(`Daño medio por segundo en ${d.pulls} intentos`, `Average damage per second over ${d.pulls} pulls`, `Durchschnittlicher Schaden pro Sekunde über ${d.pulls} Versuche`, `Dégâts moyens par seconde sur ${d.pulls} essais`), d.dps, (v) => plain(v))
         + topCard(LL('Top 3 sanadores de la noche', 'Top 3 healers of the night'), LL('Sanación media por segundo', 'Average healing per second'), d.heal, (v) => plain(v))
-        + topCard(LL('Top 5 cortes de la noche', 'Top 5 interrupts of the night'), LL('Hechizos enemigos interrumpidos en todos los intentos', 'Enemy spells interrupted across every pull'), d.ints, (v) => `${v} ${v === 1 ? LL('corte', 'interrupt') : LL('cortes', 'interrupts')}`);
+        + topCard(LL('Top 5 cortes de la noche', 'Top 5 interrupts of the night'), LL('Hechizos enemigos interrumpidos en todos los intentos', 'Enemy spells interrupted across every pull'), d.ints, (v) => `${v} ${v === 1 ? LL('corte', 'interrupt') : LL('cortes', 'interrupts')}`)
+        + topCard(LL('Top 5 dispels de la noche', 'Top 5 dispels of the night'), LL('Efectos disipados en todos los intentos', 'Effects dispelled across every pull'), d.disp, (v) => `${v} dispel${v === 1 ? '' : 's'}`);
     } catch (e) {
       console.warn('nightTops', e);
       if (seq === S.seq && document.getElementById('nightTops')) box.innerHTML = errorHTML(friendlyError(e));
