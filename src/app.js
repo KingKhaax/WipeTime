@@ -376,12 +376,12 @@ function percentileOf(dist, amount) {
 }
 
 /** rows: {name, cls, spec, total}. Devuelve Map nombre -> percentil estimado. */
-async function estimateParses(f, rows, metric) {
+async function estimateParses(f, rows, metric, mode = S.parseMode) {
   const out = new Map();
   if (!f.encounterID || !f.difficulty) return out;
   const dur = fightDur(f) / 1000;
   const bySpec = new Map();
-  const brackets = S.parseMode === 'ilvl' ? await zoneBrackets(f.encounterID) : null;
+  const brackets = mode === 'ilvl' ? await zoneBrackets(f.encounterID) : null;
   for (const r of rows) {
     if (!/^[A-Za-z]+$/.test(r.cls || '') || !/^[A-Za-z]+$/.test(r.spec || '')) continue;
     r.bracket = bracketIndex(brackets, r.ilvl);
@@ -407,14 +407,22 @@ async function estimateParses(f, rows, metric) {
 // Rellena los huecos de parse después de pintar la lista, para no bloquear la vista.
 function fillEstimatedPills(f, rows, metric) {
   S.post = async (seq) => {
-    const est = await estimateParses(f, rows, metric);
+    const copy = () => rows.map((r) => ({ ...r }));
+    const [est, estI] = await Promise.all([estimateParses(f, copy(), metric, 'all'), estimateParses(f, copy(), metric, 'ilvl')]);
     if (seq !== S.seq) return;
     const lowConf = fightDur(f) < 60000;
     document.querySelectorAll('.pill-slot').forEach((el) => {
       const p = est.get(el.dataset.name);
-      if (p != null) el.outerHTML = parsePill(p, true, lowConf);
-      else el.remove(); // sin estimación fiable: no se deja el hueco cargando
+      el.outerHTML = p != null ? parsePill(p, true, lowConf) : '<span class="muted">–</span>';
     });
+    document.querySelectorAll('.pill-slot-i').forEach((el) => {
+      const p = estI.get(el.dataset.name);
+      el.outerHTML = p != null ? parsePill(p, true, lowConf) : '<span class="muted">–</span>';
+    });
+    for (const r of S.lastRanked || []) {
+      if (est.has(r.name)) r.parse = est.get(r.name);
+      if (estI.has(r.name)) r.parseI = estI.get(r.name);
+    }
   };
 }
 
@@ -844,10 +852,22 @@ function mergeAbil(lists) {
   return [...m.values()].sort((x, y) => y.total - x.total);
 }
 
-function rankedList(rows, { parse, slots, clickable = !S.viewCombined, unit = '' } = {}) {
+// Cantidades como Warcraft Logs: 81,55m · 437,7k · 1,84b (el separador decimal sigue al idioma de la app)
+function amountFmt(n) {
+  n = n || 0;
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${num(n / 1e9, 2)}b`;
+  if (a >= 1e6) return `${num(n / 1e6, 2)}m`;
+  if (a >= 1e3) return `${num(n / 1e3, 1)}k`;
+  return num(n, 0);
+}
+const PET_TEAL = '#5eb8c7';
+const petsOf = (e) => (e?.pets || []).reduce((s, p) => s + (p.total || 0), 0);
+const activeOf = (e, ms) => (e?.activeTime != null && ms > 0 ? Math.min(100, (e.activeTime / ms) * 100) : null);
+
+function rankedList(rows, { parse, parseIlvl, slots, slotsIlvl, clickable = !S.viewCombined, unit = '' } = {}) {
   if (!rows.length) return `<div class="empty">${t('noData')}</div>`;
   const max = Math.max(...rows.map((r) => r.total), 1);
-  const place = new Map(rows.map((r, i) => [r, i + 1])); // posición real (de mayor a menor)
   let list = rows;
   if (S.sortMode === 'asc') list = [...rows].reverse();
   else if (S.sortMode === 'name') list = [...rows].sort((x, y) => x.name.localeCompare(y.name, locale()));
@@ -856,72 +876,133 @@ function rankedList(rows, { parse, slots, clickable = !S.viewCombined, unit = ''
     list = [...rows].sort((x, y) => (S.sortMode === 'parse-asc' ? pv(x) - pv(y) : pv(y) - pv(x)));
   }
   const sum = rows.reduce((x, r) => x + r.total, 0) || 1;
-  const tags = (h) => String(h ?? '').replace(/<[^>]*>/g, '').trim();
-  S.lastRanked = list.map((r) => ({ name: r.name, cls: r.cls, icon: r.icon, total: r.total, pct: (r.total / sum) * 100, val: tags(big(r.total)), rate: r.rate != null ? plain(r.rate) + (unit ? ' ' + unit : '') : tags(r.note), me: isMe(r.name),
-    segs: [{ v: r.total, color: rowColor(r) }], abil: r.abil || null }));
+  const hasParse = !!(parse || slots?.size);
+  const hasParseI = !!(parseIlvl || slotsIlvl?.size);
+  const hasIlvl = rows.some((r) => r.ilvl > 0);
+  const hasActive = rows.some((r) => r.active != null);
   const hasRate = rows.some((r) => r.rate != null);
   const hasNote = rows.some((r) => r.note);
-  return `${sortBarHTML(!!parse)}<div class="ranked">
-    <div class="row head ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}"><span>${LL('Nombre', 'Name')}</span><span>${LL('Cantidad', 'Amount')}</span>${hasNote ? '<span></span>' : ''}${hasRate ? `<span class="rate">${unit}</span>` : ''}<span class="val"></span></div>${list.map((r) => {
+  const cols = [hasParse && '60px', 'minmax(170px, 250px)', 'minmax(240px, 1fr)', hasNote && 'auto', hasIlvl && '54px', hasParseI && '62px', hasActive && '70px', hasRate && '124px'].filter(Boolean).join(' ');
+  const tags = (h) => String(h ?? '').replace(/<[^>]*>/g, '').trim();
+  const pill = (map, slotSet, cls, r) => {
+    const v = map?.get(r.name);
+    if (typeof v === 'number') return parsePill(v);
+    if (slotSet?.has(r.name)) return `<span class="${cls}" data-name="${esc(r.name)}"></span>`;
+    return '<span class="muted">–</span>';
+  };
+  S.lastRanked = list.map((r) => {
+    const pets = Math.min(r.pets || 0, r.total);
     const color = rowColor(r);
-    const bar = `<span class="seg" style="flex:1 1 0;background:${color}"></span>`;
+    return {
+      name: r.name, cls: r.cls, icon: r.icon, total: r.total, pct: (r.total / sum) * 100, amount: amountFmt(r.total), me: isMe(r.name),
+      rate: r.rate != null ? num(r.rate, 1) : tags(r.note), ilvl: r.ilvl > 0 ? r.ilvl : null, active: r.active ?? null,
+      parse: parse?.get(r.name) ?? null, parseI: parseIlvl?.get(r.name) ?? null,
+      segs: pets > 0 ? [{ v: r.total - pets, color }, { v: pets, color: PET_TEAL }] : [{ v: r.total, color }], abil: r.abil || null,
+    };
+  });
+  S.lastRankedMeta = { unit, hasParse, hasParseI, hasIlvl, hasActive, hasRate: hasRate || hasNote };
+  const head = `<div class="row head">${hasParse ? '<span>Parse %</span>' : ''}<span class="c-name">${LL('Nombre', 'Name')}</span><span class="c-amt">${LL('Cantidad', 'Amount')}</span>${hasNote ? '<span></span>' : ''}${hasIlvl ? '<span>Ilvl</span>' : ''}${hasParseI ? '<span>Ilvl %</span>' : ''}${hasActive ? `<span>${LL('Activo', 'Active')}</span>` : ''}${hasRate ? `<span class="c-rate">${unit}</span>` : ''}</div>`;
+  return `${sortBarHTML(!!parse)}<div class="ranked" style="--cols:${cols}">${head}${list.map((r, i) => {
+    const color = rowColor(r);
     const me = isMe(r.name);
-    return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''} ${hasNote ? 'has-note' : ''} ${hasRate ? 'has-rate' : ''}" data-ri="${list.indexOf(r)}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
+    const pets = Math.min(r.pets || 0, r.total);
+    const segs = pets > 0 ? [[r.total - pets, color], [pets, PET_TEAL]] : [[r.total, color]];
+    const bar = segs.map(([v, c]) => `<span class="seg" style="flex:${v} 1 0;background:${c}"></span>`).join('');
+    return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''}" data-ri="${i}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
+      ${hasParse ? `<span class="c-parse">${pill(parse, slots, 'pill-slot', r)}</span>` : ''}
       <div class="r-name">
         ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="22" height="22" alt="" style="--cc:${color}">` : `<span class="dot" style="background:${color}"></span>`}
         <span class="name" style="color:${color}">${esc(r.name)}</span>
         ${me ? `<span class="you">${t('you')}</span>` : ''}
-        ${parse ? parsePill(parse.get(r.name)) : ''}
-        ${slots?.has(r.name) ? `<span class="pill-slot" data-name="${esc(r.name)}"></span>` : ''}
       </div>
-      <div class="r-bar"><span class="r-pct">${num((r.total / sum) * 100, 2)}%</span><div class="bar"><div class="bar-in" style="width:${(r.total / max) * 100}%">${bar}</div></div></div>
+      <div class="r-bar"><span class="r-pct">${num((r.total / sum) * 100, 2)}%</span><div class="bar-wrap"><div class="bar"><div class="bar-in" style="width:calc((100% - 74px) * ${(r.total / max).toFixed(4)})">${bar}</div><span class="r-amt" style="color:${color}">${amountFmt(r.total)}</span></div></div></div>
       ${hasNote ? `<span class="note">${r.note || ''}</span>` : ''}
-      ${hasRate ? `<span class="rate">${r.rate != null ? plain(r.rate) : ''}</span>` : ''}
-      <span class="val">${big(r.total)}</span>
+      ${hasIlvl ? `<span class="c-ilvl">${r.ilvl > 0 ? Math.round(r.ilvl) : '–'}</span>` : ''}
+      ${hasParseI ? `<span class="c-parsei">${pill(parseIlvl, slotsIlvl, 'pill-slot-i', r)}</span>` : ''}
+      ${hasActive ? `<span class="c-active">${r.active != null ? `${num(r.active, 2)}%` : '–'}</span>` : ''}
+      ${hasRate ? `<span class="c-rate">${r.rate != null ? num(r.rate, 1) : ''}</span>` : ''}
     </div>`;
   }).join('')}</div>`;
 }
 
-// ---- Exportar la lista actual (daño, sanación, escudos…) como imagen para copiar o guardar
+// ---- Exportar la lista actual (daño, sanación, escudos…) como imagen para copiar o guardar, con las mismas columnas
 function exportRankedImage(mode) {
   const rows = S.lastRanked || [];
+  const m = S.lastRankedMeta || {};
   if (!rows.length) return toast(LL('No hay nada que exportar', 'Nothing to export'));
   const txt = (sel) => ($(sel)?.textContent || '').replace(/\s+/g, ' ').trim();
   const eyebrowT = txt('#view .eyebrow'), title = txt('#view .hdr h1'), sub = txt('#view .hdr .sub');
   const draw = (withIcons) => new Promise((resolve) => {
-    const W = 1100, rowH = 30, headH = 96 + (sub ? 26 : 0), pad = 24, scale = 2;
-    const nameW = 230, valW = 90, rateW = rows.some((r) => r.rate) ? 110 : 0;
-    const barX = pad + nameW, barW = W - pad - valW - rateW - barX - 12;
+    const rowH = 30, headH = 100 + (sub ? 26 : 0), pad = 24, scale = 2;
+    const parseW = rows.some((r) => r.parse != null) || m.hasParse ? 60 : 0;
+    const ilvlW = m.hasIlvl ? 56 : 0, parseIW = rows.some((r) => r.parseI != null) || m.hasParseI ? 64 : 0, actW = m.hasActive ? 72 : 0, rateW = m.hasRate ? 128 : 0;
+    const nameW = 230;
+    const W = 1180;
+    const x0 = pad;
+    const xName = x0 + parseW;
+    const xBar = xName + nameW;
+    const xRight = W - pad - rateW - actW - parseIW - ilvlW;
+    const barW = xRight - xBar - 12;
     const cv = document.createElement('canvas');
     cv.width = W * scale;
-    cv.height = (headH + rows.length * rowH + pad + 8) * scale;
+    cv.height = (headH + 30 + rows.length * rowH + pad + 8) * scale;
     const g = cv.getContext('2d');
     g.scale(scale, scale);
     g.fillStyle = '#0f1013'; g.fillRect(0, 0, W, cv.height);
     const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
     g.textBaseline = 'middle';
-    g.fillStyle = '#8b93a1'; g.font = `12px ${font}`; g.fillText(eyebrowT.toUpperCase().slice(0, 140), pad, 26);
+    g.fillStyle = '#8b93a1'; g.font = `12px ${font}`; g.fillText(eyebrowT.toUpperCase().slice(0, 150), pad, 26);
     g.fillStyle = '#ffffff'; g.font = `700 28px ${font}`; g.fillText(title, pad, 56);
-    if (sub) { g.fillStyle = '#b4bac6'; g.font = `14px ${font}`; g.fillText(sub.slice(0, 150), pad, 86); }
+    if (sub) { g.fillStyle = '#b4bac6'; g.font = `14px ${font}`; g.fillText(sub.slice(0, 160), pad, 86); }
+    // cabecera
+    const hy = headH - 4;
+    g.fillStyle = '#17191f'; g.fillRect(0, hy, W, 28);
+    g.fillStyle = '#9aa3b2'; g.font = `600 12px ${font}`;
+    g.textAlign = 'center';
+    if (parseW) g.fillText('Parse %', x0 + parseW / 2, hy + 14);
+    g.textAlign = 'left';
+    g.fillText(LL('Nombre', 'Name'), xName, hy + 14);
+    g.fillText(LL('Cantidad', 'Amount'), xBar, hy + 14);
+    g.textAlign = 'center';
+    let cx = xRight;
+    if (ilvlW) { g.fillText('Ilvl', cx + ilvlW / 2, hy + 14); cx += ilvlW; }
+    if (parseIW) { g.fillText('Ilvl %', cx + parseIW / 2, hy + 14); cx += parseIW; }
+    if (actW) { g.fillText(LL('Activo', 'Active'), cx + actW / 2, hy + 14); cx += actW; }
+    g.textAlign = 'right';
+    if (rateW) g.fillText(m.unit || '', W - pad, hy + 14);
+    g.textAlign = 'left';
+    const yRows = headH + 24;
     const max = Math.max(...rows.map((r) => r.total), 1);
     const imgs = rows.map((r) => (withIcons && r.icon
       ? new Promise((ok) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = specIconUrl(r.icon); })
       : Promise.resolve(null)));
     Promise.all(imgs).then((ims) => {
       rows.forEach((r, i) => {
-        const y = headH + i * rowH, cy = y + rowH / 2;
+        const y = yRows + i * rowH, cy = y + rowH / 2;
         g.fillStyle = i % 2 ? '#13151a' : '#0f1013'; g.fillRect(0, y, W, rowH);
         const color = classColor(r.cls);
-        if (ims[i]) g.drawImage(ims[i], pad, y + 4, 22, 22);
-        else { g.fillStyle = color; g.beginPath(); g.arc(pad + 11, cy, 5, 0, 7); g.fill(); }
-        g.fillStyle = color; g.font = `600 14px ${font}`; g.fillText(r.name + (r.me ? `  (${t('you')})` : ''), pad + 30, cy, nameW - 36);
-        g.fillStyle = '#c9ced8'; g.font = `12px ${font}`; g.textAlign = 'right'; g.fillText(`${r.pct.toFixed(2)}%`, barX + 50, cy); g.textAlign = 'left';
-        const bx = barX + 58, bw = Math.max(4, (barW - 58) * (r.total / max)), tot = r.segs.reduce((x, q) => x + q.v, 0) || 1;
-        let cx = bx;
-        for (const q of r.segs) { const w = bw * (q.v / tot); g.fillStyle = q.color; g.fillRect(cx, y + 7, Math.max(1, w - 1), rowH - 14); cx += w; }
+        g.textAlign = 'center';
+        if (parseW && r.parse != null) { g.fillStyle = parseColor(r.parse); g.font = `700 14px ${font}`; g.fillText(String(r.parse), x0 + parseW / 2, cy); }
+        g.textAlign = 'left';
+        if (ims[i]) g.drawImage(ims[i], xName, y + 4, 22, 22);
+        else { g.fillStyle = color; g.beginPath(); g.arc(xName + 11, cy, 5, 0, 7); g.fill(); }
+        g.fillStyle = color; g.font = `600 14px ${font}`; g.fillText(r.name + (r.me ? `  (${t('you')})` : ''), xName + 30, cy, nameW - 36);
+        g.fillStyle = '#c9ced8'; g.font = `12px ${font}`; g.textAlign = 'right'; g.fillText(`${r.pct.toFixed(2).replace('.', num(0.5, 1).charAt(1))}%`, xBar + 50, cy); g.textAlign = 'left';
+        const bx = xBar + 58;
+        const avail = barW - 58 - 70;
+        const bw = Math.max(4, avail * (r.total / max));
+        const tot = r.segs.reduce((x, q) => x + q.v, 0) || 1;
+        let sx = bx;
+        for (const q of r.segs) { const w = bw * (q.v / tot); g.fillStyle = q.color; g.fillRect(sx, y + 7, Math.max(1, w), rowH - 14); sx += w; }
+        g.fillStyle = color; g.font = `700 13px ${font}`; g.fillText(r.amount, bx + bw + 8, cy);
+        let px = xRight;
+        g.textAlign = 'center'; g.font = `13px ${font}`;
+        if (ilvlW) { g.fillStyle = '#9aa3b2'; if (r.ilvl != null) g.fillText(String(Math.round(r.ilvl)), px + ilvlW / 2, cy); px += ilvlW; }
+        if (parseIW) { if (r.parseI != null) { g.fillStyle = parseColor(r.parseI); g.font = `700 14px ${font}`; g.fillText(String(r.parseI), px + parseIW / 2, cy); } px += parseIW; }
+        g.font = `13px ${font}`;
+        if (actW) { g.fillStyle = '#9aa3b2'; if (r.active != null) g.fillText(`${num(r.active, 2)}%`, px + actW / 2, cy); px += actW; }
         g.textAlign = 'right';
-        g.fillStyle = '#ffffff'; g.font = `700 14px ${font}`; g.fillText(r.val, W - pad, cy);
-        if (rateW) { g.fillStyle = '#a8e060'; g.font = `13px ${font}`; g.fillText(r.rate, W - pad - valW, cy); }
+        if (rateW) { g.fillStyle = '#a8e060'; g.font = `700 13px ${font}`; g.fillText(r.rate, W - pad, cy); }
         g.textAlign = 'left';
       });
       g.fillStyle = '#5d6572'; g.font = `11px ${font}`; g.textAlign = 'right'; g.fillText('WipeTime', W - pad, cv.height / scale - 10); g.textAlign = 'left';
@@ -948,12 +1029,13 @@ function exportRankedImage(mode) {
 }
 
 // Parses: reales en kills, estimados en wipes; con una fase/rango no se muestran (no son comparables).
-function parseOptions(f, rows, realMap, metric) {
+function parseOptions(f, rows, realMap, metric, realMapIlvl) {
   if (!f.full || !f.encounterID || f.combined) return {};
-  if (f.kill) return { parse: realMap };
+  if (f.kill) return { parse: realMap, parseIlvl: realMapIlvl };
   const est = rows.filter((r) => (metric === 'hps') === HEALER_SPECS.has(r.spec));
   fillEstimatedPills(f, est, metric);
-  return { slots: new Set(est.map((r) => r.name)) };
+  const names = new Set(est.map((r) => r.name));
+  return { slots: names, slotsIlvl: names };
 }
 
 function leaderSub(rows, f) {
@@ -1092,7 +1174,7 @@ const VIEWS = {
         p.lists.push([...(s.byAbil.get(pid) || new Map())].map(([id, tot]) => ({ name: ability(id).name, total: tot, icon: ability(id).icon })));
       }
     });
-    const rows = [...per.values()].map((p) => ({ ...p, note: `${plain(p.total / secs)} DPS`, abil: mergeAbil(p.lists) }))
+    const rows = [...per.values()].map((p) => ({ ...p, rate: p.total / secs, abil: mergeAbil(p.lists) }))
       .sort((a, b) => b.total - a.total);
     const total = shields.reduce((s, x) => s + x.total, 0);
     const bosses = [...new Set(shields.map((s) => actorName(s.target)))].join(', ');
@@ -1100,7 +1182,7 @@ const VIEWS = {
       + ` · ${LL('Raid', 'Raid')} <b>${plain(total / secs)} DPS</b> ${LL('durante', 'over')} ${clock(active)}`;
     const legend = `<div class="legend">${shields.map((s, i) =>
       `<span><i style="background:var(--muted)"></i>${esc(labels[i])} <small>${clock(s.start - f.fightStart)} · ${plain(s.total)} · ${plain(s.total / (dur(s) / 1000))} DPS</small></span>`).join('')}</div>`;
-    return headerHTML(f, t('shieldsTitle'), sub) + typeBar + legend + rankedList(rows) + `<p class="foot">${t('shieldsFoot')}</p>`;
+    return headerHTML(f, t('shieldsTitle'), sub) + typeBar + legend + rankedList(rows, { unit: 'DPS' }) + `<p class="foot">${t('shieldsFoot')}</p>`;
   },
 
   async pi(f) {
@@ -1142,9 +1224,9 @@ const VIEWS = {
     const bossOf = (e) => (e.targets || []).filter((x) => x.type === 'Boss').reduce((s, x) => s + x.total, 0);
     const rows = d.dmg.filter((e) => isPlayer(e.id, e))
       .map((e) => {
-        const base = { ...playerInfo(e.id, e), ilvl: e.itemLevel, abil: abilList(e.abilities) };
-        if (m === 'rdps') { const v = Math.max(0, e.total - (e.totalRDPSTaken || 0) + (e.totalRDPSGiven || 0)); return { ...base, total: v, rate: v / dur }; }
-        if (m === 'boss') { const v = bossOf(e); return { ...base, total: v, rate: v / dur }; }
+        const base = { ...playerInfo(e.id, e), ilvl: e.itemLevel, active: activeOf(e, dur * 1000), pets: petsOf(e), abil: abilList(e.abilities) };
+        if (m === 'rdps') { const v = Math.max(0, e.total - (e.totalRDPSTaken || 0) + (e.totalRDPSGiven || 0)); return { ...base, pets: 0, total: v, rate: v / dur }; }
+        if (m === 'boss') { const v = bossOf(e); return { ...base, pets: 0, total: v, rate: v / dur }; }
         if (m === 'active') return { ...base, total: e.total, rate: e.total / Math.max(1, (e.activeTime || dur * 1000) / 1000) };
         return { ...base, total: e.total, rate: e.total / dur };
       })
@@ -1156,12 +1238,10 @@ const VIEWS = {
       ${mchip('dps', LL('Daño total', 'Total damage'), LL('Todo el daño hecho, sin ajustes', 'All damage done, unadjusted'))}
       ${mchip('boss', LL('Solo jefe', 'Boss only'), LL('Solo el daño al jefe, sin adds', 'Boss damage only, no adds'))}
       ${mchip('active', LL('DPS activo', 'Active DPS'), LL('Daño dividido por el tiempo que estuviste lanzando, no por toda la pelea', 'Damage divided by the time you were actually casting'))}
-      ${f.kill && f.full && !f.combined ? `<span class="sep"></span><span class="muted">${LL('Parse', 'Parse')}</span>${pchip('all', LL('Global', 'Global'))}${pchip('ilvl', LL('Nivel de objeto', 'Item level'))}` : ''}
-      ${!f.kill && f.full && f.encounterID && !f.combined ? `<span class="sep"></span><span class="muted">${LL('Parse estimado', 'Estimated parse')}</span>${pchip('all', LL('Global', 'Global'))}${pchip('ilvl', LL('Nivel de objeto', 'Item level'))}` : ''}
     </div>`;
     const real = S.parseMode === 'ilvl' ? rk.dpsB : rk.dps;
     const withParse = m === 'dps' || m === 'rdps';
-    return headerHTML(f, t('dmgTitle'), leaderSub(rows, f)) + bar + rankedList(rows, { unit: 'DPS', ...(withParse ? parseOptions(f, rows, real, 'dps') : {}) });
+    return headerHTML(f, t('dmgTitle'), leaderSub(rows, f)) + bar + rankedList(rows, { unit: 'DPS', ...(withParse ? parseOptions(f, rows, rk.dps, 'dps', rk.dpsB) : {}) });
   },
 
   async healing(f) {
@@ -1171,10 +1251,10 @@ const VIEWS = {
       .map((e) => {
         const oh = e.overheal || 0;
         const ohp = oh > 0 ? (oh / (oh + e.total)) * 100 : 0;
-        return { ...playerInfo(e.id, e), ilvl: e.itemLevel, total: e.total, rate: e.total / dur, abil: abilList(e.abilities), note: ohp ? t('overheal', { p: num(ohp, 0) }) : '' };
+        return { ...playerInfo(e.id, e), ilvl: e.itemLevel, active: activeOf(e, dur * 1000), pets: petsOf(e), total: e.total, rate: e.total / dur, abil: abilList(e.abilities), note: ohp ? t('overheal', { p: num(ohp, 0) }) : '' };
       })
       .sort((a, b) => b.total - a.total);
-    return headerHTML(f, t('healTitle'), leaderSub(rows, f)) + rankedList(rows, { unit: 'HPS', ...parseOptions(f, rows, S.parseMode === 'ilvl' ? rk.hpsB : rk.hps, 'hps') });
+    return headerHTML(f, t('healTitle'), leaderSub(rows, f)) + rankedList(rows, { unit: 'HPS', ...parseOptions(f, rows, rk.hps, 'hps', rk.hpsB) });
   },
 
   async taken(f) {
@@ -1223,6 +1303,7 @@ const VIEWS = {
         if (!per.has(e.id)) per.set(e.id, { ...playerInfo(e.id, e), total: 0, segs: ids.map(() => 0), lists: [] });
         const p = per.get(e.id);
         p.lists.push(abilList(e.abilities));
+        p.pets = (p.pets || 0) + petsOf(e);
         p.total += e.total;
         p.segs[i] += e.total;
       }

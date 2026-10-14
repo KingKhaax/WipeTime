@@ -1816,7 +1816,7 @@ const Replay = (() => {
   function frameAuras(buffs, debuffs, T) {
     const icon = (a, cls) => {
       const ab = ability(a.guid);
-      return `<span class="rpf-au ${cls}">${iconImg(ab.icon, 24, `${esc(ab.name)}${a.stacks > 1 ? ` ×${a.stacks}` : ''} · ${clock(Math.max(0, a.e - T))}`, a.guid)}${a.stacks > 1 ? `<i>${a.stacks}</i>` : ''}</span>`;
+      return `<span class="rpf-au ${cls}" data-aura-end="${a.e}" data-aura-name="${esc(ab.name)}">${iconImg(ab.icon, 24, `${cls === 'b' ? LL('Perjuicio', 'Debuff') : LL('Beneficio', 'Buff')}${a.stacks > 1 ? ` · ×${a.stacks}` : ''}`, a.guid)}${a.stacks > 1 ? `<i>${a.stacks}</i>` : ''}</span>`;
     };
     // un icono por hechizo: si varios IDs comparten nombre e icono (rangos, auras ocultas del mismo efecto) se muestra una vez
     const uniq = (arr) => {
@@ -2022,6 +2022,8 @@ const Replay = (() => {
     return `<div class="rpe" data-rp-t="${e.t}"><span class="rpe-t">${rel}</span>${body}</div>`;
   }
 
+  // tiempo actual del replay: los tooltips de buffos y debuffos muestran cuánto les queda en este instante
+  window.WT_REPLAY_T = () => (R ? R.T : null);
   window.R_REDRAW = () => { if (R) { R.dirty = true; R.floorSig = ''; } };
   return { mount, stop, debug: () => R, load };
 })();

@@ -122,14 +122,36 @@ const SpellTip = (() => {
     t.style.top = `${Math.max(8, y + 22 + h > vh ? y - h - 14 : y + 22)}px`;
   }
 
+  // Auras del replay: nombre, stacks y tiempo que les queda en el instante actual del replay (se actualiza mientras se mira)
+  let liveTimer = null;
+  function liveText(target) {
+    const box = target?.closest?.('[data-aura-end]');
+    if (!box || typeof window.WT_REPLAY_T !== 'function') return null;
+    const T = window.WT_REPLAY_T();
+    if (T == null) return null;
+    const left = Math.max(0, (Number(box.dataset.auraEnd) - T) / 1000);
+    const base = target.dataset.spellExtra || '';
+    return `${base ? base + ' · ' : ''}${tr('Quedan', 'Remaining', 'Verbleibend', 'Restant')} ${num(left, 1)} s`;
+  }
+
   async function show(target, x, y) {
     if (WCSettings.get('spellTips') === false) return;
     const id = Number(target.dataset.spell);
     if (!id) return;
     const t = ensureEl();
     shownId = id;
-    const name = target.dataset.spellName || '';
-    const extra = target.dataset.spellExtra || '';
+    const auraBox = target.closest?.('[data-aura-end]');
+    const name = target.dataset.spellName || auraBox?.dataset.auraName || '';
+    const extra = liveText(target) ?? (target.dataset.spellExtra || '');
+    clearInterval(liveTimer);
+    if (auraBox) {
+      liveTimer = setInterval(() => {
+        if (!current || t.hidden) { clearInterval(liveTimer); return; }
+        const txt = liveText(current);
+        const small = t.querySelector('.st-head small');
+        if (txt != null && small) small.textContent = txt;
+      }, 120);
+    }
     t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('Cargando…', 'Loading…', 'Lädt…', 'Chargement…')}</p></div>`;
     t.hidden = false;
     place(x, y);
@@ -145,6 +167,7 @@ const SpellTip = (() => {
   }
 
   function hide() {
+    clearInterval(liveTimer);
     clearTimeout(timer);
     timer = null;
     current = null;
