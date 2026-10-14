@@ -2,6 +2,7 @@
 
 // ============================================================ state
 const S = {
+  specById: new Map(), // id de jugador -> «Clase-Spec», reunido de playerDetails y de las tablas
   lang: ['es', 'en', 'de', 'fr'].includes(lsGet('lang')) ? lsGet('lang') : 'es',
   me: '',
   hasCreds: false,
@@ -76,7 +77,8 @@ const fightDur = (f) => f.dur ?? (f.endTime - f.startTime);
 // ============================================================ actores y habilidades
 function playerInfo(id, entry) {
   const a = S.actors.get(id) || {};
-  const icon = entry?.icon || a.icon || '';
+  const cands = [entry?.icon, S.specById.get(id), a.icon];
+  const icon = cands.find((c) => typeof c === 'string' && c.includes('-')) || cands.find(Boolean) || '';
   let [cls, spec] = icon.includes('-') ? icon.split('-') : [a.subType || entry?.type || '', ''];
   if (!CLASSES[cls]) cls = a.subType || entry?.type || cls;
   return { id, name: entry?.name || a.name || '?', cls, spec, icon };
@@ -159,7 +161,11 @@ function cached(key, fn) {
   return S.cache.get(key);
 }
 
-const entriesOf = (tbl) => tbl?.data?.entries || [];
+const entriesOf = (tbl) => {
+  const list = tbl?.data?.entries || [];
+  for (const e of list) if (e && e.id != null && typeof e.icon === 'string' && e.icon.includes('-') && CLASSES[e.icon.split('-')[0]]) S.specById.set(e.id, e.icon);
+  return list;
+};
 
 // Divide un rango de tiempo en trozos para pedirlos en paralelo (la API pagina cada trozo por separado)
 function timeChunks(start, end, maxChunks = 4, minMs = 60000) {
@@ -644,6 +650,21 @@ async function loadReport(input, opts = {}) {
     rememberReport(r);
     $('#urlInput').value = `https://www.warcraftlogs.com/reports/${code}`;
 
+    S.specById = new Map();
+    try {
+      const ids = (r.fights || []).filter((x) => x.encounterID > 0).map((x) => x.id);
+      const pdIds = (ids.length ? ids : (r.fights || []).map((x) => x.id)).slice(0, 80);
+      if (pdIds.length) {
+        const pdr = await gql(`query($code:String!,$f:[Int]){reportData{report(code:$code){pd:playerDetails(fightIDs:$f)}}}`, { code, f: pdIds });
+        const det = pdr.reportData?.report?.pd?.data?.playerDetails || {};
+        for (const p of Object.values(det).flat()) {
+          if (!p || p.id == null) continue;
+          const icon = typeof p.icon === 'string' && p.icon.includes('-') ? p.icon
+            : p.specs?.length ? `${p.type}-${[...p.specs].sort((a, b) => b.count - a.count)[0].spec}` : null;
+          if (icon) S.specById.set(p.id, icon);
+        }
+      }
+    } catch (e) { console.warn('playerDetails', e); }
     const chosen = await window.api.getMe(code);
     S.me = chosen ?? S.meDefault;
     if (chosen === null) askWhoAmI();
@@ -729,7 +750,7 @@ function renderSidebar() {
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
     <div class="rep-sub">${esc(zoneName(r.zone?.name))}${r.owner?.name ? ' · ' + esc(r.owner.name) : ''}<br>${new Date(r.startTime).toLocaleString(locale())}</div>
-    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span>' : '↻'} ${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="icons/spell_nature_chainlightning.jpg" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
+    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span> ' : ''}${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}"><img class="wi" src="icons/spell_nature_chainlightning.jpg" width="16" height="16" alt=""> ${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
