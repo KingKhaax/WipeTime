@@ -50,6 +50,7 @@
   const inflightQ = new Map();
   function qcacheTtl(gql) {
     if (/rateLimitData/.test(gql)) return 0;
+    if (/reportData/.test(gql)) return 0; // todo lo de un informe (parses, intentos, kills) siempre en vivo desde Warcraft Logs
     if (/fights\s*\{\s*id name/.test(gql)) return 5 * 60 * 1000;
     if (/rankings|zoneRanking|guildData|characterData/.test(gql)) return 12 * 3600 * 1000;
     if (/worldData/.test(gql)) return 3600 * 1000; // zonas y jefes de la raid: pueden cambiar con un parche, no se guardan una semana
