@@ -269,12 +269,18 @@ function rankings(f) {
   return cached(`rank:${f.id}`, async () => {
     if (!f.kill || !f.encounterID || !f.full || f.combined) return { dps: new Map(), hps: new Map(), dpsB: new Map(), hpsB: new Map() };
     try {
+      // sin caché en disco: Warcraft Logs recalcula los parses de un log (al subirlo da valores provisionales y luego
+      // los ajusta al entrar más logs), y guardarlos horas hacía que WipeTime enseñara un número y la web otro
       const d = await gql(`query($code:String!,$f:[Int]){reportData{report(code:$code){
-        dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps)}}}`, { code: S.code, f: [f.id] });
+        dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps)}}}`, { code: S.code, f: [f.id] }, true);
       const r = d.reportData.report;
+      const chars = [r.dps, r.hps].flatMap((x) => (x?.data || []).flatMap((fd) => Object.values(fd.roles || {}).flatMap((ro) => ro?.characters || [])));
+      // provisional = sin ranking calculado todavía (sin total de parses): no se da por bueno, la próxima vez se vuelve a pedir
+      if (!chars.length || chars.some((x) => !x.totalParses)) setTimeout(() => S.cache.delete(`rank:${f.id}`), 0);
       return { dps: rankMap(r.dps), hps: rankMap(r.hps), dpsB: rankMap(r.dps, 'bracketPercent'), hpsB: rankMap(r.hps, 'bracketPercent') };
     } catch (e) {
       console.warn('rankings', e);
+      setTimeout(() => S.cache.delete(`rank:${f.id}`), 0);
       return { dps: new Map(), hps: new Map(), dpsB: new Map(), hpsB: new Map() };
     }
   });
