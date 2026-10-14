@@ -633,6 +633,7 @@ const Replay = (() => {
       drawStage(now);
       drawTimeline();
       $('#rpNow').textContent = clock(R.T - R.raw.startTime);
+      tickCasts();
     }
     if (now - R.lastUi > (R.playing ? 220 : 500)) {
       R.lastUi = now;
@@ -1633,29 +1634,43 @@ const Replay = (() => {
 
   // ------------------------------------------------------------ buffos y debuffos del jugador, su objetivo y el jefe (como Warcraft Logs)
   // Se descargan los eventos de auras solo del jugador elegido, de su objetivo actual y del jefe, y se calcula qué hay activo en cada momento.
-  const AU_DEPTH = /^(apply|remove)(buff|debuff)$/;
+  // Cada aura se identifica por hechizo y, dentro de él, por quién la aplica: una aura aplicada dos veces por la misma fuente
+  // (o un evento repetido en el límite de página) cuenta UNA vez, y desaparece cuando la quita su última fuente.
+  // Así los buffos del aliado salen exactamente como en el log, sin multiplicarse.
   function buildIntervals(events, w0, w1) {
-    const open = new Map();
+    const open = new Map(); // guid -> { s, shown, src: Map(sourceID -> stacks) }
     const out = [];
+    const cur = (o) => { let m = 1; for (const v of o.src.values()) if (v > m) m = v; return m; };
+    // un tramo por cada cambio de acumulaciones, para que el número del icono sea el real en cada instante
+    const bump = (g, o, ts) => {
+      const n = cur(o);
+      if (n !== o.shown) { if (ts > o.s) out.push({ guid: g, s: o.s, e: ts, stacks: o.shown }); o.s = ts; o.shown = n; }
+    };
+    const close = (g, o, ts) => { out.push({ guid: g, s: o.s, e: ts, stacks: o.shown }); open.delete(g); };
     for (const e of [...events].sort((a, b) => a.timestamp - b.timestamp)) {
       const g = e.abilityGameID;
       const kind = e.type;
-      if (AU_DEPTH.test(kind)) {
+      const src = e.sourceID ?? -1;
+      const ts = e.timestamp;
+      if (/^apply(buff|debuff)$/.test(kind)) {
         let o = open.get(g);
-        if (kind.startsWith('apply')) {
-          if (!o) { o = { guid: g, s: e.timestamp, stacks: 1, depth: 0 }; open.set(g, o); }
-          o.depth++;
-        } else {
-          if (!o) o = { guid: g, s: w0, stacks: 1, depth: 1 }; // ya estaba activa al empezar
-          o.depth--;
-          if (o.depth <= 0) { out.push({ guid: g, s: o.s, e: e.timestamp, stacks: o.stacks }); open.delete(g); } else open.set(g, o);
-        }
+        if (!o) { o = { s: ts, shown: 1, src: new Map() }; open.set(g, o); }
+        if (!o.src.has(src)) o.src.set(src, 1);
+        bump(g, o, ts);
       } else if (/^(apply|remove)(buff|debuff)stack$/.test(kind)) {
-        const o = open.get(g);
-        if (o && e.stack) o.stacks = e.stack;
+        let o = open.get(g);
+        if (!o) { o = { s: w0, shown: 1, src: new Map() }; open.set(g, o); }
+        if (e.stack) o.src.set(src, e.stack);
+        bump(g, o, ts);
+      } else if (/^remove(buff|debuff)$/.test(kind)) {
+        let o = open.get(g);
+        if (!o) o = { s: w0, shown: 1, src: new Map([[src, 1]]) }; // ya estaba activa al empezar
+        if (!o.src.delete(src)) o.src.delete(o.src.keys().next().value); // la fuente indicada o, si no coincide, la más antigua
+        if (!o.src.size) close(g, o, ts);
+        else { open.set(g, o); bump(g, o, ts); }
       }
     }
-    for (const o of open.values()) out.push({ guid: o.guid, s: o.s, e: w1, stacks: o.stacks });
+    for (const [g, o] of open) close(g, o, w1);
     return out;
   }
 
@@ -1685,13 +1700,63 @@ const Replay = (() => {
     const mine = R;
     allEvents(fullWin(R.raw), 'Casts', `,sourceID:${id}`).then((ev) => {
       if (R !== mine) return;
-      R.au.set(`casts:${id}`, ev.filter((e) => (e.type === 'cast' || e.type === 'begincast') && !e.fake && e.abilityGameID)
-        .map((e) => ({ t: e.timestamp, aid: e.abilityGameID, begin: e.type === 'begincast', dur: e.duration || 0 })).sort((a, b) => a.t - b.t));
+      R.au.set(`casts:${id}`, buildCasts(ev));
       R.au.set(key, ev.filter((e) => e.type === 'cast' && !e.fake && e.targetID > 0 && S.actors.get(e.targetID)?.type !== 'Player' && S.actors.get(e.targetID)?.type !== 'Pet')
         .map((e) => ({ t: e.timestamp, id: e.targetID })).sort((a, b) => a.t - b.t));
       R.auWait.delete(key);
       R.lastUi = 0;
     }).catch(() => { if (R === mine) { R.au.set(key, []); R.auWait.delete(key); } });
+    return null;
+  }
+
+  // Lanzamientos con tiempo de casteo, reales: cada begincast hasta el cast que lo completa. Si no llega ese cast
+  // (cancelado o interrumpido) la barra se corta en el siguiente lanzamiento de esa fuente. Los instantáneos no tienen begincast y no salen.
+  function buildCasts(ev) {
+    const list = ev.filter((e) => (e.type === 'cast' || e.type === 'begincast') && !e.fake && e.abilityGameID)
+      .sort((a, b) => a.timestamp - b.timestamp || (a.type === 'begincast' ? -1 : 1));
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      const b = list[i];
+      if (b.type !== 'begincast') continue;
+      const dur = b.duration > 0 ? b.duration : 0;
+      const limit = b.timestamp + (dur ? dur + 400 : 15000);
+      let end = null;
+      let state = 'ok';
+      let cut = null;
+      for (let j = i + 1; j < list.length; j++) {
+        const n = list[j];
+        if (n.timestamp > limit) break;
+        if (n.type === 'cast' && n.abilityGameID === b.abilityGameID) { end = n.timestamp; break; }
+        if (!cut && n.timestamp > b.timestamp && (n.type === 'begincast' || n.abilityGameID !== b.abilityGameID)) cut = n.timestamp;
+      }
+      if (end == null) {
+        if (!dur) continue; // sin duración ni final conocido: no se inventa
+        state = 'cut';
+        end = cut != null && cut < b.timestamp + dur ? cut : b.timestamp + dur;
+        if (end >= b.timestamp + dur - 30) state = 'ok';
+      }
+      if (end <= b.timestamp) continue;
+      out.push({ t: b.timestamp, end, aid: b.abilityGameID, state });
+    }
+    return out;
+  }
+
+  // lanzamientos de cualquier unidad (jugador, jefe, add): se descargan una sola vez
+  function wantCasts(id, enemy) {
+    const key = `casts:${id}`;
+    R.au = R.au || new Map();
+    R.auWait = R.auWait || new Set();
+    if (R.au.has(key)) return R.au.get(key);
+    const wk = `castsw:${id}`;
+    if (R.auWait.has(wk) || R.auWait.has(`cast:${id}`)) return null;
+    R.auWait.add(wk);
+    const mine = R;
+    allEvents(fullWin(R.raw), 'Casts', `,sourceID:${id}${enemy ? ',hostilityType:Enemies' : ''}`).then((ev) => {
+      if (R !== mine) return;
+      R.au.set(key, buildCasts(ev));
+      R.auWait.delete(wk);
+      R.lastUi = 0;
+    }).catch(() => { if (R === mine) { R.au.set(key, []); R.auWait.delete(wk); } });
     return null;
   }
 
@@ -1753,8 +1818,19 @@ const Replay = (() => {
       const ab = ability(a.guid);
       return `<span class="rpf-au ${cls}">${iconImg(ab.icon, 24, `${esc(ab.name)}${a.stacks > 1 ? ` ×${a.stacks}` : ''} · ${clock(Math.max(0, a.e - T))}`, a.guid)}${a.stacks > 1 ? `<i>${a.stacks}</i>` : ''}</span>`;
     };
-    const b = activeAuras(buffs, T).slice(0, 14);
-    const d = activeAuras(debuffs, T).slice(0, 14);
+    // un icono por hechizo: si varios IDs comparten nombre e icono (rangos, auras ocultas del mismo efecto) se muestra una vez
+    const uniq = (arr) => {
+      const seen = new Map();
+      for (const a of activeAuras(arr, T)) {
+        const ab = ability(a.guid);
+        const k = `${ab.name}|${ab.icon}`;
+        const prev = seen.get(k);
+        if (!prev || a.stacks > prev.stacks) seen.set(k, a);
+      }
+      return [...seen.values()].sort((x, y) => x.s - y.s).slice(0, 40);
+    };
+    const b = uniq(buffs);
+    const d = uniq(debuffs);
     return `<div class="rpf-auras">${b.map((a) => icon(a, 'g')).join('')}${d.map((a) => icon(a, 'b')).join('')}</div>`;
   }
 
@@ -1776,21 +1852,53 @@ const Replay = (() => {
     return `<div class="rpf-hp"><span style="width:${fr * 100}%;background:${color}"></span><b>${shortNum(Math.max(0, hp))} - ${num(fr * 100, 1)}%</b></div>`;
   }
 
-  function castBar(pid, T) {
-    const list = R.au?.get(`casts:${pid}`);
-    if (!list) return `<div class="rpf-cast"><small class="muted">${t('loading')}</small></div>`;
-    const last = lastBefore(list, T, 4000);
-    if (!last) return '<div class="rpf-cast idle"></div>';
-    const ab = ability(last.aid);
-    let total = last.begin ? (last.dur || 2000) : 1500; // los instantáneos se muestran durante el tiempo global de reutilización
-    let left = Math.max(0, total - (T - last.t));
-    if (last.begin) { // si ya hubo otro lanzamiento después, termina ahí
-      const next = list.find((c) => c.t > last.t && !c.begin);
-      if (next && next.t <= T) left = 0;
+  // lanzamiento activo de una unidad en el instante T (solo los que tienen barra de casteo)
+  function castAt(id, T) {
+    const list = R.au?.get(`casts:${id}`);
+    if (!list) return undefined; // aún cargando
+    let lo = 0;
+    let hi = list.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid].t <= T) lo = mid + 1; else hi = mid; }
+    for (let k = lo - 1; k >= 0 && k >= lo - 4; k--) { // por si hay lanzamientos solapados: se mira un poco hacia atrás
+      const c = list[k];
+      if (T < c.end) return c;
+      if (c.end < T - 2000) break;
     }
-    if (left <= 0 && T - last.t > 2200) return '<div class="rpf-cast idle"></div>';
-    const fr = 1 - left / total;
-    return `<div class="rpf-cast"><span class="rpf-cf" style="width:${clamp(fr, 0, 1) * 100}%"></span>${iconImg(ab.icon, 18, esc(ab.name), last.aid)}<b>${esc(ab.name)}</b><em>${num(left / 1000, 1)}s</em></div>`;
+    return null;
+  }
+
+  // sig=true devuelve solo lo que identifica el estado (para no rehacer los marcos en cada fotograma)
+  function castBar(id, T, enemy, sig) {
+    const c = castAt(id, T);
+    const idle = `<div class="rpf-cast idle" data-cu="${id}" data-ce="${enemy ? 1 : 0}"></div>`;
+    if (c === undefined) { wantCasts(id, enemy); return sig ? 'load' : idle; }
+    if (!c) return sig ? 'idle' : idle;
+    if (sig) return `c${c.t}:${c.aid}`;
+    const ab = ability(c.aid);
+    const fr = clamp((T - c.t) / (c.end - c.t), 0, 1);
+    return `<div class="rpf-cast ${c.state === 'cut' ? 'cut' : ''}" data-cu="${id}" data-ce="${enemy ? 1 : 0}" data-ct="${c.t}"><span class="rpf-cf" style="width:${fr * 100}%"></span>${iconImg(ab.icon, 18, esc(ab.name), c.aid)}<b>${esc(ab.name)}</b><em>${num(Math.max(0, c.end - T) / 1000, 1)}s</em></div>`;
+  }
+
+  // cada fotograma: solo mueve el relleno y el tiempo de las barras ya dibujadas (sin rehacer el HTML), para que el casteo sea fluido
+  function tickCasts() {
+    const root = $('#rpFrames');
+    if (!root || root.hidden) return;
+    for (const el of root.querySelectorAll('.rpf-cast[data-cu]')) {
+      const id = Number(el.dataset.cu);
+      const c = castAt(id, R.T);
+      const shown = el.dataset.ct ? Number(el.dataset.ct) : null;
+      if (!c || shown == null || c.t !== shown) { // empieza, acaba o cambia el casteo: se redibuja solo esa barra
+        if (!c && shown == null) continue;
+        const tmp = document.createElement('div');
+        tmp.innerHTML = castBar(id, R.T, el.dataset.ce === '1');
+        if (tmp.firstElementChild) el.replaceWith(tmp.firstElementChild);
+        continue;
+      }
+      const f = el.firstElementChild;
+      if (f) f.style.width = `${clamp((R.T - c.t) / (c.end - c.t), 0, 1) * 100}%`;
+      const em = el.lastElementChild;
+      if (em) em.textContent = `${num(Math.max(0, c.end - R.T) / 1000, 1)}s`;
+    }
   }
 
   function renderAuras() {
@@ -1812,10 +1920,10 @@ const Replay = (() => {
     const mineD = wantAuras('friendly', 'Debuffs', pid);
     const dead = deathAt(pid, T);
 
-    const playerHtml = `<div class="rpf rpf-p">${frameAuras(mineB, mineD, T)}
+    const playerHtml = `<div class="rpf rpf-p">${dead ? '<div class="rpf-auras"></div>' : frameAuras(mineB, mineD, T)}
       <div class="rpf-name" style="--cc:${classColor(p.cls)}">${esc(p.name)}</div>
       ${dead ? `<div class="rpf-hp"><b>✕ ${clock(dead.timestamp - R.raw.startTime)}</b></div>` : hpBar(classColor(p.cls), ps.hp, ps.mx)}
-      ${castBar(pid, T)}</div>`;
+      ${castBar(pid, T, false)}</div>`;
 
     let midHtml = '';
     let bossHtml = '';
@@ -1826,7 +1934,8 @@ const Replay = (() => {
       const s = found?.s;
       bossHtml = `<div class="rpf rpf-b">${frameAuras(tb, td, T)}
         <div class="rpf-name boss">${esc(actorName(tid))}</div>
-        ${s ? hpBar('#c1272d', s.hp, s.mx) : '<div class="rpf-hp"><b>—</b></div>'}</div>`;
+        ${s ? hpBar('#c1272d', s.hp, s.mx) : '<div class="rpf-hp"><b>—</b></div>'}
+        ${castBar(tid, T, true)}</div>`;
       // a quién ataca ese objetivo (tanque): marco pequeño con sus perjuicios
       const bt = lastBefore(wantBossTarget(tid), T, 7000);
       if (bt) {
@@ -1835,7 +1944,8 @@ const Replay = (() => {
         const qd = wantAuras('friendly', 'Debuffs', bt.id);
         const qs = R.data.tracks.get(bt.id) ? sample(R.data.tracks.get(bt.id), T) : null;
         midHtml = `<div class="rpf rpf-m">${frameAuras(qb, qd, T)}
-          <div class="rpf-name" style="--cc:${classColor(q.cls)}">${esc(q.name)}</div>${qs ? hpBar(classColor(q.cls), qs.hp, qs.mx) : ''}</div>`;
+          <div class="rpf-name" style="--cc:${classColor(q.cls)}">${esc(q.name)}</div>${qs ? hpBar(classColor(q.cls), qs.hp, qs.mx) : ''}
+          ${castBar(bt.id, T, false)}</div>`;
       }
     }
     const html = playerHtml + midHtml + bossHtml;

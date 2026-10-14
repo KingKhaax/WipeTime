@@ -1753,3 +1753,4 @@ button.dbf-row:hover { background: var(--hover); }
 .rpf-cast b { font-weight: 600; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rpf-cast em { margin-left: auto; padding-right: 6px; font-style: normal; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000; }
 @media (max-width: 900px) { .rpf { width: 170px; } .rpf-m { width: 110px; } .rpf-b { width: 180px; } }
+.rpf-cast.cut .rpf-cf { background: rgba(226, 59, 59, .55); }

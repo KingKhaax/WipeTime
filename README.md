@@ -2,6 +2,12 @@
 
 Programa de Windows para **ver, analizar y comparar logs de World of Warcraft** a partir de un enlace público de [Warcraft Logs](https://www.warcraftlogs.com). Hecho por Drakko · sr.kitkat ♥ · España 🇪🇸
 
+## Web
+
+Usa WipeTime directamente en el navegador, sin instalar nada:
+
+**[https://kingkhaax.github.io/WipeTime/](https://kingkhaax.github.io/WipeTime/)**
+
 ## Qué hace
 
 - **Clasificaciones:** ranking de parses por rol (DPS, tanques y sanadores) de un intento, varios pulls o todos los intentos del jefe, con filtros por clase y orden.
