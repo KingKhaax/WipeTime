@@ -55,8 +55,8 @@ const Patch115 = (() => {
   function kithixMechanics() {
     const boss = typeof MECH_DATA !== 'undefined' ? MECH_DATA.bosses.find((b) => b.slug === 'kithix') : null;
     if (!boss) return '';
-    return h(L('Mecánicas de Kith\'ix (guía propia, sin verificar)', 'Kith\'ix mechanics (own guide, unverified)'))
-      + p(L('Esto no lo ha publicado Blizzard: viene de la guía de mecánicas de WipeTime y puede cambiar cuando el jefe salga.', 'Blizzard has not published this: it comes from WipeTime\'s mechanics guide and may change once the boss is out.'))
+    return h(L('Mecánicas de Kith\'ix', 'Kith\'ix mechanics'))
+      + p(L('Resumen de WipeTime a partir de las guías de Method, wow.gg y Skycoach. Cada habilidad tiene su icono y las dificultades en las que aparece en la pestaña Mecánicas del jefe. Las marcadas «sin verificar» solo las cuenta una guía y pueden cambiar.', 'WipeTime summary built from the Method, wow.gg and Skycoach guides. Each ability has its icon and the difficulties it appears in on the boss\'s Mechanics tab. Those marked «unverified» are only reported by one guide and may change.'))
       + boss.phases.map((ph) => `<h4>${esc(ph.phase)}</h4>${ul(ph.mechanics.map((m) => `<b>${esc(m.name)}</b> — ${esc(m.note)}`))}`).join('');
   }
 
