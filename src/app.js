@@ -1688,6 +1688,7 @@ function renderWelcome() {
             <b>${esc(exp.name)}</b>
             <span class="patch"><small>${t('patchLabel')}</small>${esc(currentPatch())}</span>
             ${typeof Patch115 !== 'undefined' ? Patch115.homeHTML() : ''}
+            ${typeof Patch122 !== 'undefined' ? Patch122.homeHTML() : ''}
           </div>
           <small class="exp-hint" id="expHint"></small>
         </div>

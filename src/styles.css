@@ -1852,3 +1852,17 @@ button.dbf-row:hover { background: var(--hover); }
 .pill-slot, .pill-slot-i { display: inline-block; min-width: 32px; text-align: center; color: var(--dim); }
 .pill-slot:empty::before, .pill-slot-i:empty::before { content: '···'; letter-spacing: 1px; animation: slotPulse 1s ease-in-out infinite; }
 @keyframes slotPulse { 0%, 100% { opacity: .25; } 50% { opacity: .9; } }
+
+/* Parche 12.2 «Próximamente»: botón del inicio y panel con las novedades del avance */
+.pn-btn.pn-soon { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; background: transparent; color: var(--text); border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--line-strong)); box-shadow: none; }
+.pn-btn.pn-soon:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); filter: none; }
+.pn-soon-tag { font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; color: #1b1330; background: linear-gradient(90deg, #b794ff, #7fd4ff); }
+.pn-soon-tag.big { align-self: flex-start; margin: 4px 0 8px; }
+.p22-lead { font-size: 16px; line-height: 1.5; margin: 6px 0 18px; }
+.p22-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.p22-card { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); display: flex; flex-direction: column; }
+.p22-card img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+.p22-txt { padding: 12px 14px 14px; display: grid; gap: 4px; }
+.p22-txt b { font-size: 16px; }
+.p22-txt small { color: var(--accent); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; font-size: 11px; }
+.p22-txt p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
