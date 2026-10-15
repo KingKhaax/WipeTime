@@ -285,7 +285,8 @@ function rankMap(json, field = 'rankPercent') {
   return m;
 }
 
-// Warcraft Logs: en el modo por defecto («Rankings») da rankPercent 0 a los jugadores cuya posición es aproximada («~»,
+// El Parse % sale del modo «Parses» (como la web de Warcraft Logs); el Ilvl % del modo por defecto.
+// Además, en el modo por defecto («Rankings») da rankPercent 0 a los jugadores cuya posición es aproximada («~»,
 // fuera de la lista de ranking), mientras que en el modo «Parses» sí calcula su porcentaje, igual que la web. Se piden los
 // dos y, donde el primero da 0 con posición aproximada, se usa el valor del segundo.
 function mergeRankings(a, b) {
@@ -297,6 +298,9 @@ function mergeRankings(a, b) {
   for (const [k, ro] of Object.entries(fa.roles || {})) {
     roles[k] = { ...ro, characters: (ro.characters || []).map((c) => {
       const p = byName.get(c.name);
+      // El «Parse %» de la web de Warcraft Logs es el del modo «Parses» (el de «Rankings» sale 2-5 puntos más alto en logs recientes);
+      // el «Ilvl %» sí es el bracketPercent del modo por defecto, así que se conserva.
+      if (p && p.rankPercent > 0) return { ...c, rank: p.rank, best: p.best, totalParses: p.totalParses, rankPercent: p.rankPercent, bracketPercent: c.bracketPercent ?? p.bracketPercent, fromParses: true };
       const approx = typeof c.rank === 'string' && c.rank.startsWith('~');
       if (p && (c.rankPercent == null || c.rankPercent === 0) && (approx || c.rank >= c.totalParses) && p.rankPercent > 0) {
         return { ...c, rank: p.rank, best: p.best, totalParses: p.totalParses, rankPercent: p.rankPercent, bracketPercent: p.bracketPercent || c.bracketPercent, fromParses: true };
