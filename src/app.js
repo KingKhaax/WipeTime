@@ -2093,7 +2093,6 @@ $('#profBtn').addEventListener('click', openCharSearch);
 $('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; S.profileOpen = false; Compare.open(); });
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);
-ServerClock.init({ after: $('#brandHome'), lang: () => S.lang, region: () => WCSettings.get('serverRegion') || 'eu', setRegion: (v) => WCSettings.set('serverRegion', v) });
 
 // Menú «Idiomas»: el idioma en uso va resaltado
 function renderLangList() {
