@@ -439,7 +439,7 @@ const Extras2 = (() => {
   const crownSvg = (rank) => `<svg class="crown" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><defs><linearGradient id="cr${rank}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs><path d="M3 18.500 1.800 7.500l5 4L12 4.500l5.200 7 5-4L21 18.500z" fill="${CROWNS[rank - 1]}" stroke="#00000066" stroke-width="1" stroke-linejoin="round"/><path d="M3 18.500 1.800 7.500l5 4L12 4.500l5.200 7 5-4L21 18.500z" fill="url(#cr${rank})" opacity=".3"/><path d="M3.500 20.500h17" stroke="${CROWNS[rank - 1]}" stroke-width="2.200" stroke-linecap="round"/><circle cx="12" cy="4.200" r="1.500" fill="${CROWNS[rank - 1]}"/><circle cx="1.800" cy="7" r="1.200" fill="${CROWNS[rank - 1]}"/><circle cx="22.200" cy="7" r="1.200" fill="${CROWNS[rank - 1]}"/></svg>`;
 
   function nightTopsData() {
-    return cached(`nighttops:v3:${S.code}`, async () => {
+    return cached(`nighttops:v4:${S.code}`, async () => {
       const fights = S.fights.filter((x) => x.encounterID && !x.keystoneLevel);
       const agg = new Map(); // id -> { id, icon, dmg, durD, heal, durH }
       const rec = (e) => {
@@ -481,6 +481,7 @@ const Extras2 = (() => {
       const spec = (r) => (r.icon || '').split('-')[1] || '';
       return {
         pulls: fights.length,
+        roster: all.map((r) => ({ id: r.id, icon: r.icon })),
         dps: all.filter((r) => r.dmg > 0 && !HEAL_SPECS.has(spec(r)) && !TANK_SPECS.has(spec(r))).map((r) => ({ id: r.id, icon: r.icon, v: r.dmg / r.durD })).sort((a, b) => b.v - a.v).slice(0, 5),
         heal: all.filter((r) => HEAL_SPECS.has(spec(r)) && r.heal > 0).map((r) => ({ id: r.id, icon: r.icon, v: r.heal / r.durH })).sort((a, b) => b.v - a.v).slice(0, 3),
         ints: [...ints.entries()].map(([id, n]) => ({ id, icon: agg.get(id)?.icon || playerInfo(id).icon, v: n })).sort((a, b) => b.v - a.v).slice(0, 5),
@@ -488,6 +489,80 @@ const Extras2 = (() => {
         died: [...deaths.entries()].map(([id, n]) => ({ id, icon: agg.get(id)?.icon || playerInfo(id).icon, v: n })).sort((a, b) => b.v - a.v).slice(0, 5),
       };
     });
+  }
+
+
+  // ---- Chivato: pociones de salud y piedras de salud que ha usado cada jugador en todos los intentos de boss de la noche
+  const HEALTH_POT_RE = /(health|healing)\s+potion|potion\s+of\s+(health|healing)|poci[oó]n\s+de\s+(salud|sanaci[oó]n|curaci[oó]n)|poci[oó]n\s+(curativa|sanadora)/i;
+  const STONE_RE = /health\s*stone|piedra\s+de\s+salud/i;
+  const STONE_IDS = [6262, 5512, 452930];
+
+  function chivatoData() {
+    return cached(`chivato:v1:${S.code}`, async () => {
+      const fights = S.fights.filter((x) => x.encounterID && !x.keystoneLevel);
+      const pots = new Set();
+      const stones = new Set(STONE_IDS);
+      for (const [id, a] of S.abilities) {
+        if (!a || !a.name) continue;
+        if (STONE_RE.test(a.name)) stones.add(id);
+        else if (HEALTH_POT_RE.test(a.name)) pots.add(id);
+      }
+      const per = new Map(); // id jugador -> { pot, stone }
+      if (!fights.length) return { per, pulls: 0 };
+      const ids = [...pots, ...stones];
+      const fightIDs = fights.map((x) => x.id);
+      const end = Math.max(...fights.map((x) => x.endTime));
+      let start = Math.min(...fights.map((x) => x.startTime));
+      for (let page = 0; page < 40; page++) {
+        const d = await gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){
+          events(fightIDs:$f,startTime:$s,endTime:$e,dataType:Casts,limit:10000,filterExpression:"ability.id in (${ids.join(',')})"){data nextPageTimestamp}}}}`,
+        { code: S.code, f: fightIDs, s: start, e: end });
+        const ev = d.reportData.report.events;
+        for (const e of ev?.data || []) {
+          if (e.type !== 'cast' || e.fake || !isPlayer(e.sourceID)) continue;
+          if (!per.has(e.sourceID)) per.set(e.sourceID, { pot: 0, stone: 0 });
+          const u = per.get(e.sourceID);
+          if (stones.has(e.abilityGameID)) u.stone++; else u.pot++;
+        }
+        if (!ev?.nextPageTimestamp || ev.nextPageTimestamp <= start) break;
+        start = ev.nextPageTimestamp;
+      }
+      return { per, pulls: fights.length };
+    });
+  }
+
+  async function fillChivato(seq) {
+    const box = document.getElementById('nightChivato');
+    if (!box) return;
+    try {
+      const [tops, c] = await Promise.all([nightTopsData(), chivatoData()]);
+      if (seq !== S.seq || !document.getElementById('nightChivato')) return;
+      const icons = new Map(tops.roster.map((r) => [r.id, r.icon]));
+      const ids = new Set([...icons.keys(), ...c.per.keys()]);
+      const rows = [...ids].map((id) => {
+        const u = c.per.get(id) || { pot: 0, stone: 0 };
+        const p = playerInfo(id);
+        return { id, name: p.name, cls: p.cls, icon: icons.get(id) || p.icon, pot: u.pot, stone: u.stone };
+      }).sort((a, b) => (b.pot + b.stone) - (a.pot + a.stone) || a.name.localeCompare(b.name));
+      const totPot = rows.reduce((s, r) => s + r.pot, 0);
+      const totStone = rows.reduce((s, r) => s + r.stone, 0);
+      const cell = (n) => (n ? '<b>' + n + '</b>' : '<span class="muted">0</span>');
+      const body = rows.map((r) => {
+        const color = classColor(r.cls);
+        const ic = r.icon && r.icon.includes('-') ? specIconUrl(esc(r.icon)) : classIconUrl(r.cls);
+        return '<div class="chv-row ' + (isMe(r.name) ? 'me' : '') + '"><span class="who"><img class="spec-ic-sm" src="' + ic + '" width="22" height="22" alt="" style="--cc:' + color + '"><b style="color:' + color + '">' + esc(r.name) + '</b></span><span class="r">' + cell(r.pot) + '</span><span class="r">' + cell(r.stone) + '</span></div>';
+      }).join('');
+      const sub = LL('Pociones de salud y piedras de salud que ha usado cada jugador en ' + c.pulls + ' intentos', 'Health potions and healthstones each player used over ' + c.pulls + ' pulls');
+      box.innerHTML = '<div class="chv">'
+        + '<div class="chv-h"><h3>' + LL('Chivato', 'Snitch') + '</h3><small class="muted">' + sub + '</small></div>'
+        + '<div class="chv-row th"><span>' + LL('Jugador', 'Player') + '</span><span class="r">' + LL('Pociones de salud', 'Health potions') + '</span><span class="r">' + LL('Piedras de salud', 'Healthstones') + '</span></div>'
+        + body
+        + '<div class="chv-row tot"><span>' + LL('Total', 'Total') + '</span><span class="r"><b>' + totPot + '</b></span><span class="r"><b>' + totStone + '</b></span></div>'
+        + '</div>';
+    } catch (e) {
+      console.warn('chivato', e);
+      if (seq === S.seq && document.getElementById('nightChivato')) box.innerHTML = errorHTML(friendlyError(e));
+    }
   }
 
   function topCard(title, sub, rows, fmt) {
@@ -539,10 +614,11 @@ const Extras2 = (() => {
         <div class="nc-bar"><i style="width:${g.kills ? 100 : 100 - p}%"></i></div>
         <div class="nc-m"><span>${g.list.length} ${g.list.length === 1 ? LL('intento', 'pull') : LL('intentos', 'pulls')}${wipes ? ` · ${wipes} wipes` : ''}</span><span>${LL('Tiempo', 'Time')}: ${clock(g.time)}</span><button class="mini-btn" data-action="fight" data-id="${g.best.id}">${g.kills ? LL('Ver', 'View') : LL('Ver mejor try', 'View best try')} ${esc(fightLabel(g.best))}</button></div></div>`;
     }).join('');
-    S.post = async (seq) => { window._nightText = nightText(rows, r); fillNightTops(seq); };
+    S.post = async (seq) => { window._nightText = nightText(rows, r); fillNightTops(seq); fillChivato(seq); };
     return headerHTML(f, t('tabs.night'), `${esc(r.title)} · ${new Date(r.startTime).toLocaleDateString(locale())}`)
       + `<div class="ov-tiles">${tiles}</div>
       <div class="night-tops" id="nightTops"><div class="loading"><span class="spinner"></span>${LL('Calculando los rankings de la noche…', 'Computing the night rankings…')}</div></div>
+      <div id="nightChivato"><div class="loading"><span class="spinner"></span>${LL('Contando pociones y piedras de salud…', 'Counting health potions and healthstones…')}</div></div>
       <div class="night-grid">${cards}</div>
       <div class="set-actions"><button class="btn" data-action="night-copy">${LL('Copiar informe para Discord', 'Copy report for Discord')}</button><button class="btn" data-action="night-png">${LL('Guardar como imagen', 'Save as image')}</button></div>`;
   }

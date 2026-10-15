@@ -15,6 +15,7 @@ Usa WipeTime directamente en el navegador, sin instalar nada:
 ## Qué hace
 
 - **Clasificaciones:** ranking de parses por rol (DPS, tanques y sanadores) de un intento, varios pulls o todos los intentos del jefe, con filtros por clase y orden.
+- **Chivato** (en el Informe general): pociones de salud y piedras de salud que ha usado cada jugador en la noche, por separado y con el total.
 - **Informe general y Resumen:** top de la noche, equipo, talentos, encantamientos y consumibles de cada jugador.
 - **Daño, sanación, muertes, defensivos, buffos, prepoti y piedra de salud.**
 - **Mecánicas:** guía de cada jefe con iconos y dificultades, y análisis del daño evitable.

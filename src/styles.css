@@ -1996,3 +1996,15 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .load input { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
 .ver-badge { padding: 7px 12px; }
 @media (max-width: 1100px) { .topbar .home-btn { padding: 8px 10px; } }
+
+/* Informe general → Chivato: pociones de salud y piedras de salud de cada jugador */
+.chv { margin: 18px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.chv-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.chv-h h3 { margin: 0; font-size: 17px; letter-spacing: 0; text-transform: none; color: var(--title, var(--text)); }
+.chv-row { display: grid; grid-template-columns: minmax(160px, 1fr) 150px 150px; gap: 10px; align-items: center; padding: 7px 16px; border-top: 1px solid var(--line-soft, var(--line)); }
+.chv-row.th { border-top: 0; background: var(--head, var(--panel-2)); color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .8px; }
+.chv-row.me { background: var(--me-bg, transparent); }
+.chv-row.tot { background: var(--panel-2); font-weight: 700; border-top: 1px solid var(--line); }
+.chv-row .r { text-align: right; font-variant-numeric: tabular-nums; }
+.chv-row .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+@media (max-width: 640px) { .chv-row { grid-template-columns: minmax(110px, 1fr) 90px 90px; padding: 7px 10px; } }
