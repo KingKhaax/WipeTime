@@ -1210,11 +1210,11 @@ img.ai { box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), 0 0 0 2px rgba(47, 183, 192, .
 .gd-res-t small { color: var(--muted); }
 .gd-reg { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--gold-soft); border: 1px solid var(--gold-line); }
 
-.cc-wrap { position: relative; }
-.cc-wrap .cc { height: 100%; padding-right: 76px; }
+.char-wrap { position: relative; }
+.char-wrap .cc { height: 100%; padding-right: 76px; }
 .cc-act { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
 .cc-act button { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-deep); color: var(--muted); cursor: pointer; opacity: .55; transition: opacity .15s, color .15s, border-color .15s; }
-.cc-wrap:hover .cc-act button, .cc-act button.on { opacity: 1; }
+.char-wrap:hover .cc-act button, .cc-act button.on { opacity: 1; }
 .cc-act button.on { color: #ffc933; border-color: rgba(255, 201, 51, .5); }
 .cc-act button:hover { color: var(--title); border-color: var(--gold-line); }
 .cc-act button[data-gd="hide"]:hover { color: #ff8a8a; border-color: rgba(255, 93, 93, .5); }
@@ -1386,7 +1386,7 @@ img.role-ic { border-radius: 7px; }
 .lang-item.on .lang-dot { background: var(--lang-on, #34d399); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lang-on, #34d399) 30%, transparent); }
 
 /* Armería desplegable de tus personajes */
-.cc-wrap.open .cc { border-color: var(--accent); }
+.char-wrap.open .cc { border-color: var(--accent); }
 .cc-grid > .arm { grid-column: 1 / -1; }
 .arm { padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--accent); }
 .arm-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -2080,3 +2080,36 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 }
 .btn.ghost.cmp-cta img.wi { vertical-align: middle; margin-right: 4px; }
 @media (prefers-reduced-motion: reduce) { .btn.ghost.cmp-cta:hover { transform: none; } }
+
+/* ---------- Tarjetas de personaje (Guilds): marco con el color de la clase y brillo del color del programa al pasar el ratón ---------- */
+.char-wrap { position: relative; border-radius: 16px; transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.char-wrap .cc {
+  position: relative; overflow: hidden; align-items: center; gap: 16px; height: 100%; padding: 14px 84px 14px 14px; border-radius: 16px;
+  border: 1px solid var(--line); border-left: 3px solid var(--cc, var(--line-strong));
+  background: linear-gradient(120deg, color-mix(in srgb, var(--cc, var(--accent)) 14%, var(--panel)) 0%, var(--panel) 62%);
+  transition: border-color .22s, box-shadow .22s, background .22s;
+}
+.char-wrap .cc::before { /* brillo del color del programa */
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s;
+  background: radial-gradient(circle at 12% 50%, color-mix(in srgb, var(--gold, var(--accent)) 28%, transparent), transparent 62%);
+}
+.char-wrap .cc::after { /* destello que cruza la tarjeta */
+  content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--gold-soft, #fff) 22%, transparent), transparent); transform: skewX(-18deg);
+}
+.char-wrap:hover { transform: translateY(-3px); }
+.char-wrap:hover .cc {
+  border-color: var(--gold, var(--accent)); border-left-color: var(--cc, var(--gold, var(--accent)));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .38), 0 0 0 1px var(--gold-line, rgba(47, 183, 192, .32)), 0 0 26px -8px var(--gold, var(--accent));
+}
+.char-wrap:hover .cc::before { opacity: 1; }
+.char-wrap:hover .cc::after { opacity: 1; left: 130%; transition: left .75s ease, opacity .2s; }
+.char-wrap.open .cc { border-color: var(--gold, var(--accent)); }
+.char-wrap .cc-pic { --sz: 78px; border-radius: 14px; border: 2px solid color-mix(in srgb, var(--cc, #3a4a6e) 70%, #000); box-shadow: 0 6px 16px rgba(0, 0, 0, .45); transition: transform .22s, box-shadow .22s; }
+.char-wrap:hover .cc-pic { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0, 0, 0, .5), 0 0 0 2px color-mix(in srgb, var(--cc, var(--accent)) 55%, transparent); }
+.char-wrap .cc-lvl { border-top-right-radius: 10px; font-size: 14px; }
+.char-wrap .cc > .cc-txt { position: relative; z-index: 1; min-width: 0; display: grid; gap: 2px; }
+.char-wrap .cc-name { font-size: 21px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.char-wrap .cc-guild { margin: 0; font-size: 13.5px; line-height: 1.3; }
+.char-wrap .cc-class { margin: 2px 0 0; font-size: 14px; line-height: 1.25; }
+.char-wrap .cc-act { z-index: 2; top: 10px; right: 10px; }

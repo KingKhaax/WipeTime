@@ -263,7 +263,7 @@ const Guilds = (() => {
     const wrap = (c, canHide) => {
       const k = charKey(c);
       const pick = `data-gd="armory" data-key="${esc(k)}" data-realm="${esc(c.realmSlug)}" data-name="${esc(c.name)}" data-region="${esc(c.region || '')}"`;
-      return `<div class="cc-wrap ${st.armory?.key === k ? 'open' : ''}">${Cards.charCardHTML(c, { onClick: pick })}<div class="cc-act">
+      return `<div class="char-wrap ${st.armory?.key === k ? 'open' : ''}">${Cards.charCardHTML(c, { onClick: pick })}<div class="cc-act">
         <button type="button" class="${favs.has(k) ? 'on' : ''}" data-gd="fav" data-key="${esc(k)}" title="${esc(favs.has(k) ? LL('Quitar de favoritos', 'Remove from favorites') : LL('Añadir a favoritos', 'Add to favorites'))}" aria-label="${esc(LL('Favorito', 'Favorite'))}">${ICON_STAR(favs.has(k))}</button>
         ${canHide ? `<button type="button" data-gd="${c.manual ? 'delchar' : 'hide'}" data-key="${esc(k)}" title="${esc(LL('Quitar de la lista', 'Remove from the list'))}" aria-label="${esc(LL('Quitar', 'Remove'))}">${ICON_X}</button>` : ''}</div></div>${armoryHTML(c)}`;
     };

@@ -34,7 +34,7 @@ const Cards = (() => {
   function charCardHTML(c, { onClick = '' } = {}) {
     const cls = CLASS_KEY[c.classId] || '';
     const color = classColor(cls);
-    return `<div class="cc ${onClick ? 'click' : ''}" ${onClick}>${portraitHTML(c)}
+    return `<div class="cc ${onClick ? 'click' : ''}" style="--cc:${color}" ${onClick}>${portraitHTML(c)}
       <div class="cc-txt"><div class="cc-name">${esc(c.name)}</div>
         <div class="cc-guild">${c.guild ? `<span style="color:${FACTION[c.guild.faction] || FACTION[c.faction] || 'var(--muted)'}">${esc(c.guild.name)}</span> - ` : ''}<span class="muted">${esc(c.realmName || c.realmSlug)} (${esc(String(c.region || '').toUpperCase())})</span></div>
         <div class="cc-class" style="color:${color}">${esc([c.race, c.cls].filter(Boolean).join(' '))}</div></div></div>`;

@@ -8,6 +8,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['1.1.1', 'Guilds: las tarjetas de personaje se ven mejor (se arreglaba un estilo que las deformaba): marco con el color de la clase, retrato más grande y, al pasar el ratón, se elevan con brillo y destello del color del programa.', 'Guilds: character cards look better (a style that deformed them is fixed): class-colored frame, bigger portrait and, on hover, they lift with a glow and sweep in the program color.'],
     ['1.1.0', 'Guilds: nuevo formulario «Añadir una guild» (nombre, reino y región), igual que el de personajes. Se comprueba que la guild exista en Warcraft Logs y se guarda en «Tus guilds».', 'Guilds: new «Add a guild» form (name, realm and region), like the characters one. The guild is checked against Warcraft Logs and saved under «Your guilds».'],
     ['1.0.16', 'Daño recibido de un jugador: al pasar el ratón por la barra de una fuente (jefe, add, entorno) aparece un tooltip con las habilidades que le hicieron daño, cada una con su icono.', 'Damage taken by a player: hovering a source bar (boss, add, environment) shows a tooltip with the abilities that hit them, each with its icon.'],
     ['1.0.15', 'Ficha del jugador: se quita la pestaña «Analizar» de la barra de pestañas, porque ya está el botón «Analizar» más arriba.', 'Player page: the «Analyze» tab is removed from the tab bar, since the «Analyze» button is already above it.'],
