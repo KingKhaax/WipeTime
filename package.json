@@ -10,7 +10,7 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win nsis portable",
-    "test": "node --test \"tests/*.test.mjs\""
+    "test": "node --test"
   },
   "devDependencies": {
     "electron": "^38.0.0",
