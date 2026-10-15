@@ -1832,3 +1832,23 @@ button.dbf-row:hover { background: var(--hover); }
 .wl-muted { color: var(--muted); }
 .wl-guild { font-weight: 600; }
 .wl-tabs { margin: 22px 0 4px; }
+
+/* Ventanas estrechas: la cabecera se encoge (botones solo con icono) y el contenido hace scroll por su cuenta */
+.topbar { min-width: 0; }
+.load { min-width: 120px; flex: 1 1 160px; }
+.load input { min-width: 0; }
+.main { min-width: 0; overflow-x: auto; }
+.top-actions { flex: none; }
+@media (max-width: 1320px) {
+  .topbar { gap: 8px; padding-left: 12px; padding-right: 12px; }
+  .topbar .home-btn > span { display: none; }
+  .topbar .home-btn { padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 1100px) { .topbar .brand { font-size: 0; gap: 0; } .topbar .brand .brand-logo { margin: 0; } }
+.ranked { overflow-x: auto; }
+.ranked > .row { min-width: 760px; }
+
+/* Parses estimados: mientras se calculan, el hueco muestra puntos que laten */
+.pill-slot, .pill-slot-i { display: inline-block; min-width: 32px; text-align: center; color: var(--dim); }
+.pill-slot:empty::before, .pill-slot-i:empty::before { content: '···'; letter-spacing: 1px; animation: slotPulse 1s ease-in-out infinite; }
+@keyframes slotPulse { 0%, 100% { opacity: .25; } 50% { opacity: .9; } }

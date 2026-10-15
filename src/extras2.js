@@ -320,19 +320,36 @@ const Extras2 = (() => {
     return [...others].sort((a, b) => progressOf(a) - progressOf(b) || (a.kill && b.kill ? fightDur(a) - fightDur(b) : fightDur(b) - fightDur(a)))[0];
   }
 
+  function prevOther(f) {
+    return groupOf(f).filter((x) => x.id !== f.id && x.startTime < f.startTime).sort((a, b) => b.startTime - a.startTime)[0] || null;
+  }
+
   async function snapshot(x) {
     const w = fw(x);
     const [d, deaths] = await Promise.all([fightData(w), Extras.deathTimes(w).catch(() => [])]);
     const dur = fightDur(w) / 1000;
     const per = new Map();
     for (const e of d.dmg.filter((e) => isPlayer(e.id, e))) per.set(e.id, { id: e.id, dmg: e.total, rate: e.total / dur, cls: e.type, icon: e.icon, name: e.name });
-    return { x, dur, deaths, per, taken: d.taken.filter((e) => isPlayer(e.id, e)).reduce((s, e) => s + e.total, 0), dps: [...per.values()].reduce((s, e) => s + e.rate, 0) };
+    const heal = new Map(d.heal.filter((e) => isPlayer(e.id, e) && e.total > 0).map((e) => [e.id, { id: e.id, rate: e.total / dur, cls: e.type, icon: e.icon, name: e.name }]));
+    return { x, dur, deaths, per, heal, taken: d.taken.filter((e) => isPlayer(e.id, e)).reduce((s, e) => s + e.total, 0), dps: [...per.values()].reduce((s, e) => s + e.rate, 0) };
   }
+
+  function cmpBarHTML() {
+    const chip = (k, label) => `<button class="chip ${(S.cmpMode || 'best') === k ? 'on' : ''}" data-action="cmp-mode" data-m="${k}">${label}</button>`;
+    return `<div class="metricbar"><span class="muted">${LL('Comparar con', 'Compare with')}</span>${chip('best', LL('Tu mejor intento', 'Your best attempt'))}${chip('prev', LL('Intento anterior', 'Previous attempt'))}</div>`;
+  }
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest?.('[data-action="cmp-mode"]');
+    if (!b) return;
+    S.cmpMode = b.dataset.m;
+    render();
+  });
 
   async function viewBestCmp(f) {
     const cur = S.fight;
-    const best = bestOther(cur);
-    if (!best) return headerHTML(f, t('tabs.bestcmp')) + `<div class="empty">${LL('Este es el único intento de este jefe en el reporte.', 'This is the only attempt at this boss in the report.')}</div>`;
+    const prevMode = S.cmpMode === 'prev';
+    const best = prevMode ? prevOther(cur) : bestOther(cur);
+    if (!best) return headerHTML(f, t('tabs.bestcmp')) + `${cmpBarHTML()}<div class="empty">${prevMode ? LL('Este es el primer intento de este jefe en el reporte: no hay uno anterior.', 'This is the first attempt at this boss in the report: there is no previous one.') : LL('Este es el único intento de este jefe en el reporte.', 'This is the only attempt at this boss in the report.')}</div>`;
     const [A, B] = await Promise.all([snapshot(cur), snapshot(best)]);
     const delta = (a, b, fmt, goodHigh = true) => {
       const diff = a - b;
@@ -341,7 +358,7 @@ const Extras2 = (() => {
     };
     const hp = (x) => (x.kill ? LL('Kill', 'Kill') : `${num(pctOf(x.fightPercentage ?? x.bossPercentage) ?? 0, 1)} %`);
     const rowT = (label, a, b, d) => `<div class="bc-row"><span>${label}</span><b>${a}</b><b>${b}</b><span>${d}</span></div>`;
-    const head = `<div class="bc-row th"><span></span><span>${esc(fightLabel(cur))}<small>${LL('actual', 'current')}</small></span><span>${esc(fightLabel(best))}<small>${LL('tu mejor', 'your best')}</small></span><span>${LL('Diferencia', 'Difference')}</span></div>`;
+    const head = `<div class="bc-row th"><span></span><span>${esc(fightLabel(cur))}<small>${LL('actual', 'current')}</small></span><span>${esc(fightLabel(best))}<small>${prevMode ? LL('anterior', 'previous') : LL('tu mejor', 'your best')}</small></span><span>${LL('Diferencia', 'Difference')}</span></div>`;
     const summary = head
       + rowT(LL('Resultado', 'Result'), hp(cur), hp(best), '')
       + rowT(LL('Duración', 'Duration'), clock(fightDur(cur)), clock(fightDur(best)), delta(A.dur, B.dur, (v) => clock(v * 1000), false))
@@ -356,8 +373,15 @@ const Extras2 = (() => {
       const pi = playerInfo(id, a || b);
       return { pi, a, b, diff: (a?.rate || 0) - (b?.rate || 0) };
     }).sort((x, y) => (y.a?.rate || 0) - (x.a?.rate || 0));
-    const players = prow.map((r) => `<div class="bc-row ${isMe(r.pi.name) ? 'me' : ''}"><span class="who"><span class="dot" style="background:${classColor(r.pi.cls)}"></span><b style="color:${classColor(r.pi.cls)}">${esc(r.pi.name)}</b></span>
+    const players = prow.map((r) => `<div class="bc-row ${isMe(r.pi.name) ? 'me' : ''}"><span class="who">${r.pi.icon && r.pi.icon.includes('-') ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.pi.icon))}" width="22" height="22" alt="" style="--cc:${classColor(r.pi.cls)}">` : `<span class="dot" style="background:${classColor(r.pi.cls)}"></span>`}<b style="color:${classColor(r.pi.cls)}">${esc(r.pi.name)}</b></span>
       <b>${r.a ? plain(r.a.rate) : '—'}</b><b>${r.b ? plain(r.b.rate) : '—'}</b>${r.a && r.b ? delta(r.a.rate, r.b.rate, (v) => plain(v)) : '<span></span>'}</div>`).join('');
+    // sanación por sanador
+    const hIds = [...new Set([...A.heal.keys(), ...B.heal.keys()])].filter((id) => HEALER_SPECS.has(playerInfo(id, A.heal.get(id) || B.heal.get(id)).spec));
+    const healRows = hIds.map((id) => ({ id, a: A.heal.get(id), b: B.heal.get(id) })).sort((x, y) => (y.a?.rate || 0) - (x.a?.rate || 0)).map((r) => {
+      const pi = playerInfo(r.id, r.a || r.b);
+      return `<div class="bc-row ${isMe(pi.name) ? 'me' : ''}"><span class="who">${pi.icon && pi.icon.includes('-') ? `<img class="spec-ic-sm" src="${specIconUrl(esc(pi.icon))}" width="22" height="22" alt="" style="--cc:${classColor(pi.cls)}">` : ''}<b style="color:${classColor(pi.cls)}">${esc(pi.name)}</b></span>
+        <b>${r.a ? plain(r.a.rate) : '—'}</b><b>${r.b ? plain(r.b.rate) : '—'}</b>${r.a && r.b ? delta(r.a.rate, r.b.rate, (v) => plain(v)) : '<span></span>'}</div>`;
+    }).join('');
     // muertes lado a lado
     const dcol = (S2) => (S2.deaths.length ? S2.deaths.slice(0, 15).map((d) => { const pi = playerInfo(d.targetID); return `<div><b style="color:${classColor(pi.cls)}">${esc(pi.name)}</b> <span class="muted">${clock(d.timestamp - S2.x.startTime)}</span></div>`; }).join('') : `<div class="muted">${LL('Sin muertes', 'No deaths')}</div>`);
     const deaths = `<div class="bc-deaths"><div><h4>${esc(fightLabel(cur))}</h4>${dcol(A)}</div><div><h4>${esc(fightLabel(best))}</h4>${dcol(B)}</div></div>`;
@@ -375,9 +399,10 @@ const Extras2 = (() => {
         return `<div class="bc-row"><span class="ab" data-spell="${x.id}">${iconImg(ab.icon, 20)}${esc(ab.name)}</span><b>${x.a}</b><b>${x.b}</b>${delta(x.a, x.b, (v) => v)}</div>`;
       }).join('')}</div>`;
     }
-    return headerHTML(f, t('tabs.bestcmp'), LL(`Comparado con tu mejor intento: <b>${esc(fightLabel(best))}</b>`, `Compared with your best attempt: <b>${esc(fightLabel(best))}</b>`))
-      + `<div class="bc-table">${summary}</div>
+    return headerHTML(f, t('tabs.bestcmp'), prevMode ? LL(`Comparado con el intento anterior: <b>${esc(fightLabel(best))}</b>`, `Compared with the previous attempt: <b>${esc(fightLabel(best))}</b>`) : LL(`Comparado con tu mejor intento: <b>${esc(fightLabel(best))}</b>`, `Compared with your best attempt: <b>${esc(fightLabel(best))}</b>`))
+      + cmpBarHTML() + `<div class="bc-table">${summary}</div>
         <h3 class="sec">${LL('DPS por jugador', 'DPS per player')}</h3><div class="bc-table">${players}</div>
+        ${healRows ? `<h3 class="sec">${LL('HPS por sanador', 'HPS per healer')}</h3><div class="bc-table">${healRows}</div>` : ''}
         <h3 class="sec">${LL('Muertes lado a lado', 'Deaths side by side')}</h3>${deaths}${rot}
         <p class="foot">${LL('Tu mejor intento es el kill más rápido o, si no hay kill, el wipe con menos vida del jefe.', 'Your best attempt is the fastest kill or, with no kill, the wipe with the lowest boss health.')}</p>`;
   }

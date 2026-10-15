@@ -1,0 +1,22 @@
+# Pruebas automáticas (sintaxis, datos, iconos, mecánicas e idiomas). Se lanzan en cada subida a main y en las propuestas de cambios.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'tools/**', 'tests/**', 'main.js', 'preload.js', '.github/workflows/tests.yml']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test "tests/*.test.mjs"

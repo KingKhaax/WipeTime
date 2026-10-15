@@ -413,6 +413,7 @@ async function estimateParses(f, rows, metric, mode = S.parseMode) {
   const dur = fightDur(f) / 1000;
   const bySpec = new Map();
   const brackets = mode === 'ilvl' ? await zoneBrackets(f.encounterID) : null;
+  if (mode === 'ilvl' && !brackets) return out; // sin tramos de nivel de objeto para este jefe: no se inventa un «Ilvl %»
   for (const r of rows) {
     if (!/^[A-Za-z]+$/.test(r.cls || '') || !/^[A-Za-z]+$/.test(r.spec || '')) continue;
     r.bracket = bracketIndex(brackets, r.ilvl);
@@ -817,6 +818,7 @@ function rangeBar(f) {
       <span class="muted">${t('rangeTo')}</span><input name="to" placeholder="1:10" value="${to}" spellcheck="false">
       <button class="btn sm" type="submit">${t('apply')}</button>
     </form>
+    <button class="chip" data-action="copy-summary" title="${esc(LL('Copia un resumen de este intento (resultado, motivo del wipe, primeras muertes, mejores números) listo para pegar en Discord', 'Copies a summary of this attempt (result, wipe cause, first deaths, top numbers) ready to paste into Discord'))}">📋 ${LL('Copiar resumen', 'Copy summary')}</button>
   </div>`;
 }
 
@@ -1158,6 +1160,39 @@ function wipeCauseText(w) {
   if (w.kind === 'mixed') return LL(`Varias habilidades a la vez: ${nm(w.causes[0])} y ${nm(w.causes[1])}`, `Several abilities at once: ${nm(w.causes[0])} and ${nm(w.causes[1])}`);
   if (w.kind === 'attrition') return LL('Desgaste: fueron muriendo jugadores durante la pelea', 'Attrition: players kept dying through the fight');
   return LL(`Muerte masiva por varias causas, sobre todo ${nm(w.causes[0])}`, `Mass death from several causes, mostly ${nm(w.causes[0])}`);
+}
+
+/** Resumen corto del intento para pegar en Discord: resultado, motivo del wipe, primeras muertes y mejores números. */
+async function pullSummaryText(raw) {
+  const w = { ...raw, fightStart: raw.startTime, fightEnd: raw.endTime, full: true, key: `${raw.id}:${raw.startTime}-${raw.endTime}`, rangeLabel: '' };
+  const [d, deaths] = await Promise.all([fightData(w), deathsData(w).catch(() => [])]);
+  const dur = fightDur(w) / 1000;
+  const txt = (h) => String(h || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&#39;/g, "'");
+  const players = d.dmg.filter((e) => isPlayer(e.id, e));
+  const topList = (list, n = 3) => list.slice(0, n).map((e) => `${e.name} ${plain(e.total / dur)}`).join(' · ');
+  const dps = [...players].filter((e) => e.total > 0).sort((a, b) => b.total - a.total);
+  const hps = d.heal.filter((e) => isPlayer(e.id, e) && e.total > 0 && HEALER_SPECS.has(playerInfo(e.id, e).spec)).sort((a, b) => b.total - a.total);
+  const diff = raw.encounterID ? diffName(raw.difficulty) : '';
+  const head = `**${raw.name}**${diff ? ` (${diff})` : ''} · ${txt(fightLabel(raw))}${raw.kill ? '' : ` · ${clock(fightDur(raw))}`}`;
+  const lines = [head];
+  const ds = [...deaths].sort((a, b) => a.timestamp - b.timestamp);
+  const first = ds.slice(0, 3).map((x) => {
+    const pi = playerInfo(x.targetID);
+    const ab = x.abilityId ? ` (${ability(x.abilityId).name})` : '';
+    return `${pi.name} ${clock(x.timestamp - w.fightStart)}${ab}`;
+  });
+  if (raw.kill) {
+    lines.push(LL(`✅ **Kill** · ${ds.length} ${ds.length === 1 ? 'muerte' : 'muertes'}`, `✅ **Kill** · ${ds.length} ${ds.length === 1 ? 'death' : 'deaths'}`));
+  } else {
+    const wa = wipeAnalysis(w, deaths, Math.max(players.length, 1));
+    lines.push(LL('❌ **Wipe**', '❌ **Wipe**') + (wa ? ` · ${txt(wipeCauseText(wa))} (${clock(wa.rel)}, ${wa.n}/${wa.raid})` : ''));
+    if (wa?.dmg?.length) lines.push(LL('Daño justo antes: ', 'Damage just before: ') + wa.dmg.slice(0, 3).map((c) => `${ability(c.abilityId).name} ${plain(c.total)}`).join(' · '));
+  }
+  if (first.length) lines.push(LL('Primeros en caer: ', 'First to fall: ') + first.join(', '));
+  if (dps.length) lines.push(`DPS: ${topList(dps)}`);
+  if (hps.length) lines.push(`HPS: ${topList(hps)}`);
+  lines.push(`https://www.warcraftlogs.com/reports/${S.code}#fight=${raw.id}`);
+  return lines.join(String.fromCharCode(10));
 }
 
 function wipeCardHTML(w) {
@@ -1811,6 +1846,15 @@ document.addEventListener('click', async (ev) => {
       S.debuffId = Number(el.dataset.id);
       render();
       break;
+    case 'copy-summary': {
+      if (!S.fight) break;
+      try {
+        const text = await pullSummaryText(S.fight);
+        await navigator.clipboard.writeText(text);
+        toast(LL('Resumen copiado: ya puedes pegarlo en Discord', 'Summary copied: you can paste it into Discord now'));
+      } catch (e) { console.warn('summary', e); toast(LL('No se pudo copiar el resumen', 'Could not copy the summary')); }
+      break;
+    }
     case 'export-img':
       await exportRankedImage(el.dataset.m);
       break;

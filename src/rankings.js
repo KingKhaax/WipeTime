@@ -92,6 +92,102 @@
   const ilvlFmt = (v) => (v == null ? '–' : Number.isInteger(v) ? String(v) : num(v, 1));
   const guildColor = (g) => (g?.faction === 1 ? '#e5484d' : '#4da3ff');
 
+  // ---------------------------------------------------------------- exportar la clasificación como imagen (copiar o guardar PNG)
+  let lastWcl = null;
+
+  function exportWcl(mode) {
+    const D = lastWcl;
+    if (!D) return toast(LL('No hay nada que exportar', 'Nothing to export'));
+    const W = 1180, pad = 24, scale = 2, rowH = 32, headH = 30;
+    const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    // alto total
+    const secs = D.sections;
+    let H = 112 + pad;
+    for (const s of secs) H += 34 + headH + s.rows.length * rowH + 14;
+    const draw = (withIcons) => new Promise((resolve) => {
+      const cv = document.createElement('canvas');
+      cv.width = W * scale; cv.height = H * scale;
+      const g = cv.getContext('2d');
+      g.scale(scale, scale);
+      g.fillStyle = '#0f1013'; g.fillRect(0, 0, W, H);
+      g.textBaseline = 'middle';
+      g.fillStyle = '#8b93a1'; g.font = `12px ${font}`; g.fillText(D.eyebrow.toUpperCase().slice(0, 150), pad, 26);
+      g.fillStyle = '#ffffff'; g.font = `700 28px ${font}`; g.fillText(D.title, pad, 58);
+      g.fillStyle = '#b4bac6'; g.font = `14px ${font}`; g.fillText(D.sub.slice(0, 170), pad, 88);
+      const loads = new Map();
+      if (withIcons) for (const s of secs) for (const r of s.rows) if (r.icon && !loads.has(r.icon)) loads.set(r.icon, new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = r.icon; }));
+      Promise.all([...loads.entries()].map(async ([k, p]) => [k, await p])).then((arr) => {
+        const imgs = new Map(arr);
+        let y = 112;
+        for (const s of secs) {
+          g.fillStyle = '#eef1f7'; g.font = `700 16px ${font}`; g.textAlign = 'left'; g.fillText(s.title, pad, y + 12);
+          y += 34;
+          const fixed = s.cols.filter((c) => c.w).reduce((a, c) => a + c.w, 0);
+          const flex = W - 2 * pad - fixed;
+          let x = pad;
+          const xs = s.cols.map((c) => { const w = c.w || flex; const o = { x, w }; x += w; return o; });
+          g.fillStyle = '#17191f'; g.fillRect(pad, y, W - 2 * pad, headH);
+          g.fillStyle = '#9aa3b2'; g.font = `700 11px ${font}`;
+          s.cols.forEach((c, i) => {
+            const b = xs[i];
+            g.textAlign = c.align === 'center' ? 'center' : c.align === 'left' ? 'left' : 'right';
+            const tx = c.align === 'center' ? b.x + b.w / 2 : c.align === 'left' ? b.x + 10 : b.x + b.w - 10;
+            g.fillText(c.label.toUpperCase(), tx, y + headH / 2);
+          });
+          y += headH;
+          s.rows.forEach((r, ri) => {
+            g.fillStyle = ri % 2 ? '#13151a' : '#0f1013'; g.fillRect(pad, y, W - 2 * pad, rowH);
+            if (r.me) { g.fillStyle = 'rgba(77,163,255,.14)'; g.fillRect(pad, y, W - 2 * pad, rowH); }
+            s.cols.forEach((c, i) => {
+              const cell = r.cells[c.k];
+              if (cell == null) return;
+              const b = xs[i];
+              const txt = typeof cell === 'object' ? cell.t : cell;
+              const color = typeof cell === 'object' && cell.color ? cell.color : '#dfe3ec';
+              g.fillStyle = color;
+              g.font = `${typeof cell === 'object' && cell.bold ? 700 : 400} ${c.k === 'pct' || c.k === 'pcti' ? 15 : 14}px ${font}`;
+              g.textAlign = c.align === 'center' ? 'center' : c.align === 'left' ? 'left' : 'right';
+              let tx = c.align === 'center' ? b.x + b.w / 2 : c.align === 'left' ? b.x + 10 : b.x + b.w - 10;
+              if (c.k === 'player') {
+                const im = r.icon && imgs.get(r.icon);
+                if (im) g.drawImage(im, tx, y + 3, 26, 26); else { g.fillStyle = r.color || '#888'; g.beginPath(); g.arc(tx + 13, y + rowH / 2, 6, 0, 7); g.fill(); }
+                g.fillStyle = r.color || color; g.font = `600 14px ${font}`;
+                g.fillText(txt, tx + 36, y + rowH / 2, b.w - 150);
+                if (r.server) { g.fillStyle = '#7f8794'; g.font = `12px ${font}`; g.textAlign = 'right'; g.fillText(r.server, b.x + b.w - 10, y + rowH / 2); }
+              } else g.fillText(txt, tx, y + rowH / 2, b.w - 14);
+            });
+            y += rowH;
+          });
+          y += 14;
+        }
+        g.fillStyle = '#5d6572'; g.font = `11px ${font}`; g.textAlign = 'right'; g.fillText('WipeTime · datos de Warcraft Logs', W - pad, H - 10);
+        try { cv.toBlob((b) => resolve(b), 'image/png'); } catch { resolve(null); }
+      });
+    });
+    return (async () => {
+      let blob = await draw(true);
+      if (!blob) blob = await draw(false);
+      if (!blob) return toast(LL('No se pudo crear la imagen', 'Could not create the image'));
+      if (mode === 'save') {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `WipeTime - ${D.title}.png`.replace(/[\\/:*?"<>|]/g, '-');
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        return toast(LL('Imagen guardada', 'Image saved'));
+      }
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        toast(LL('Imagen copiada: ya puedes pegarla', 'Image copied: you can paste it now'));
+      } catch { toast(LL('No se pudo copiar; usa Guardar PNG', 'Could not copy; use Save PNG')); }
+    })();
+  }
+
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest?.('[data-action="export-wcl"]');
+    if (b) exportWcl(b.dataset.m);
+  });
+
   async function viewWcl(f) {
     const raw = S.fight;
     const all = await rankFull(raw);
@@ -142,7 +238,40 @@
       return `<h4 class="wl-sec">${Extras.roleIcon(ROLE_KEY[role])}<span>${ROLE_TITLE[role]}</span><small>${list.length}</small></h4>${table(playerCols, playerHead, list.map(playerRow).join(''))}`;
     }).join('');
 
-    const viewBar = `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), true)}${chip('view', 'adv', LL('Vista avanzada (varios intentos, filtros)', 'Advanced view (several pulls, filters)'), false)}</div>`;
+    // datos para exportar la clasificación como imagen
+    const posData = (x) => ({
+      pct: { t: typeof x?.rankPercent === 'number' ? String(Math.floor(x.rankPercent)) : '–', color: typeof x?.rankPercent === 'number' ? parseColor(x.rankPercent) : '#888', bold: true },
+      rank: fmtRank(x?.rank), outof: x?.totalParses != null ? nf(x.totalParses) : '–', best: fmtRank(x?.best),
+    });
+    const posCols = [{ k: 'pct', label: LL('% rango', 'Rank %'), w: 78, align: 'center' }, { k: 'rank', label: LL('Rango', 'Rank'), w: 84 }, { k: 'outof', label: LL('De', 'Out of'), w: 84 }, { k: 'best', label: LL('Mejor rango', 'Best rank'), w: 100 }];
+    const gCell = { t: g?.name || '–', color: g?.name ? guildColor(g) : '#888', bold: true };
+    const secs = [
+      { title: LL('Ranking de ejecución', 'Execution ranking'), cols: [...posCols, { k: 'guild', label: LL('Hermandad', 'Guild'), align: 'left' }, { k: 'deaths', label: LL('Muertes', 'Deaths'), w: 80 }, { k: 'taken', label: LL('Daño recibido', 'Damage taken'), w: 150 }, { k: 'ilvl', label: 'Ilvl', w: 80 }],
+        rows: [{ cells: { ...posData(fd.execution), guild: gCell, deaths: String(fd.deaths ?? '–'), taken: { t: fd.damageTakenExcludingTanks != null ? nf(fd.damageTakenExcludingTanks) : '–', color: '#a8e060', bold: true }, ilvl: ilvlFmt(fd.bracketData) } }] },
+      { title: LL('Ranking de velocidad', 'Speed ranking'), cols: [...posCols, { k: 'guild', label: LL('Hermandad', 'Guild'), align: 'left' }, { k: 'dur', label: LL('Duración', 'Duration'), w: 100 }, { k: 'ilvl', label: 'Ilvl', w: 80 }],
+        rows: [{ cells: { ...posData(fd.speed), guild: gCell, dur: { t: clock(fd.duration ?? (raw.endTime - raw.startTime)), color: '#a8e060', bold: true }, ilvl: ilvlFmt(fd.bracketData) } }] },
+    ];
+    for (const role of ROLE_ORDER) {
+      const list = [...(roles[role]?.characters || [])].sort((a, b) => (b.rankPercent ?? -1) - (a.rankPercent ?? -1) || (b.amount || 0) - (a.amount || 0));
+      if (!list.length) continue;
+      secs.push({
+        title: `${ROLE_TITLE[role]} (${list.length})`,
+        cols: [...posCols, { k: 'player', label: LL('Jugador', 'Player'), align: 'left' }, { k: 'dps', label: unit, w: 130 }, { k: 'ilvl', label: 'Ilvl', w: 70 }, { k: 'pcti', label: 'Ilvl %', w: 76, align: 'center' }],
+        rows: list.map((c) => ({
+          me: isMe(c.name), icon: specIconUrl(c.spec ? `${c.class}-${c.spec}` : c.class), color: classColor(c.class), server: c.server?.name ? `${c.server.name}${c.server.region ? ` (${c.server.region})` : ''}` : '',
+          cells: { ...posData(c), player: c.name, dps: { t: c.amount != null ? num(c.amount, 1) : '–', color: '#a8e060', bold: true }, ilvl: ilvlFmt(c.bracketData),
+            pcti: { t: typeof c.bracketPercent === 'number' ? String(Math.floor(c.bracketPercent)) : '–', color: typeof c.bracketPercent === 'number' ? parseColor(c.bracketPercent) : '#888', bold: true } },
+        })),
+      });
+    }
+    lastWcl = {
+      eyebrow: `${fd.encounter?.name || raw.name} · ${diffName(raw.difficulty)} · ${clock(fd.duration ?? (raw.endTime - raw.startTime))}`,
+      title: `${t('tabs.rankings')} · ${tab === 'heal' ? LL('Sanación', 'Healing') : tab === 'boss' ? LL('Daño al jefe', 'Boss damage') : LL('Daño', 'Damage')}`,
+      sub: `${fd.encounter?.name || raw.name} · ${LL('tamaño', 'size')} ${fd.size ?? '–'} · ${new Date(S.report?.startTime || Date.now()).toLocaleDateString(locale())}`,
+      sections: secs,
+    };
+    const expBtns = `<span class="grow"></span><button class="chip" data-action="export-wcl" data-m="copy" title="${esc(LL('Copiar la clasificación como imagen', 'Copy the ranking as an image'))}">📋 ${LL('Copiar imagen', 'Copy image')}</button><button class="chip" data-action="export-wcl" data-m="save">💾 ${LL('Guardar PNG', 'Save PNG')}</button>`;
+    const viewBar = `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), true)}${chip('view', 'adv', LL('Vista avanzada (varios intentos, filtros)', 'Advanced view (several pulls, filters)'), false)}${expBtns}</div>`;
     const tabs = `<div class="metricbar wl-tabs"><span class="muted">${LL('Clasificación de jugadores', 'Player rankings')}</span>${chip('tab', 'dmg', LL('Daño', 'Damage'), tab === 'dmg')}${chip('tab', 'heal', LL('Sanación', 'Healing'), tab === 'heal')}${chip('tab', 'boss', LL('Daño al jefe', 'Boss damage'), tab === 'boss')}</div>`;
     const sub = LL(`<b>${esc(fd.encounter?.name || raw.name)}</b> · ${esc(diffName(raw.difficulty))} · tamaño ${fd.size ?? '–'} · datos de Warcraft Logs`, `<b>${esc(fd.encounter?.name || raw.name)}</b> · ${esc(diffName(raw.difficulty))} · size ${fd.size ?? '–'} · data from Warcraft Logs`);
     return headerHTML(f, t('tabs.rankings'), sub) + viewBar
