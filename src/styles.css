@@ -1903,12 +1903,12 @@ button.dbf-row:hover { background: var(--hover); }
 .p22-txt p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
 
 /* Botones llamativos: brillo que barre, elevación y resplandor al pasar el ratón */
-.btn.primary, .btn.grad, .btn.danger, .pn-btn:not(.pn-soon) { --fx-glow: var(--accent); position: relative; overflow: hidden; isolation: isolate; transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease, filter .2s ease, background .2s ease; }
+.btn, .mini-btn, .chip, .btn.grad, .btn.danger, .pn-btn:not(.pn-soon) { --fx-glow: var(--accent); position: relative; overflow: hidden; isolation: isolate; transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease, filter .2s ease, background .2s ease; }
 .btn.danger { --fx-glow: var(--danger, #e5484d); }
-.btn.primary::after, .btn.grad::after, .btn.danger::after, .pn-btn:not(.pn-soon)::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; z-index: -1; pointer-events: none; background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .42), transparent); transform: skewX(-18deg) translateX(-120%); }
-.btn.primary:not(:disabled):hover, .btn.grad:not(:disabled):hover, .btn.danger:not(:disabled):hover, .pn-btn:not(.pn-soon):hover { transform: translateY(-2px); box-shadow: 0 8px 24px color-mix(in srgb, var(--fx-glow) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--fx-glow) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, .32); filter: brightness(1.1) saturate(1.08); }
-.btn.primary:not(:disabled):hover::after, .btn.grad:not(:disabled):hover::after, .btn.danger:not(:disabled):hover::after, .pn-btn:not(.pn-soon):hover::after { animation: fxShine .75s ease; }
-.btn.primary:not(:disabled):active, .btn.grad:not(:disabled):active, .btn.danger:not(:disabled):active, .pn-btn:not(.pn-soon):active { transform: translateY(0) scale(.97); transition-duration: .08s; }
+.btn::after, .mini-btn::after, .chip::after, .btn.grad::after, .btn.danger::after, .pn-btn:not(.pn-soon)::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; z-index: -1; pointer-events: none; background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .42), transparent); transform: skewX(-18deg) translateX(-120%); }
+.btn:not(:disabled):hover, .mini-btn:not(:disabled):hover, .chip:not(:disabled):hover, .btn.grad:not(:disabled):hover, .btn.danger:not(:disabled):hover, .pn-btn:not(.pn-soon):hover { transform: translateY(-2px); box-shadow: 0 8px 24px color-mix(in srgb, var(--fx-glow) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--fx-glow) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, .32); filter: brightness(1.1) saturate(1.08); }
+.btn:not(:disabled):hover::after, .mini-btn:not(:disabled):hover::after, .chip:not(:disabled):hover::after, .btn.grad:not(:disabled):hover::after, .btn.danger:not(:disabled):hover::after, .pn-btn:not(.pn-soon):hover::after { animation: fxShine .75s ease; }
+.btn:not(:disabled):active, .mini-btn:not(:disabled):active, .chip:not(:disabled):active, .btn.grad:not(:disabled):active, .btn.danger:not(:disabled):active, .pn-btn:not(.pn-soon):active { transform: translateY(0) scale(.97); transition-duration: .08s; }
 @keyframes fxShine { from { transform: skewX(-18deg) translateX(-120%); } to { transform: skewX(-18deg) translateX(420%); } }
 
 /* Botón del parche (inicio): respira y brilla solo cada pocos segundos */
