@@ -2008,3 +2008,38 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .chv-row .r { text-align: right; font-variant-numeric: tabular-nums; }
 .chv-row .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
 @media (max-width: 640px) { .chv-row { grid-template-columns: minmax(110px, 1fr) 90px 90px; padding: 7px 10px; } }
+
+/* Inicio: efecto al pasar el ratón como en las tarjetas de NinjaLoot (se eleva, borde y halo de luz, brillo que lo cruza y el icono
+   se inclina), en el color de acento de WipeTime. Vale para las tarjetas de funciones, los reportes recientes, el buscador de
+   personajes y sus botones pequeños. El botón «Buscar» conserva el suyo. */
+.feat, .rcard, .pf-search input, .pf-search select, .pf-rec .chip, .pf-rec-x, .recent-h .mini-btn, .pf-find .mini-btn {
+  transition: transform .2s cubic-bezier(.2, .8, .2, 1), border-color .2s, box-shadow .2s, background .2s, color .2s;
+}
+.feat, .rcard { position: relative; overflow: hidden; }
+.feat:hover, .rcard:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.feat::after, .rcard::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, .1)) 50%, transparent 65%);
+}
+.feat:hover::after, .rcard:hover::after { transition: transform .8s ease; transform: translateX(120%); }
+.feat-ic img { transition: transform .25s; }
+.feat:hover .feat-ic img { transform: scale(1.08) rotate(-3deg); }
+.pf-search input:hover, .pf-search select:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.pf-search input:focus, .pf-search select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 6px 18px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.pf-rec .chip:hover, .pf-rec-x:hover, .recent-h .mini-btn:hover, .pf-find .mini-btn:hover {
+  transform: translateY(-1px); color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+@media (prefers-reduced-motion: reduce) { .feat:hover, .rcard:hover, .pf-search input:hover, .pf-search select:hover, .pf-rec .chip:hover, .feat:hover .feat-ic img { transform: none; } .feat::after, .rcard::after { display: none; } }
