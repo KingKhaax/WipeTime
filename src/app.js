@@ -1694,6 +1694,7 @@ function renderWelcome() {
         </div>
       </div>
     </section>
+    ${typeof ClassChanges !== 'undefined' ? ClassChanges.sectionHTML() : ''}
     ${S.hasCreds ? '' : `<div class="notice">${t('noCreds')}</div>`}
     ${typeof Profile !== 'undefined' ? Profile.sectionHTML() : ''}
     <div class="feats">${feats.map(([h, p, icon]) => `<div class="feat">
