@@ -5,7 +5,7 @@ const Guilds = (() => {
   const CLASS_BY_ID = { 1: 'Warrior', 2: 'Paladin', 3: 'Hunter', 4: 'Rogue', 5: 'Priest', 6: 'DeathKnight', 7: 'Shaman', 8: 'Mage', 9: 'Warlock', 10: 'Monk', 11: 'Druid', 12: 'DemonHunter', 13: 'Evoker' };
   const RANK_TTL = 24 * 3600 * 1000;
   const MAX_MEMBERS = 80;
-  const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, armory: null, loginMine: null, loginChars: null, manualChars: [], charMsg: '', tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
+  const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, armory: null, loginMine: null, loginChars: null, manualChars: [], charMsg: '', guildMsg: '', tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
 
   const region = () => (st.sel?.region || st.status?.region || 'eu').toUpperCase();
   const guildKey = (g) => `${g.realmSlug}/${g.name}`;
@@ -83,6 +83,7 @@ const Guilds = (() => {
       ${bodyUnderMine ? bodyDiv : ''}
       ${charsHTML()}
       <h4 class="subh">${LL('Añadir un personaje', 'Add a character')}</h4>${charFormHTML()}
+      <h4 class="subh">${LL('Añadir una guild', 'Add a guild')}</h4>${guildFormHTML()}
       <div class="bn-or"><span>${LL('o busca una guild a mano', 'or find a guild by hand')}</span></div>${manual}
       ${bodyUnderMine ? '' : bodyDiv}`;
     if (st.sel) afterBody();
@@ -217,6 +218,32 @@ const Guilds = (() => {
       lsSet('gd:hidden', JSON.stringify(lsList('gd:hidden').filter((k) => k !== charKey(info))));
     } catch (e) { st.charMsg = friendly(String(e.message || e)); }
     render();
+  }
+
+  // Añadir una guild a mano (como un personaje): se comprueba que exista y se guarda en «Tus guilds»
+  async function addGuild(name, realm, region) {
+    const slug = Cards.slugOf(realm);
+    st.guildMsg = '';
+    try {
+      const d = await gql(`query($n:String!,$s:String!,$r:String!){guildData{guild(name:$n,serverSlug:$s,serverRegion:$r){name server{name slug}}}}`,
+        { n: name, s: slug, r: region.toUpperCase() });
+      const g = d.guildData?.guild;
+      if (!g) throw new Error('HTTP_404');
+      const item = { name: g.name, realmSlug: g.server?.slug || slug, realmName: g.server?.name || realm, region };
+      const rest = savedGuilds().filter((x) => guildKey(x) !== guildKey(item));
+      saveList('gd:guilds', [...rest, item]);
+      rebuild();
+    } catch (e) { st.guildMsg = friendly(String(e.message || e)); }
+    render();
+  }
+
+  function guildFormHTML() {
+    const last = lsGet('gd:guildRegion') || st.status?.region || 'eu';
+    return `<form id="gdAddGuildForm" class="gd-form"><input name="name" placeholder="${esc(LL('Nombre de la guild', 'Guild name'))}" spellcheck="false" autocomplete="off" required>
+      <input name="realm" placeholder="${esc(LL('Reino (ej. Zul’jin)', 'Realm (e.g. Zul’jin)'))}" spellcheck="false" autocomplete="off" required>
+      <select name="region">${['eu', 'us', 'kr', 'tw'].map((r) => `<option value="${r}" ${r === last ? 'selected' : ''}>${r.toUpperCase()}</option>`).join('')}</select>
+      <button class="btn" type="submit">${LL('Añadir guild', 'Add guild')}</button></form>
+      ${st.guildMsg ? `<div class="error sm"><p>${esc(st.guildMsg)}</p></div>` : ''}`;
   }
 
   const guildSaved = (g) => savedGuilds().some((x) => guildKey(x) === guildKey(g));
@@ -498,6 +525,16 @@ const Guilds = (() => {
       const name = String(fd.get('name') || '').trim();
       const realm = String(fd.get('realm') || '').trim();
       if (name && realm) addChar(name, realm, region);
+      return;
+    }
+    if (ev.target.id === 'gdAddGuildForm') {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const region = String(fd.get('region') || 'eu');
+      lsSet('gd:guildRegion', region);
+      const name = String(fd.get('name') || '').trim();
+      const realm = String(fd.get('realm') || '').trim();
+      if (name && realm) addGuild(name, realm, region);
       return;
     }
     if (ev.target.id !== 'gdForm') return;
