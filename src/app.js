@@ -1605,7 +1605,7 @@ async function viewPlayer(f, id) {
     `<div class="stat"><small>${t('casts')}</small><b>${pd.casts.length}</b></div>`,
   ].join('');
 
-  const ptabs = ['taken', 'analyze', 'abilities', 'healing', 'rotation', 'buffs'].map((k) =>
+  const ptabs = ['taken', 'abilities', 'healing', 'rotation', 'buffs'].map((k) =>
     `<button class="tab ${S.ptab === k ? 'active' : ''}" data-action="ptab" data-tab="${k}">${t('ptabs.' + k)}</button>`).join('');
 
   let body = '';
