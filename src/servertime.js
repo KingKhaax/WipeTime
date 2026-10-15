@@ -1,6 +1,6 @@
 'use strict';
 
-// Reloj del servidor (arriba a la izquierda): hora de la región elegida en horas, minutos y segundos.
+// Reloj del servidor (barra superior, a la derecha del logo de WipeTime): hora de la región elegida en horas, minutos y segundos.
 // Al pasar el ratón por encima muestra cuánto queda para el reinicio semanal de esa región.
 // Reinicios semanales (UTC): América, Latinoamérica y Oceanía martes 15:00; Europa miércoles 04:00; Corea y Taiwán jueves 02:00.
 const ServerClock = (() => {
@@ -87,9 +87,9 @@ const ServerClock = (() => {
     q('.sc-m').textContent = m;
     const sec = q('.sc-s');
     sec.textContent = s;
-    sec.classList.remove('tick');
+    sec.classList.remove('sc-tick');
     void sec.offsetWidth; // reinicia la animación del segundo
-    sec.classList.add('tick');
+    sec.classList.add('sc-tick');
     q('.sc-reg').textContent = r.code;
     root.style.setProperty('--sc-sec', String(Number(s)));
     root.setAttribute('aria-label', `${es() ? 'Hora del servidor' : 'Server time'} ${r.code}: ${h}:${m}:${s}`);
@@ -111,7 +111,7 @@ const ServerClock = (() => {
   const hideTip = () => { if (tip) tip.hidden = true; };
 
   const CSS = `
-.sc { --sc-sec: 0; position: relative; display: inline-flex; align-items: center; gap: 9px; padding: 5px 12px 5px 6px; margin: 0 10px 0 0; border-radius: 12px; cursor: default; user-select: none; -webkit-user-select: none;
+.sc { --sc-sec: 0; position: relative; display: inline-flex; align-items: center; gap: 9px; padding: 5px 12px 5px 6px; margin: 0 0 0 10px; border-radius: 12px; cursor: default; user-select: none; -webkit-user-select: none;
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent, #4da3ff) 14%, var(--panel, #15181e)), var(--panel, #15181e));
   border: 1px solid color-mix(in srgb, var(--accent, #4da3ff) 38%, var(--line, #2a2f3a)); box-shadow: 0 0 0 0 transparent, inset 0 1px 0 rgba(255, 255, 255, .06);
   transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease, border-color .25s ease; overflow: hidden; flex: none; }
@@ -126,7 +126,7 @@ const ServerClock = (() => {
 .sc-time { display: inline-flex; align-items: baseline; gap: 1px; font-variant-numeric: tabular-nums; font-weight: 800; font-size: 17px; letter-spacing: .5px; color: var(--strong, var(--text, #fff)); text-shadow: 0 0 14px color-mix(in srgb, var(--accent, #4da3ff) 45%, transparent); }
 .sc-time b { display: inline-block; min-width: 1.15em; text-align: center; font-weight: 800; }
 .sc-time em { font-style: normal; color: var(--accent, #4da3ff); animation: scBlink 1s steps(2, jump-none) infinite; }
-.sc-s.tick { animation: scTick .35s cubic-bezier(.2, 1.4, .4, 1); }
+.sc-s.sc-tick { animation: scTick .35s cubic-bezier(.2, 1.4, .4, 1); }
 .sc-reg { font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 2px 6px; border-radius: 999px; color: var(--on-accent, #fff); background: var(--accent-grad, var(--accent, #4da3ff)); }
 .sc-tip { position: fixed; z-index: 2147483000; width: 290px; padding: 12px 14px; border-radius: 14px; pointer-events: none; color: var(--text, #fff);
   background: color-mix(in srgb, var(--panel, #15181e) 94%, #000); border: 1px solid color-mix(in srgb, var(--accent, #4da3ff) 55%, var(--line, #333)); box-shadow: 0 16px 44px rgba(0, 0, 0, .55), 0 0 24px color-mix(in srgb, var(--accent, #4da3ff) 25%, transparent); animation: scPop .18s ease-out; }
@@ -144,7 +144,7 @@ const ServerClock = (() => {
 @keyframes scBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 @keyframes scTick { 0% { transform: translateY(-5px) scale(1.18); color: var(--accent, #4da3ff); } 100% { transform: none; } }
 @keyframes scPop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .sc::before, .sc-time em, .sc-s.tick, .sc-tip { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .sc::before, .sc-time em, .sc-s.sc-tick, .sc-tip { animation: none !important; } }
 `;
 
   function mount(el) {
@@ -158,7 +158,7 @@ const ServerClock = (() => {
     root.className = 'sc';
     root.setAttribute('role', 'timer');
     root.innerHTML = '<span class="sc-dial"></span><span class="sc-time"><b class="sc-h">--</b><em>:</em><b class="sc-m">--</b><em>:</em><b class="sc-s">--</b></span><span class="sc-reg">EU</span>';
-    el.before(root); // el reloj va a la izquierda del todo, antes del logo
+    el.after(root); // el reloj va a la derecha del logo de WipeTime
     root.addEventListener('mouseenter', showTip);
     root.addEventListener('mouseleave', hideTip);
     tick();
