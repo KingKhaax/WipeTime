@@ -297,47 +297,47 @@ const Analysis = (() => {
     const r = tip.row;
     if (tip.kind === 'rate') {
       icon = ic(r.icon, 34, '', r.guid);
-      title = L(`Lanza más ${r.name}`, `Cast ${r.name} more`, `Zaubere ${r.name} öfter`, `Lance ${r.name} plus souvent`);
+      title = L(`Lanza más ${r.name}`, `Cast ${r.name} more`);
       text = L(`Lo lanzas ${fmt(r.rM)} veces por minuto y ${who} ${fmt(r.rO)}. Son unos <b>${Math.round(tip.missing)} lanzamientos menos</b> en esta pelea${tip.impact >= 0.3 ? ` (≈ ${fmt(tip.impact)} % más de tu ${a.M.metric === 'hps' ? 'sanación' : 'daño'})` : ''}.`,
         `You cast it ${fmt(r.rM)} times per minute and ${who} ${fmt(r.rO)}. That is about <b>${Math.round(tip.missing)} fewer casts</b> this fight${tip.impact >= 0.3 ? ` (≈ ${fmt(tip.impact)} % more ${a.M.metric === 'hps' ? 'healing' : 'damage'})` : ''}.`);
       extra = timesBlock(a, r);
     } else if (tip.kind === 'cd') {
       icon = ic(r.icon, 34, '', r.guid);
-      title = L(`Aprovecha mejor ${r.name}`, `Use ${r.name} better`, `Nutze ${r.name} besser`, `Utilise mieux ${r.name}`);
+      title = L(`Aprovecha mejor ${r.name}`, `Use ${r.name} better`);
       text = L(`Lo usaste <b>${r.castsM}</b> ${r.castsM === 1 ? 'vez' : 'veces'}; de media ${who} lo usan <b>${fmt(avg(r.castsOs))}</b>. Cada vez que está disponible y no lo lanzas, pierdes ese bonus.`,
-        `You used it <b>${r.castsM}</b> time${r.castsM === 1 ? '' : 's'}; on average ${who} use it <b>${fmt(avg(r.castsOs))}</b>. Every time it is ready and you don't cast it, you lose that bonus.`, `Du hast es <b>${r.castsM}</b>-mal benutzt; im Schnitt benutzen ${who} es <b>${fmt(avg(r.castsOs))}</b>-mal. Jedes Mal, wenn es bereit ist und du es nicht zauberst, verlierst du diesen Bonus.`, `Tu l’as utilisé <b>${r.castsM}</b> fois ; en moyenne, ${who} l’utilisent <b>${fmt(avg(r.castsOs))}</b> fois. Chaque fois qu’il est disponible et que tu ne le lances pas, tu perds ce bonus.`);
+        `You used it <b>${r.castsM}</b> time${r.castsM === 1 ? '' : 's'}; on average ${who} use it <b>${fmt(avg(r.castsOs))}</b>. Every time it is ready and you don't cast it, you lose that bonus.`);
       extra = timesBlock(a, r);
     } else if (tip.kind === 'missing') {
       icon = ic(r.icon, 34, '', r.guid);
-      title = L(`${who[0].toUpperCase() + who.slice(1)} usan ${r.name} y tú no`, `${who[0].toUpperCase() + who.slice(1)} use ${r.name} and you don't`, `${who[0].toUpperCase() + who.slice(1)} nutzen ${r.name} und du nicht`, `${who[0].toUpperCase() + who.slice(1)} utilisent ${r.name} et pas toi`);
+      title = L(`${who[0].toUpperCase() + who.slice(1)} usan ${r.name} y tú no`, `${who[0].toUpperCase() + who.slice(1)} use ${r.name} and you don't`);
       text = L(`No lo usaste en toda la pelea y ${who} lo lanzan <b>${fmt(avg(r.castsOs))}</b> veces de media. Puede que tengas otro talento o sea una habilidad de raza distinta; si lo tienes disponible, úsalo.`,
-        `You did not use it all fight and ${who} cast it <b>${fmt(avg(r.castsOs))}</b> times on average. You may have a different talent or race; if you have it available, use it.`, `Du hast es im ganzen Kampf nicht benutzt, und ${who} zaubern es im Schnitt <b>${fmt(avg(r.castsOs))}</b>-mal. Vielleicht hast du ein anderes Talent oder ein anderes Volk; wenn du es verfügbar hast, nutze es.`, `Tu ne l’as pas utilisé de tout le combat, et ${who} le lancent en moyenne <b>${fmt(avg(r.castsOs))}</b> fois. Tu as peut-être un autre talent ou une autre race ; si tu l’as de disponible, utilise-le.`);
+        `You did not use it all fight and ${who} cast it <b>${fmt(avg(r.castsOs))}</b> times on average. You may have a different talent or race; if you have it available, use it.`);
       extra = timesBlock(a, r);
     } else if (tip.kind === 'late') {
       icon = ic(r.icon, 34, '', r.guid);
-      title = L(`Usa antes ${r.name}`, `Use ${r.name} earlier`, `Nutze ${r.name} früher`, `Utilise ${r.name} plus tôt`);
+      title = L(`Usa antes ${r.name}`, `Use ${r.name} earlier`);
       text = L(`Tu primer uso fue a los <b>${clock(r.timesM[0])}</b>; ${who} lo lanzan hacia los <b>${clock(tip.medFirst)}</b>. Usarlo antes te deja volver a usarlo más veces.`,
-        `Your first use was at <b>${clock(r.timesM[0])}</b>; ${who} cast it around <b>${clock(tip.medFirst)}</b>. Using it earlier lets you cast it more times.`, `Dein erster Einsatz war bei <b>${clock(r.timesM[0])}</b>; ${who} zaubern es um <b>${clock(tip.medFirst)}</b>. Wenn du es früher einsetzt, kannst du es öfter benutzen.`, `Ta première utilisation était à <b>${clock(r.timesM[0])}</b> ; ${who} le lancent vers <b>${clock(tip.medFirst)}</b>. L’utiliser plus tôt te permet de le relancer plus de fois.`);
+        `Your first use was at <b>${clock(r.timesM[0])}</b>; ${who} cast it around <b>${clock(tip.medFirst)}</b>. Using it earlier lets you cast it more times.`);
       extra = timesBlock(a, r);
     } else if (tip.kind === 'over') {
       icon = ic(r.icon, 34, '', r.guid);
-      title = L(`Revisa tu uso de ${r.name}`, `Check your use of ${r.name}`, `Überprüfe deine Nutzung von ${r.name}`, `Vérifie ton utilisation de ${r.name}`);
+      title = L(`Revisa tu uso de ${r.name}`, `Check your use of ${r.name}`);
       text = L(`Lo lanzas ${fmt(r.rM)} veces por minuto y ${who} casi no lo usan (${fmt(r.rO)}). Puede que estés gastando tiempo o recursos que otra habilidad aprovecharía mejor.`,
-        `You cast it ${fmt(r.rM)} times per minute and ${who} barely use it (${fmt(r.rO)}). You may be spending time or resources another ability would use better.`, `Du zauberst es ${fmt(r.rM)}-mal pro Minute, und ${who} benutzen es kaum (${fmt(r.rO)}). Vielleicht verschwendest du Zeit oder Ressourcen, die eine andere Fähigkeit besser nutzen würde.`, `Tu le lances ${fmt(r.rM)} fois par minute et ${who} ne l’utilisent presque pas (${fmt(r.rO)}). Tu gaspilles peut-être du temps ou des ressources qu’une autre capacité exploiterait mieux.`);
+        `You cast it ${fmt(r.rM)} times per minute and ${who} barely use it (${fmt(r.rO)}). You may be spending time or resources another ability would use better.`);
     } else if (tip.kind === 'active') {
       icon = '<span class="tip-emoji">⏱</span>';
       title = L('Pasas más tiempo sin atacar', 'You spend more time not attacking');
       text = L(`Estuviste activo el <b>${pct(tip.actM)}</b> del tiempo y ${who} el <b>${pct(tip.actO)}</b>. Intenta moverte menos entre ataques y usar habilidades que puedas lanzar en movimiento.`,
-        `You were active <b>${pct(tip.actM)}</b> of the time and ${who} <b>${pct(tip.actO)}</b>. Try to move less between attacks and use abilities you can cast while moving.`, `Du warst <b>${pct(tip.actM)}</b> der Zeit aktiv, ${who} <b>${pct(tip.actO)}</b>. Versuche, dich zwischen Angriffen weniger zu bewegen, und nutze Fähigkeiten, die du in Bewegung wirken kannst.`, `Tu as été actif <b>${pct(tip.actM)}</b> du temps et ${who} <b>${pct(tip.actO)}</b>. Essaie de moins te déplacer entre les attaques et d’utiliser des capacités lançables en mouvement.`);
+        `You were active <b>${pct(tip.actM)}</b> of the time and ${who} <b>${pct(tip.actO)}</b>. Try to move less between attacks and use abilities you can cast while moving.`);
     } else if (tip.kind === 'buff') {
       icon = ic(tip.icon, 34, '', tip.guid);
-      title = L(`Mantén ${tip.name} más tiempo`, `Keep ${tip.name} up longer`, `Halte ${tip.name} länger aufrecht`, `Maintiens ${tip.name} plus longtemps`);
-      text = L(`Lo tienes activo el <b>${pct(tip.upM)}</b> del tiempo y ${who} el <b>${pct(tip.upO)}</b>.`, `You have it up <b>${pct(tip.upM)}</b> of the time and ${who} <b>${pct(tip.upO)}</b>.`, `Du hast es <b>${pct(tip.upM)}</b> der Zeit aktiv, ${who} <b>${pct(tip.upO)}</b>.`, `Tu l’as actif <b>${pct(tip.upM)}</b> du temps et ${who} <b>${pct(tip.upO)}</b>.`);
+      title = L(`Mantén ${tip.name} más tiempo`, `Keep ${tip.name} up longer`);
+      text = L(`Lo tienes activo el <b>${pct(tip.upM)}</b> del tiempo y ${who} el <b>${pct(tip.upO)}</b>.`, `You have it up <b>${pct(tip.upM)}</b> of the time and ${who} <b>${pct(tip.upO)}</b>.`);
     } else if (tip.kind === 'death') {
       icon = '<span class="tip-emoji">☠</span>';
-      title = tip.times.length === 1 ? L('Moriste en esta pelea', 'You died this fight') : L(`Moriste ${tip.times.length} veces`, `You died ${tip.times.length} times`, `Du bist ${tip.times.length}-mal gestorben`, `Tu es mort ${tip.times.length} fois`);
+      title = tip.times.length === 1 ? L('Moriste en esta pelea', 'You died this fight') : L(`Moriste ${tip.times.length} veces`, `You died ${tip.times.length} times`);
       text = L(`Tu primera muerte fue a los <b>${clock(tip.times[0])}</b>, con un ${num(tip.left * 100, 0)} % de la pelea por delante sin poder atacar. ${who[0].toUpperCase() + who.slice(1)} murieron de media ${fmt(tip.othersDeaths)} veces.`,
-        `Your first death was at <b>${clock(tip.times[0])}</b>, leaving ${num(tip.left * 100, 0)} % of the fight without being able to attack. ${who[0].toUpperCase() + who.slice(1)} died ${fmt(tip.othersDeaths)} times on average.`, `Dein erster Tod war bei <b>${clock(tip.times[0])}</b>, sodass ${num(tip.left * 100, 0)} % des Kampfes ohne Angriffsmöglichkeit blieben. ${who[0].toUpperCase() + who.slice(1)} sind im Schnitt ${fmt(tip.othersDeaths)}-mal gestorben.`, `Ta première mort a eu lieu à <b>${clock(tip.times[0])}</b>, laissant ${num(tip.left * 100, 0)} % du combat sans pouvoir attaquer. ${who[0].toUpperCase() + who.slice(1)} sont morts en moyenne ${fmt(tip.othersDeaths)} fois.`);
+        `Your first death was at <b>${clock(tip.times[0])}</b>, leaving ${num(tip.left * 100, 0)} % of the fight without being able to attack. ${who[0].toUpperCase() + who.slice(1)} died ${fmt(tip.othersDeaths)} times on average.`);
       extra = `<div class="tip-times"><div class="trow me"><span class="tl">${L('Muertes', 'Deaths')}</span>${timeList(tip.times)}</div></div>`;
     }
     const sevTxt = { high: L('Prioridad alta', 'High priority'), mid: L('Prioridad media', 'Medium'), low: L('Detalle', 'Detail') }[tip.sev];
@@ -349,7 +349,7 @@ const Analysis = (() => {
     if (g.kind === 'active') return `<div class="good"><span class="tip-emoji">⏱</span><div><b>${L('Buen tiempo activo', 'Good uptime')}</b><small>${pct(g.actM)} · ${a.whoWord}: ${pct(g.actO)}</small></div></div>`;
     if (g.kind === 'rate-total') return `<div class="good"><span class="tip-emoji">🏁</span><div><b>${L('Tu ritmo de daño está a su nivel', 'Your output is on par')}</b><small>${plain(a.M.rate)}${t('perSec')} · ${a.whoWord}: ${plain(a.rateO)}${t('perSec')}</small></div></div>`;
     const r = g.row;
-    return `<div class="good">${ic(r.icon, 28, '', r.guid)}<div><b>${L(`${r.name} bien usado`, `${r.name} well used`, `${r.name} gut eingesetzt`, `${r.name} bien utilisé`)}</b><small>${fmt(r.rM)}/min · ${a.whoWord}: ${fmt(r.rO)}/min</small></div></div>`;
+    return `<div class="good">${ic(r.icon, 28, '', r.guid)}<div><b>${L(`${r.name} bien usado`, `${r.name} well used`)}</b><small>${fmt(r.rM)}/min · ${a.whoWord}: ${fmt(r.rO)}/min</small></div></div>`;
   }
 
   function summaryHTML(a) {
@@ -446,7 +446,7 @@ const Analysis = (() => {
       const d = myEnd - avgEnd;
       note = Math.abs(d) < 8 ? L('Terminas la pelea con un maná parecido al de los demás: lo gestionas igual.', 'You end the fight with similar mana to the others: you manage it the same way.')
         : d < 0 ? L(`Terminas con ${num(Math.abs(d), 0)} puntos menos de maná que los demás${avgSpend ? ` (gastas ${num(a.M.manaPerMin, 0)} % de tu maná máximo por minuto frente a ${num(avgSpend, 0)} %)` : ''}: gastas más rápido; revisa hechizos caros o sanación de más (overheal).`, `You end with ${num(Math.abs(d), 0)} points less mana than the others${avgSpend ? ` (you spend ${num(a.M.manaPerMin, 0)}% of max mana per minute vs ${num(avgSpend, 0)}%)` : ''}: you spend faster; check expensive spells or overhealing.`)
-        : L(`Terminas con ${num(d, 0)} puntos más de maná que los demás: te sobra recurso, podrías sanar más.`, `You end with ${num(d, 0)} points more mana than the others: you have spare resource, you could heal more.`, `Du beendest den Kampf mit ${num(d, 0)} Punkten mehr Mana als die anderen: Du hast Ressourcen übrig und könntest mehr heilen.`, `Tu finis avec ${num(d, 0)} points de mana de plus que les autres : il te reste de la ressource, tu pourrais soigner davantage.`);
+        : L(`Terminas con ${num(d, 0)} puntos más de maná que los demás: te sobra recurso, podrías sanar más.`, `You end with ${num(d, 0)} points more mana than the others: you have spare resource, you could heal more.`);
     }
     return `<h2 class="an-h">${L('Maná del sanador', 'Healer mana')}</h2>
       <div class="mn-card"><svg viewBox="0 0 100 40" preserveAspectRatio="none" class="mn-chart"><g stroke="currentColor" opacity=".12"><path d="M0 10H100M0 20H100M0 30H100M25 0V40M50 0V40M75 0V40" vector-effect="non-scaling-stroke"/></g>${lines}</svg>
@@ -530,7 +530,7 @@ const Analysis = (() => {
       say(L('Buscando a los mejores de tu especialización…', 'Finding the best players of your spec…'));
       const [mine, tops] = await Promise.all([
         fetchProfile({ code: S.code, fight: raw, actor: { id, name: p.name, cls: p.cls, spec: p.spec, icon: p.icon }, metric }),
-        topProfiles(raw, p, metric, (i, n) => say(L(`Analizando a los mejores… ${i + 1}/${n}`, `Analyzing the best… ${i + 1}/${n}`, `Analysiere die Besten… ${i + 1}/${n}`, `Analyse des meilleurs… ${i + 1}/${n}`))),
+        topProfiles(raw, p, metric, (i, n) => say(L(`Analizando a los mejores… ${i + 1}/${n}`, `Analyzing the best… ${i + 1}/${n}`))),
       ]);
       if (seq !== S.seq || !$('#anRoot')) return;
       if (!tops.length) {
@@ -540,7 +540,7 @@ const Analysis = (() => {
       const a = analyze(mine, tops);
       const bossName = raw.name;
       root.innerHTML = `<div class="an-intro"><div>${L(`Comparado con los <b>${tops.length} mejores</b> ${esc(specName(p.spec))} ${esc(className(p.cls))} en <b>${esc(bossName)}</b> ${raw.keystoneLevel ? '(ranking de Mítica+, llaves de tu nivel +' + raw.keystoneLevel + ').' : '(ranking de la zona, kills).'}`,
-        `Compared with the <b>${tops.length} best</b> ${esc(specName(p.spec))} ${esc(className(p.cls))} on <b>${esc(bossName)}</b> ${raw.keystoneLevel ? '(Mythic+ rankings, keys around your level +' + raw.keystoneLevel + ').' : '(zone rankings, kills).'}`, `Verglichen mit den <b>${tops.length} Besten</b> (${esc(specName(p.spec))} ${esc(className(p.cls))}) bei <b>${esc(bossName)}</b> ${raw.keystoneLevel ? '(Mythisch+-Rangliste, Schlüssel um deine Stufe +' + raw.keystoneLevel + ').' : '(Zonen-Rangliste, Kills).'}`, `Comparé aux <b>${tops.length} meilleurs</b> ${esc(specName(p.spec))} ${esc(className(p.cls))} sur <b>${esc(bossName)}</b> ${raw.keystoneLevel ? '(classement Mythique+, clés autour de ton niveau +' + raw.keystoneLevel + ').' : '(classement de la zone, kills).'}`)}
+        `Compared with the <b>${tops.length} best</b> ${esc(specName(p.spec))} ${esc(className(p.cls))} on <b>${esc(bossName)}</b> ${raw.keystoneLevel ? '(Mythic+ rankings, keys around your level +' + raw.keystoneLevel + ').' : '(zone rankings, kills).'}`)}
         <small>${L('Analiza la pelea completa.', 'Analyzes the whole fight.')} ${tops.map((x) => `#${x.rankPos} ${esc(x.label)}`).join(' · ')}</small></div>
         <button class="btn" data-cmp="open" data-from-player="${id}">${L('Comparar con mis logs…', 'Compare with my logs…')}</button></div>
         ${sections(a)}`;

@@ -10,7 +10,7 @@ const Profile = (() => {
   const QCOLOR = { POOR: '#9d9d9d', COMMON: '#ffffff', UNCOMMON: '#1eff00', RARE: '#0070dd', EPIC: '#a335ee', LEGENDARY: '#ff8000', ARTIFACT: '#e6cc80', HEIRLOOM: '#00ccff' };
   const st = { q: null, zones: null, zone: null, diff: 5, metric: 'dps', arm: null, rio: null, wcl: null, wclErr: '', armErr: '', busy: false, at: 0, timer: null };
 
-  const regionName = (r) => ({ eu: LL('Europa', 'Europe', 'Europa', 'Europe'), us: LL('América', 'America', 'Amerika', 'Amérique'), kr: LL('Corea', 'Korea', 'Korea', 'Corée'), tw: LL('Taiwán', 'Taiwan', 'Taiwan', 'Taïwan') }[r] || r.toUpperCase());
+  const regionName = (r) => ({ eu: LL('Europa', 'Europe'), us: LL('América', 'America'), kr: LL('Corea', 'Korea'), tw: LL('Taiwán', 'Taiwan') }[r] || r.toUpperCase());
   const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
   const num0 = (v) => num(v || 0, 0);
   const recent = () => { try { return JSON.parse(lsGet('prof:recent') || '[]'); } catch { return []; } };
@@ -18,12 +18,12 @@ const Profile = (() => {
   function ago(ms) {
     if (!ms) return '—';
     const mins = Math.max(0, Math.round((Date.now() - ms) / 60000));
-    if (mins < 2) return LL('hace un momento', 'just now', 'gerade eben', 'à l’instant');
-    if (mins < 60) return LL(`hace ${mins} min`, `${mins} min ago`, `vor ${mins} Min.`, `il y a ${mins} min`);
+    if (mins < 2) return LL('hace un momento', 'just now');
+    if (mins < 60) return LL(`hace ${mins} min`, `${mins} min ago`);
     const h = Math.round(mins / 60);
-    if (h < 24) return LL(`hace ${h} h`, `${h} h ago`, `vor ${h} Std.`, `il y a ${h} h`);
+    if (h < 24) return LL(`hace ${h} h`, `${h} h ago`);
     const d = Math.floor(h / 24);
-    return d === 1 ? LL('hace 1 día', '1 day ago', 'vor 1 Tag', 'il y a 1 jour') : LL(`hace ${d} días`, `${d} days ago`, `vor ${d} Tagen`, `il y a ${d} jours`);
+    return d === 1 ? LL('hace 1 día', '1 day ago') : LL(`hace ${d} días`, `${d} days ago`);
   }
   const daysSince = (ms) => (ms ? Math.floor((Date.now() - ms) / 86400000) : null);
 
@@ -56,13 +56,13 @@ const Profile = (() => {
     if (!data && !encPending.has(encKey(id))) { const k = encKey(id); encPending.add(k); fetchEncLogs(id).finally(() => { encPending.delete(k); if (S.profileOpen) render(); }); }
     if (!data) body = `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
     else if (data.error) body = `<div class="empty sm">${esc(data.error)}</div>`;
-    else if (!data.length) body = `<div class="empty sm">${LL('No hay logs públicos de este jefe.', 'No public logs for this boss.', 'Keine öffentlichen Logs für diesen Boss.', 'Aucun log public pour ce boss.')}</div>`;
-    else body = `<table class="pf-logs"><thead><tr><th>${LL('Fecha', 'Date', 'Datum', 'Date')}</th><th>%</th><th>${esc(st.metric === 'hps' ? 'HPS' : 'DPS')}</th><th>${LL('Duración', 'Duration', 'Dauer', 'Durée')}</th><th>${LL('Nivel obj.', 'Item lvl', 'Gegenstandsst.', 'Niv. obj.')}</th><th></th></tr></thead><tbody>`
-      + data.map((r) => `<tr data-pf="log" data-code="${esc(r.report.code)}" data-fight="${Number(r.report.fightID) || ''}" title="${esc(LL('Abrir este log', 'Open this log', 'Diesen Log öffnen', 'Ouvrir ce log'))}">`
+    else if (!data.length) body = `<div class="empty sm">${LL('No hay logs públicos de este jefe.', 'No public logs for this boss.')}</div>`;
+    else body = `<table class="pf-logs"><thead><tr><th>${LL('Fecha', 'Date')}</th><th>%</th><th>${esc(st.metric === 'hps' ? 'HPS' : 'DPS')}</th><th>${LL('Duración', 'Duration')}</th><th>${LL('Nivel obj.', 'Item lvl')}</th><th></th></tr></thead><tbody>`
+      + data.map((r) => `<tr data-pf="log" data-code="${esc(r.report.code)}" data-fight="${Number(r.report.fightID) || ''}" title="${esc(LL('Abrir este log', 'Open this log'))}">`
         + `<td>${esc(new Date(r.startTime || r.report.startTime).toLocaleString(locale(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }))}</td>`
         + `<td><span class="pf-pct"><b style="color:${parseColor(r.rankPercent)}">${r.rankPercent != null ? Math.floor(r.rankPercent) : '-'}</b>${clsKey && r.spec ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(r.spec).split(' ').join('')}`)}" width="18" height="18" alt="">` : ''}</span></td>`
         + `<td>${r.amount != null ? num(r.amount, 1) : '-'}</td><td>${r.duration ? clock(r.duration) : '-'}</td><td>${r.bracketData != null ? esc(r.bracketData) : '-'}</td>`
-        + `<td class="pf-logs-go">${LL('Ver log', 'View log', 'Log ansehen', 'Voir le log')} →</td></tr>`).join('') + `</tbody></table>`;
+        + `<td class="pf-logs-go">${LL('Ver log', 'View log')} →</td></tr>`).join('') + `</tbody></table>`;
     return `<tr class="pf-logs-row"><td colspan="10">${body}</td></tr>`;
   }
 
@@ -77,7 +77,7 @@ const Profile = (() => {
       const metric = METRICS.some(([m]) => m === st.metric) ? st.metric : 'dps';
       const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){name classID level faction{name} guildRank hidden zoneRankings(zoneID:${Number(zone.id)},difficulty:${Number(st.diff)},metric:${metric})}}}`, undefined, true);
       st.wcl = d.characterData?.character || null;
-      if (!st.wcl) st.wclErr = LL('Warcraft Logs no tiene a este personaje (o no tiene logs públicos).', 'Warcraft Logs does not have this character (or it has no public logs).', 'Warcraft Logs kennt diesen Charakter nicht (oder er hat keine öffentlichen Logs).', 'Warcraft Logs ne connaît pas ce personnage (ou il n’a aucun log public).');
+      if (!st.wcl) st.wclErr = LL('Warcraft Logs no tiene a este personaje (o no tiene logs públicos).', 'Warcraft Logs does not have this character (or it has no public logs).');
     } catch (e) { st.wcl = null; st.wclErr = friendlyError(e); }
   }
 
@@ -171,7 +171,7 @@ const Profile = (() => {
     let body;
     if (sr.loading) body = `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
     else if (sr.error) body = `<div class="error"><p>${esc(sr.error)}</p></div>`;
-    else if (!sr.list.length) body = `<div class="empty sm">${LL('No he encontrado ningún personaje con ese nombre. Prueba a escribir el reino o a cambiar la región.', 'No character found with that name. Try entering the realm or changing the region.', 'Kein Charakter mit diesem Namen gefunden. Gib den Realm an oder ändere die Region.', 'Aucun personnage trouvé avec ce nom. Essaie de saisir le royaume ou de changer de région.')}</div>`;
+    else if (!sr.list.length) body = `<div class="empty sm">${LL('No he encontrado ningún personaje con ese nombre. Prueba a escribir el reino o a cambiar la región.', 'No character found with that name. Try entering the realm or changing the region.')}</div>`;
     else body = `<div class="pf-res">${sr.list.map((x, i) => {
       const cls = key[x.classId] || '';
       const faction = x.faction === 'horde' ? '#ff4a4a' : x.faction === 'alliance' ? '#4a8dff' : 'var(--muted)';
@@ -179,10 +179,10 @@ const Profile = (() => {
       return `<button type="button" class="pf-row" data-pf="pick" data-i="${i}"><span class="pf-row-pic" style="--c:${classColor(cls)}">${x.thumb ? `<img src="${Cards.media(x.thumb)}" alt="" loading="lazy">` : ''}</span>
         <span class="pf-row-n"><b style="color:${classColor(cls)}"><img class="pf-row-spec" data-i="${i}" ${x.specIcon ? `src="${specIconUrl(x.specIcon)}"` : 'hidden'} width="20" height="20" alt="">${esc(x.name)}</b><small>${esc(cls ? className(cls) : '')} <i class="pf-fac" style="background:${faction}"></i></small></span>
         <span class="pf-row-s">${flag}<span>${esc(x.realmName)}${x.altName && x.altName !== x.realmName ? ` <small class="muted">${esc(x.altName)}</small>` : ''}<small>${esc(x.regionShort || x.region.toUpperCase())}</small></span></span></button>`;
-    }).join('')}</div>${sr.hidden ? `<small class="muted">${LL(`${sr.hidden} resultados de reinos de China ocultos (no se pueden consultar).`, `${sr.hidden} results from China realms hidden (they cannot be queried).`, `${sr.hidden} Ergebnisse von China-Realms ausgeblendet (nicht abrufbar).`, `${sr.hidden} résultats de royaumes chinois masqués (non consultables).`)}</small>` : ''}`;
-    dlg.innerHTML = `<div class="pf-dlg"><div class="pf-dlg-h"><div><h2>${LL('Personajes', 'Characters', 'Charaktere', 'Personnages')}: «${esc(sr.term)}»</h2>
-      <small class="muted">${sr.loading ? '' : LL(`${sr.list.length} encontrados`, `${sr.list.length} found`, `${sr.list.length} gefunden`, `${sr.list.length} trouvés`)}${sr.realm ? ` · ${esc(sr.realm)}` : ''}</small></div>
-      <button type="button" class="btn ghost" data-pf="closesearch">${LL('Cerrar', 'Close', 'Schließen', 'Fermer')}</button></div>${body}</div>`;
+    }).join('')}</div>${sr.hidden ? `<small class="muted">${LL(`${sr.hidden} resultados de reinos de China ocultos (no se pueden consultar).`, `${sr.hidden} results from China realms hidden (they cannot be queried).`)}</small>` : ''}`;
+    dlg.innerHTML = `<div class="pf-dlg"><div class="pf-dlg-h"><div><h2>${LL('Personajes', 'Characters')}: «${esc(sr.term)}»</h2>
+      <small class="muted">${sr.loading ? '' : LL(`${sr.list.length} encontrados`, `${sr.list.length} found`)}${sr.realm ? ` · ${esc(sr.realm)}` : ''}</small></div>
+      <button type="button" class="btn ghost" data-pf="closesearch">${LL('Cerrar', 'Close')}</button></div>${body}</div>`;
     if (!dlg.open) dlg.showModal();
   }
 
@@ -218,19 +218,19 @@ const Profile = (() => {
       const total = zone?.encounters?.length || (zr.rankings || []).length;
       tiles.push(`<div class="pf-tile"><h4>${esc(zone?.name || '')} · ${esc(diffName(st.diff))}</h4>
         <div class="pf-tile-b"><span class="pf-prog">${killed}<small> / ${total}</small></span><span><small>All Stars</small><b>${as ? num(as.points, 0) : '—'}</b></span>
-        <span><small>${LL('Mundo', 'World', 'Welt', 'Monde')}</small><b style="color:${rankColor(as?.rankPercent)}">${as ? `#${num0(as.rank)}` : '—'}</b></span>
+        <span><small>${LL('Mundo', 'World')}</small><b style="color:${rankColor(as?.rankPercent)}">${as ? `#${num0(as.rank)}` : '—'}</b></span>
         <span><small>${esc(regionName(st.q.region))}</small><b style="color:${rankColor(as?.rankPercent)}">${as ? `#${num0(as.regionRank)}` : '—'}</b></span>
-        <span><small>${LL('Reino', 'Realm', 'Realm', 'Royaume')}</small><b>${as ? `#${num0(as.serverRank)}` : '—'}</b></span></div></div>`);
+        <span><small>${LL('Reino', 'Realm')}</small><b>${as ? `#${num0(as.serverRank)}` : '—'}</b></span></div></div>`);
     }
     const rio = st.rio;
     if (rio?.season) {
       const ov = rio.ranks?.overall || {};
       const label = String(rio.season.season || '').replace(/^season-/, '').toUpperCase();
-      tiles.push(`<div class="pf-tile"><h4>${LL('Mítica+', 'Mythic+', 'Mythisch+', 'Mythique+')} · ${esc(label)}</h4>
-        <div class="pf-tile-b"><span><small>${LL('Puntuación', 'Score', 'Wertung', 'Score')}</small><b style="color:${esc(rio.season.segments?.all?.color || 'var(--text)')}">${num(rio.season.scores?.all || 0, 0)}</b></span>
-        <span><small>${LL('Mundo', 'World', 'Welt', 'Monde')}</small><b>${ov.world ? `#${num0(ov.world)}` : '—'}</b></span>
+      tiles.push(`<div class="pf-tile"><h4>${LL('Mítica+', 'Mythic+')} · ${esc(label)}</h4>
+        <div class="pf-tile-b"><span><small>${LL('Puntuación', 'Score')}</small><b style="color:${esc(rio.season.segments?.all?.color || 'var(--text)')}">${num(rio.season.scores?.all || 0, 0)}</b></span>
+        <span><small>${LL('Mundo', 'World')}</small><b>${ov.world ? `#${num0(ov.world)}` : '—'}</b></span>
         <span><small>${esc(regionName(st.q.region))}</small><b>${ov.region ? `#${num0(ov.region)}` : '—'}</b></span>
-        <span><small>${LL('Reino', 'Realm', 'Realm', 'Royaume')}</small><b>${ov.realm ? `#${num0(ov.realm)}` : '—'}</b></span></div></div>`);
+        <span><small>${LL('Reino', 'Realm')}</small><b>${ov.realm ? `#${num0(ov.realm)}` : '—'}</b></span></div></div>`);
     }
     return tiles.join('');
   }
@@ -240,11 +240,11 @@ const Profile = (() => {
     const q = st.q;
     const slug = encodeURIComponent(q.slug);
     const nm = encodeURIComponent(q.name);
-    const lang = { es: 'es-es', en: 'en-gb', de: 'de-de', fr: 'fr-fr' }[S.lang] || 'en-gb';
+    const lang = { es: 'es-es', en: 'en-gb' }[S.lang] || 'en-gb';
     const links = [
       ['Warcraft Logs', `https://www.warcraftlogs.com/character/${q.region}/${slug}/${nm}`],
       ['Raider.IO', st.rio?.url || `https://raider.io/characters/${q.region}/${slug}/${nm}`],
-      [LL('Armería', 'Armory', 'Arsenal', 'Armurerie'), `https://worldofwarcraft.blizzard.com/${lang}/character/${q.region}/${slug}/${nm}`],
+      [LL('Armería', 'Armory'), `https://worldofwarcraft.blizzard.com/${lang}/character/${q.region}/${slug}/${nm}`],
     ];
     return links.map(([l, u]) => `<a href="#" class="link" data-pf="ext" data-u="${esc(u)}">${esc(l)} ↗</a>`).join(' · ');
   }
@@ -266,9 +266,9 @@ const Profile = (() => {
         <div class="pf-cls" style="color:${classColor(cls)}">${esc([a?.race, a?.cls].filter(Boolean).join(' '))}${a?.spec ? ` · ${esc(a.spec)}` : ''}</div>
         <div class="pf-links">${linksHTML()}</div></div>
       <div class="pf-tiles">${tilesHTML()}</div>
-      <div class="pf-upd"><button type="button" class="btn ghost" data-pf="update" ${st.busy ? 'disabled' : ''}>↻ ${LL('Actualizar', 'Update', 'Aktualisieren', 'Actualiser')}</button>
-        <small>${LL('Equipo actualizado', 'Gear updated', 'Ausrüstung aktualisiert', 'Équipement mis à jour')}: <b class="${stale ? 'bad' : ''}">${esc(ago(a?.lastLogin))}</b>${days != null && days > 0 ? ` <span class="muted">(${LL(`${days} d sin actualizar`, `${days} d without update`, `${days} T. ohne Update`, `${days} j sans mise à jour`)})</span>` : ''}</small>
-        <small class="muted">${LL('Consultado', 'Fetched', 'Abgerufen', 'Consulté')}: ${esc(ago(st.at))}</small></div></div>`;
+      <div class="pf-upd"><button type="button" class="btn ghost" data-pf="update" ${st.busy ? 'disabled' : ''}>↻ ${LL('Actualizar', 'Update')}</button>
+        <small>${LL('Equipo actualizado', 'Gear updated')}: <b class="${stale ? 'bad' : ''}">${esc(ago(a?.lastLogin))}</b>${days != null && days > 0 ? ` <span class="muted">(${LL(`${days} d sin actualizar`, `${days} d without update`)})</span>` : ''}</small>
+        <small class="muted">${LL('Consultado', 'Fetched')}: ${esc(ago(st.at))}</small></div></div>`;
   }
 
   function controlsHTML() {
@@ -276,8 +276,8 @@ const Profile = (() => {
     const zone = zones.find((z) => z.id === st.zone);
     const opts = zones.map((z) => `<option value="${z.id}" ${z.id === st.zone ? 'selected' : ''}>${esc(PATCH_OF_ZONE[z.id] ? `${PATCH_OF_ZONE[z.id]} · ${z.name}` : z.name)}</option>`).join('');
     const diffs = (zone?.difficulties || []).filter((d) => [1, 3, 4, 5].includes(d.id)).map((d) => `<button type="button" class="chip ${st.diff === d.id ? 'on' : ''}" data-pf="diff" data-v="${d.id}">${esc(diffName(d.id) || d.name)}</button>`).join('');
-    const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l || LL('Daño a jefe', 'Boss Damage', 'Bossschaden', 'Dégâts au boss')}</button>`).join('');
-    return `<div class="pf-ctl"><label>${LL('Parche', 'Patch', 'Patch', 'Patch')}<select data-pf-zone>${opts}</select></label>
+    const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l || LL('Daño a jefe', 'Boss Damage')}</button>`).join('');
+    return `<div class="pf-ctl"><label>${LL('Parche', 'Patch')}<select data-pf-zone>${opts}</select></label>
       <span class="chips">${diffs}</span><span class="sep"></span><span class="chips">${mets}</span></div>`;
   }
 
@@ -287,7 +287,7 @@ const Profile = (() => {
     if (!w) return `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
     const zr = w.zoneRankings;
     const zone = (st.zones || []).find((z) => z.id === st.zone);
-    if (!zr || !zone) return `<div class="empty sm">${LL('Sin datos para este parche y dificultad.', 'No data for this patch and difficulty.', 'Keine Daten für diesen Patch und diese Schwierigkeit.', 'Aucune donnée pour ce patch et cette difficulté.')}</div>`;
+    if (!zr || !zone) return `<div class="empty sm">${LL('Sin datos para este parche y dificultad.', 'No data for this patch and difficulty.')}</div>`;
     const byEnc = new Map((zr.rankings || []).map((r) => [r.encounter?.id, r]));
     const kills = (zr.rankings || []).reduce((s, r) => s + (r.totalKills || 0), 0);
     const as = [...(zr.allStars || [])].sort((a, b) => b.points - a.points)[0];
@@ -306,7 +306,7 @@ const Profile = (() => {
         <td>${has ? `<span class="pf-pct">${pct(r.rankPercent)}${specImg(r)}</span>` : '-'}</td><td class="n">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? r.totalKills : 0}</td>
         <td class="n">${has && r.fastestKill ? clock(r.fastestKill) : '-'}</td><td>${has ? pct(r.medianPercent) : '-'}</td>
         <td class="n">${has && a2 ? num(a2.points, 2) : '-'}</td>
-        <td class="n" title="${a2 ? esc(`${num0(a2.total)} ${LL('jugadores', 'players', 'Spieler', 'joueurs')}`) : ''}">${has && a2 ? `<b style="color:${parseColor(a2.rankPercent)}">${num0(a2.rank)}</b>` : '-'}</td>
+        <td class="n" title="${a2 ? esc(`${num0(a2.total)} ${LL('jugadores', 'players')}`) : ''}">${has && a2 ? `<b style="color:${parseColor(a2.rankPercent)}">${num0(a2.rank)}</b>` : '-'}</td>
         <td class="n">${has && a2 ? num0(a2.regionRank) : '-'}</td><td class="n">${has && a2 ? num0(a2.serverRank) : '-'}</td></tr>`
         + (has && st.openEnc === e.id ? encLogsHTML(e.id, clsKey) : '');
     }).join('');
@@ -314,12 +314,12 @@ const Profile = (() => {
     // mediana y kills a la derecha, y los puntos All Star (con parche y spec) abajo en el centro
     const asSpec = as?.spec && clsKey ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(as.spec).split(' ').join('')}`)}" width="20" height="20" alt="" title="${esc(as.spec)}">` : '';
     return `<div class="pf-sum2"><div class="pf-sum2-t">${esc(diffName(st.diff) || '')}</div>
-      <div class="pf-sum2-l"><small>${LL('Mejor media', 'Best Perf. Avg', 'Beste Ø-Leistung', 'Meilleure moyenne')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
-      <div class="pf-sum2-r"><span>${LL('Media mediana', 'Median Perf. Avg', 'Median-Ø', 'Moyenne médiane')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
-        <span>${LL('Kills registradas', 'Kills Logged', 'Registrierte Kills', 'Kills enregistrés')}: <b>${kills}</b></span></div>
-      <div class="pf-sum2-b">${LL('Puntos All Star', 'All Star Points', 'All-Star-Punkte', 'Points All Star')}: <b class="pf-as">${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}${PATCH_OF_ZONE[st.zone] ? ` <span class="muted">(${esc(PATCH_OF_ZONE[st.zone])})</span>` : ''}${asSpec}</div></div>
-      <div class="pf-tbl-w"><table class="pf-table"><thead><tr><th rowspan="2">${LL('Jefe', 'Boss', 'Boss', 'Boss')}</th><th rowspan="2">${LL('Mejor %', 'Best %', 'Bester %', 'Meilleur %')}</th><th rowspan="2">${LL(`${unit} máximo`, `Highest ${unit}`, `Höchstes ${unit}`, `${unit} max.`)}</th><th rowspan="2">Kills</th><th rowspan="2">${LL('Más rápida', 'Fastest', 'Schnellste', 'Plus rapide')}</th><th rowspan="2">${LL('Med.', 'Med', 'Med.', 'Méd.')}</th><th colspan="4">All Stars</th></tr>
-        <tr><th>${LL('Puntos', 'Points', 'Punkte', 'Points')}</th><th>${LL('Mundo', 'World', 'Welt', 'Monde')}</th><th>${esc(regionName(st.q.region))}</th><th>${LL('Reino', 'Realm', 'Realm', 'Royaume')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <div class="pf-sum2-l"><small>${LL('Mejor media', 'Best Perf. Avg')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
+      <div class="pf-sum2-r"><span>${LL('Media mediana', 'Median Perf. Avg')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
+        <span>${LL('Kills registradas', 'Kills Logged')}: <b>${kills}</b></span></div>
+      <div class="pf-sum2-b">${LL('Puntos All Star', 'All Star Points')}: <b class="pf-as">${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}${PATCH_OF_ZONE[st.zone] ? ` <span class="muted">(${esc(PATCH_OF_ZONE[st.zone])})</span>` : ''}${asSpec}</div></div>
+      <div class="pf-tbl-w"><table class="pf-table"><thead><tr><th rowspan="2">${LL('Jefe', 'Boss')}</th><th rowspan="2">${LL('Mejor %', 'Best %')}</th><th rowspan="2">${LL(`${unit} máximo`, `Highest ${unit}`)}</th><th rowspan="2">Kills</th><th rowspan="2">${LL('Más rápida', 'Fastest')}</th><th rowspan="2">${LL('Med.', 'Med')}</th><th colspan="4">All Stars</th></tr>
+        <tr><th>${LL('Puntos', 'Points')}</th><th>${LL('Mundo', 'World')}</th><th>${esc(regionName(st.q.region))}</th><th>${LL('Reino', 'Realm')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   function gearHTML() {
@@ -332,7 +332,7 @@ const Profile = (() => {
       return `<div class="pf-it" style="--q:${QCOLOR[it.quality] || '#fff'}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
         <span class="pf-itx"><b title="${esc(it.name)}">${esc(it.name)}</b>${extra}</span><em>${esc(it.ilvl || '')}</em></div>`;
     }).join('');
-    return `<div class="pf-gear-h"><b>${LL('Equipo', 'Gear', 'Ausrüstung', 'Équipement')}</b><span>${LL('Nivel de objeto', 'Item Level', 'Gegenstandsstufe', 'Niveau d’objet')}: <b>${esc(ilvl || '—')}</b></span></div>${rows}`;
+    return `<div class="pf-gear-h"><b>${LL('Equipo', 'Gear')}</b><span>${LL('Nivel de objeto', 'Item Level')}: <b>${esc(ilvl || '—')}</b></span></div>${rows}`;
   }
 
   // Talentos que lleva ahora (Raider.IO): héroe y clase/especialización, con tooltip y botón para copiarlos al juego
@@ -341,9 +341,9 @@ const Profile = (() => {
     if (!tl || !tl.nodes?.length) return '';
     const icon = (n) => `<span class="pf-tal-i${n.rank < n.max ? ' part' : ''}" data-spell="${n.spell}" aria-label="${esc(n.name)}"><img src="wcicon://i/${encodeURIComponent(n.icon)}" alt="" loading="lazy">${n.max > 1 ? `<i>${n.rank}</i>` : ''}</span>`;
     const hero = tl.nodes.filter((n) => n.hero), rest = tl.nodes.filter((n) => !n.hero);
-    return `<div class="pf-tal"><div class="pf-gear-h"><b>${LL('Talentos', 'Talents', 'Talente', 'Talents')}</b>${tl.text ? `<button type="button" class="btn ghost sm" data-pf="copytal">${LL('Copiar talentos', 'Copy talents', 'Talente kopieren', 'Copier les talents')}</button>` : ''}</div>`
-      + (hero.length ? `<small class="pf-tal-h">${LL('Héroe', 'Hero', 'Held', 'Héros')}</small><div class="pf-tal-g">${hero.map(icon).join('')}</div>` : '')
-      + `<small class="pf-tal-h">${LL('Clase y especialización', 'Class and specialization', 'Klasse und Spezialisierung', 'Classe et spécialisation')}</small><div class="pf-tal-g">${rest.map(icon).join('')}</div></div>`;
+    return `<div class="pf-tal"><div class="pf-gear-h"><b>${LL('Talentos', 'Talents')}</b>${tl.text ? `<button type="button" class="btn ghost sm" data-pf="copytal">${LL('Copiar talentos', 'Copy talents')}</button>` : ''}</div>`
+      + (hero.length ? `<small class="pf-tal-h">${LL('Héroe', 'Hero')}</small><div class="pf-tal-g">${hero.map(icon).join('')}</div>` : '')
+      + `<small class="pf-tal-h">${LL('Clase y especialización', 'Class and specialization')}</small><div class="pf-tal-g">${rest.map(icon).join('')}</div></div>`;
   }
 
   function render() {
@@ -351,7 +351,7 @@ const Profile = (() => {
     const a = st.arm;
     const model = a?.render ? `<div class="pf-model" data-tilt><img src="${Cards.media(a.render)}" alt="${esc(a.name)}" draggable="false"></div>` : '';
     main.innerHTML = `<div class="pf">
-      <div class="pf-back"><button type="button" class="btn ghost sm" data-pf="home">${LL('← Inicio', '← Home', '← Start', '← Accueil')}</button></div>
+      <div class="pf-back"><button type="button" class="btn ghost sm" data-pf="home">${LL('← Inicio', '← Home')}</button></div>
       ${headerHTML()}
       <div class="pf-grid"><section class="pf-left">${controlsHTML()}${tableHTML()}</section>
         <aside class="pf-right"><div class="pf-gear">${gearHTML()}</div>${talentsHTML()}${model}</aside></div></div>`;
@@ -361,18 +361,18 @@ const Profile = (() => {
   function formHTML() {
     const last = lsGet('prof:region') || 'all';
     const rec = recent();
-    const reg = [['all', LL('Todas las regiones', 'All regions', 'Alle Regionen', 'Toutes les régions')], ['eu', 'EU'], ['us', 'US'], ['kr', 'KR'], ['tw', 'TW']];
+    const reg = [['all', LL('Todas las regiones', 'All regions')], ['eu', 'EU'], ['us', 'US'], ['kr', 'KR'], ['tw', 'TW']];
     return `<form id="pfForm" class="pf-search" autocomplete="off">
-      <input name="name" class="pf-in-name" placeholder="${esc(LL('Nombre del personaje', 'Character name', 'Charaktername', 'Nom du personnage'))}" spellcheck="false" required>
-      <input name="realm" class="pf-in-realm" placeholder="${esc(LL('Reino (opcional)', 'Realm (optional)', 'Realm (optional)', 'Royaume (facultatif)'))}" spellcheck="false">
+      <input name="name" class="pf-in-name" placeholder="${esc(LL('Nombre del personaje', 'Character name'))}" spellcheck="false" required>
+      <input name="realm" class="pf-in-realm" placeholder="${esc(LL('Reino (opcional)', 'Realm (optional)'))}" spellcheck="false">
       <select name="region">${reg.map(([v, l]) => `<option value="${v}" ${v === last ? 'selected' : ''}>${l}</option>`).join('')}</select>
-      <button class="btn primary" type="submit">${LL('Buscar', 'Search', 'Suchen', 'Rechercher')}</button></form>
-      ${rec.length ? `<div class="chips pf-rec">${rec.map((x, i) => `<span class="pf-rec-i"><button type="button" class="chip" data-pf="recent" data-i="${i}">${flagHTML(x.locale, x.region)} ${esc(x.name)} <span class="muted">${esc(x.realm)} · ${esc(x.region.toUpperCase())}</span></button><button type="button" class="pf-rec-x" data-pf="recent-del" data-i="${i}" title="${esc(LL('Quitar de recientes', 'Remove from recent', 'Aus Zuletzt entfernen', 'Retirer des récents'))}" aria-label="${esc(LL('Quitar', 'Remove', 'Entfernen', 'Retirer'))}">✕</button></span>`).join('')}<button type="button" class="mini-btn" data-pf="recent-clear">${LL('Borrar todos', 'Clear all', 'Alle löschen', 'Tout effacer')}</button></div>` : ''}`;
+      <button class="btn primary" type="submit">${LL('Buscar', 'Search')}</button></form>
+      ${rec.length ? `<div class="chips pf-rec">${rec.map((x, i) => `<span class="pf-rec-i"><button type="button" class="chip" data-pf="recent" data-i="${i}">${flagHTML(x.locale, x.region)} ${esc(x.name)} <span class="muted">${esc(x.realm)} · ${esc(x.region.toUpperCase())}</span></button><button type="button" class="pf-rec-x" data-pf="recent-del" data-i="${i}" title="${esc(LL('Quitar de recientes', 'Remove from recent'))}" aria-label="${esc(LL('Quitar', 'Remove'))}">✕</button></span>`).join('')}<button type="button" class="mini-btn" data-pf="recent-clear">${LL('Borrar todos', 'Clear all')}</button></div>` : ''}`;
   }
 
   function sectionHTML() {
-    return `<section class="pf-find"><h3 class="sec" data-pf="focus">${LL('Buscar personaje', 'Find a character', 'Charakter suchen', 'Chercher un personnage')}</h3>
-      <p class="muted">${LL('Escribe el nombre y pulsa Intro: verás los personajes que existen con ese nombre, su reino y su país. El reino es opcional. Al elegir uno, se abre su ficha con posiciones, logs por jefe, equipo y modelo en vivo.', 'Type the name and press Enter: you will see the characters that exist with that name, their realm and country. The realm is optional. Pick one to open its page with rankings, logs per boss, gear and model, live.', 'Gib den Namen ein und drücke Enter: Du siehst die Charaktere mit diesem Namen, ihren Realm und ihr Land. Der Realm ist optional. Wähle einen, um seine Seite mit Platzierungen, Logs pro Boss, Ausrüstung und Modell live zu öffnen.', 'Saisis le nom et appuie sur Entrée : tu verras les personnages portant ce nom, leur royaume et leur pays. Le royaume est facultatif. Choisis-en un pour ouvrir sa fiche avec classements, logs par boss, équipement et modèle, en direct.')}</p>
+    return `<section class="pf-find"><h3 class="sec" data-pf="focus">${LL('Buscar personaje', 'Find a character')}</h3>
+      <p class="muted">${LL('Escribe el nombre y pulsa Intro: verás los personajes que existen con ese nombre, su reino y su país. El reino es opcional. Al elegir uno, se abre su ficha con posiciones, logs por jefe, equipo y modelo en vivo.', 'Type the name and press Enter: you will see the characters that exist with that name, their realm and country. The realm is optional. Pick one to open its page with rankings, logs per boss, gear and model, live.')}</p>
       ${formHTML()}</section>`;
   }
 
@@ -405,7 +405,7 @@ const Profile = (() => {
     else if (a === 'update') load();
     else if (a === 'enc') { const id = Number(el.dataset.e); st.openEnc = st.openEnc === id ? null : id; render(); }
     else if (a === 'log') loadReport(`https://www.warcraftlogs.com/reports/${el.dataset.code}${el.dataset.fight ? `#fight=${el.dataset.fight}` : ''}`);
-    else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»', 'Talente kopiert: im Spiel mit «Importieren» einfügen', 'Talents copiés : collez-les en jeu avec «Importer»'))); }
+    else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»'))); }
     else if (a === 'home') goHome();
     else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; render(); fetchWcl().then(render); }
     else if (a === 'metric') { st.metric = el.dataset.v; st.wcl = null; render(); fetchWcl().then(render); }

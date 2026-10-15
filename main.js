@@ -106,9 +106,9 @@ async function getToken() {
 }
 
 // Idiomas de la app: subdominio de Warcraft Logs, locale de Wowhead y de Blizzard
-const WCL_SUBDOMAIN = { es: 'es', de: 'de', fr: 'fr' };
-const WOWHEAD_LOCALE = { es: 6, en: 0, de: 3, fr: 2 };
-const BNET_LOCALE = { es: 'es_ES', en: 'en_US', de: 'de_DE', fr: 'fr_FR' };
+const WCL_SUBDOMAIN = { es: 'es' };
+const WOWHEAD_LOCALE = { es: 6, en: 0 };
+const BNET_LOCALE = { es: 'es_ES', en: 'en_US' };
 
 // The localized subdomain returns translated fight/ability names; fall back to www if it fails.
 async function query(gql, variables, lang) {

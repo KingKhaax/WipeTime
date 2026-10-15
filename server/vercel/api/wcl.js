@@ -10,7 +10,7 @@ module.exports = async (req, res) => {
     const { query, variables, lang } = body;
     if (typeof query !== 'string' || query.length > 100000 || /\bmutation\b/i.test(query)) return send(res, 400, { error: 'bad query' });
     const bearer = await token('wcl');
-    const host = ['es', 'de', 'fr'].includes(lang) ? `https://${lang}.warcraftlogs.com` : WCL;
+    const host = ['es'].includes(lang) ? `https://${lang}.warcraftlogs.com` : WCL;
     const r = await fetch(`${host}/api/v2/client`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json', Accept: 'application/json' },

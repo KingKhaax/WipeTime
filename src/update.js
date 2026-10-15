@@ -8,6 +8,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['0.9.0', 'Quitados el francés y el alemán: la app queda en español e inglés (si tenías uno de esos idiomas, vuelve al español). Parses corregidos: Warcraft Logs devuelve 0 a los jugadores con posición aproximada (~) en su modo por defecto, así que ahora se piden también en modo «Parses» y se usa ese valor, que es el que enseña la web (en un log de prueba pasaron de 8 a 14 aciertos exactos de 16). En logs recientes los parses se vuelven a pedir cada minuto y se avisa de que son provisionales, porque Warcraft Logs los ajusta durante las primeras horas.', 'French and German removed: the app is now Spanish and English only (if you had one of those languages, it goes back to Spanish). Parses fixed: Warcraft Logs returns 0 for players with an approximate position (~) in its default mode, so they are now also requested in «Parses» mode and that value is used, which is what the website shows (on a test log they went from 8 to 14 exact matches out of 16). On recent logs parses are requested again every minute and flagged as provisional, because Warcraft Logs adjusts them during the first hours.'],
     ['0.8.4', 'Clasificaciones con el formato de Warcraft Logs para el kill elegido: ranking de ejecución (muertes, daño recibido, nivel de objeto), ranking de velocidad (duración) y clasificación de jugadores con pestañas Daño, Sanación y Daño al jefe, con % de rango, rango, de cuántos, mejor rango, jugador con su servidor, DPS/HPS, Ilvl e Ilvl %. La vista anterior con varios intentos y filtros sigue disponible como «Vista avanzada».', 'Rankings in Warcraft Logs format for the chosen kill: execution ranking (deaths, damage taken, item level), speed ranking (duration) and player rankings with Damage, Healing and Boss damage tabs, with rank %, rank, out of, best rank, player with their realm, DPS/HPS, Ilvl and Ilvl %. The previous view with several pulls and filters is still available as «Advanced view».'],
     ['0.8.3', 'Quitado el icono del rayo del botón «Combinar pulls» y del aviso «Combinando N pulls».', 'Removed the lightning icon from the «Combine pulls» button and the «Combining N pulls» notice.'],
     ['0.8.2', 'Corregido el icono de spec de jugadores cuyo informe solo traía la clase (salía el icono de la clase en lugar de el de su especialización, en la elección de personaje y en las listas): ahora la spec se toma de los detalles de jugador de Warcraft Logs. El botón Actualizar ya no lleva icono.', 'Fixed the spec icon of players whose report only carried the class (the class icon showed instead of the specialization one, in the character picker and in the lists): the spec is now taken from Warcraft Logs player details. The Refresh button no longer has an icon.'],
@@ -82,11 +83,11 @@ const WCUpdate = (() => {
   const canInstall = () => !!(res && res.outdated && res.canInstall);
 
   function stateHTML() {
-    if (!res) return `<span class="muted">${tr('Aún no se ha comprobado.', 'Not checked yet.', 'Noch nicht geprüft.', 'Pas encore vérifié.')}</span>`;
-    if (res.error === 'NO_SOURCE') return `<span class="muted">${tr('Configura abajo la fuente de actualizaciones para poder comprobar la última versión.', 'Set the update source below to check for the latest version.', 'Lege unten die Update-Quelle fest, um die neueste Version zu prüfen.', 'Configure ci-dessous la source des mises à jour pour vérifier la dernière version.')}</span>`;
-    if (res.error) return `<span class="bad">${tr('No se pudo comprobar', 'Could not check', 'Prüfung nicht möglich', 'Vérification impossible')}: ${esc(res.error)}</span>`;
-    if (res.outdated) return `<span class="bad">${tr(`Versión atrasada · la última es v${esc(res.latest)}`, `Outdated · latest is v${esc(res.latest)}`, `Veraltet · die neueste ist v${esc(res.latest)}`, `Version obsolète · la dernière est v${esc(res.latest)}`)}</span>${res.notes ? `<pre class="ver-notes">${esc(res.notes.slice(0, 600))}</pre>` : ''}`;
-    return `<span class="ok">${tr('Tienes la versión más reciente', 'You have the latest version', 'Du hast die neueste Version', 'Tu as la dernière version')}</span>`;
+    if (!res) return `<span class="muted">${tr('Aún no se ha comprobado.', 'Not checked yet.')}</span>`;
+    if (res.error === 'NO_SOURCE') return `<span class="muted">${tr('Configura abajo la fuente de actualizaciones para poder comprobar la última versión.', 'Set the update source below to check for the latest version.')}</span>`;
+    if (res.error) return `<span class="bad">${tr('No se pudo comprobar', 'Could not check')}: ${esc(res.error)}</span>`;
+    if (res.outdated) return `<span class="bad">${tr(`Versión atrasada · la última es v${esc(res.latest)}`, `Outdated · latest is v${esc(res.latest)}`)}</span>${res.notes ? `<pre class="ver-notes">${esc(res.notes.slice(0, 600))}</pre>` : ''}`;
+    return `<span class="ok">${tr('Tienes la versión más reciente', 'You have the latest version')}</span>`;
   }
 
   function paintBadge() {
@@ -94,7 +95,7 @@ const WCUpdate = (() => {
     if (!b) return;
     b.textContent = `v${version}`;
     b.className = `ver-badge ${cls()}`;
-    b.title = !res ? '' : res.error ? '' : res.outdated ? (tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`, `Neue Version verfügbar: v${res.latest}`, `Nouvelle version disponible : v${res.latest}`)) : (tr('Última versión', 'Latest version', 'Neueste Version', 'Dernière version'));
+    b.title = !res ? '' : res.error ? '' : res.outdated ? (tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`)) : (tr('Última versión', 'Latest version'));
   }
 
   async function check(manual) {
@@ -105,19 +106,19 @@ const WCUpdate = (() => {
     lastCheck = Date.now();
     paintBadge();
     refreshOpenPanel();
-    if (manual && res.outdated) toast(tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`, `Neue Version verfügbar: v${res.latest}`, `Nouvelle version disponible : v${res.latest}`));
+    if (manual && res.outdated) toast(tr(`Hay una versión nueva: v${res.latest}`, `New version available: v${res.latest}`));
     return res;
   }
 
   async function install() {
     const btn = document.getElementById('doUpdate');
     const prog = document.getElementById('verProg');
-    if (btn) { btn.disabled = true; btn.textContent = tr('Descargando…', 'Downloading…', 'Lädt herunter…', 'Téléchargement…'); }
+    if (btn) { btn.disabled = true; btn.textContent = tr('Descargando…', 'Downloading…'); }
     if (prog) prog.hidden = false;
     window.api.onUpdateProgress?.((f) => { const i = document.querySelector('#verProg i'); if (i) i.style.width = `${Math.round(f * 100)}%`; });
     const r = await window.api.updateInstall();
     if (r.error) {
-      toast((tr('Error al actualizar: ', 'Update failed: ', 'Update fehlgeschlagen: ', 'Échec de la mise à jour : ')) + r.error);
+      toast((tr('Error al actualizar: ', 'Update failed: ')) + r.error);
       if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); }
     }
   }
@@ -125,19 +126,19 @@ const WCUpdate = (() => {
   // Un solo botón: comprueba si hay versión nueva y, si la hay, la descarga e instala
   async function updateNow() {
     const btn = document.getElementById('doUpdate');
-    if (btn) { btn.disabled = true; btn.textContent = tr('Buscando…', 'Checking…', 'Suche…', 'Recherche…'); }
+    if (btn) { btn.disabled = true; btn.textContent = tr('Buscando…', 'Checking…'); }
     const r = await check(false);
     const st = document.getElementById('verState');
     if (st) st.innerHTML = stateHTML();
-    if (r.error) { toast(tr('No se pudo comprobar', 'Could not check', 'Prüfung nicht möglich', 'Vérification impossible') + `: ${r.error}`); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
-    if (!r.outdated) { toast(tr('Tienes la versión más reciente', 'You have the latest version', 'Du hast die neueste Version', 'Tu as la dernière version')); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
-    if (!r.canInstall) { toast(tr('Hay una versión nueva, pero no se puede instalar sola', 'A new version exists, but it cannot be installed automatically', 'Es gibt eine neue Version, sie lässt sich aber nicht automatisch installieren', 'Une nouvelle version existe, mais elle ne peut pas être installée automatiquement')); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
+    if (r.error) { toast(tr('No se pudo comprobar', 'Could not check') + `: ${r.error}`); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
+    if (!r.outdated) { toast(tr('Tienes la versión más reciente', 'You have the latest version')); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
+    if (!r.canInstall) { toast(tr('Hay una versión nueva, pero no se puede instalar sola', 'A new version exists, but it cannot be installed automatically')); if (btn) { btn.disabled = false; btn.textContent = buttonLabel(); } return; }
     await install();
   }
 
   const buttonLabel = () => (res?.outdated
-    ? tr(`Actualizar a v${res.latest}`, `Update to v${res.latest}`, `Auf v${res.latest} aktualisieren`, `Mettre à jour vers v${res.latest}`)
-    : tr('Buscar e instalar actualización', 'Check and install update', 'Nach Update suchen und installieren', 'Rechercher et installer la mise à jour'));
+    ? tr(`Actualizar a v${res.latest}`, `Update to v${res.latest}`)
+    : tr('Buscar e instalar actualización', 'Check and install update'));
 
   // Si Ajustes → Versión está abierto, repinta el estado y el botón con el resultado más reciente
   function refreshOpenPanel() {

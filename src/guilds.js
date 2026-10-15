@@ -11,10 +11,10 @@ const Guilds = (() => {
   const guildKey = (g) => `${g.realmSlug}/${g.name}`;
   const friendly = (code) => {
     const c = String(code || '');
-    if (c === 'NO_BNET_CLIENT') return LL('La conexión con Blizzard no está disponible ahora mismo.', 'The Blizzard connection is not available right now.', 'Die Verbindung zu Blizzard ist gerade nicht verfügbar.', 'La connexion à Blizzard n’est pas disponible pour le moment.');
+    if (c === 'NO_BNET_CLIENT') return LL('La conexión con Blizzard no está disponible ahora mismo.', 'The Blizzard connection is not available right now.');
     if (c === 'CLOSED') return LL('Cerraste la ventana de inicio de sesión.', 'You closed the sign-in window.');
-    if (/TOKEN_|BAD_STATE|access_denied|invalid_request|redirect/i.test(c)) return LL(`Blizzard rechazó el inicio de sesión (${c}). Inténtalo de nuevo más tarde.`, `Blizzard rejected the sign-in (${c}). Try again later.`, `Blizzard hat die Anmeldung abgelehnt (${c}). Versuche es später erneut.`, `Blizzard a refusé la connexion (${c}). Réessaie plus tard.`);
-    if (/HTTP_404/.test(c)) return LL('No encontrado: revisa el nombre, el reino y la región.', 'Not found: check the name, realm and region.', 'Nicht gefunden: Prüfe Name, Realm und Region.', 'Introuvable : vérifie le nom, le royaume et la région.');
+    if (/TOKEN_|BAD_STATE|access_denied|invalid_request|redirect/i.test(c)) return LL(`Blizzard rechazó el inicio de sesión (${c}). Inténtalo de nuevo más tarde.`, `Blizzard rejected the sign-in (${c}). Try again later.`);
+    if (/HTTP_404/.test(c)) return LL('No encontrado: revisa el nombre, el reino y la región.', 'Not found: check the name, realm and region.');
     if (c === 'NOT_LOGGED') return LL('La sesión de Blizzard ha caducado: vuelve a iniciar sesión.', 'The Blizzard session expired: sign in again.');
     return c;
   };
@@ -58,7 +58,7 @@ const Guilds = (() => {
       ? `<div class="bn-card ok"><div class="bn-ic ok">${glyph}</div><div class="bn-txt"><h2>${esc(s.battletag || LL('Cuenta conectada', 'Account connected'))}</h2><p><span class="bn-dot"></span>${LL('Battle.net conectado · región', 'Battle.net connected · region')} ${esc((s.region || 'eu').toUpperCase())}</p></div>
           <div class="bn-actions"><button class="btn ghost sm" data-gd="refresh">↻ ${LL('Actualizar guilds', 'Refresh guilds')}</button><button class="btn ghost sm" data-gd="logout">${LL('Cerrar sesión', 'Sign out')}</button></div></div>`
       : `<div class="bn-card"><div class="bn-glow"></div><div class="bn-ic">${glyph}</div>
-          <div class="bn-txt"><h2>${LL('Conecta tu cuenta de Battle.net (opcional)', 'Connect your Battle.net account (optional)', 'Verbinde dein Battle.net-Konto (optional)', 'Connecte ton compte Battle.net (facultatif)')}</h2>
+          <div class="bn-txt"><h2>${LL('Conecta tu cuenta de Battle.net (opcional)', 'Connect your Battle.net account (optional)')}</h2>
             <p>${LL('Detectamos tus guilds automáticamente y abrimos sus logs y rankings con un clic.', 'We detect your guilds automatically and open their logs and rankings in one click.')}</p>
             <ul class="bn-feats"><li>${LL('Tus guilds al instante', 'Your guilds instantly')}</li><li>${LL('Logs recientes', 'Recent logs')}</li><li>${LL('Ranking de parses', 'Parse ranking')}</li></ul></div>
           ${hasClient ? `<button class="bn-btn" data-gd="login">${glyph}<span>${LL('Iniciar sesión con Battle.net', 'Sign in with Battle.net')}</span></button>` : ''}
@@ -79,10 +79,10 @@ const Guilds = (() => {
     const bodyUnderMine = !!(st.sel && Array.isArray(st.mine) && st.mine.some((g) => guildKey(g) === guildKey(st.sel)));
     const bodyDiv = `<div id="gdBody">${st.sel ? bodyHTML() : ''}</div>`;
     main.innerHTML = `<div class="hdr"><div class="eyebrow">${LL('Comunidad', 'Community')}</div><h1>Guilds</h1><div class="sub">${LL('Mira los logs de tu guild y quién tiene mejores parses.', 'See your guild\'s logs and who has the best parses.')}</div></div>
-      ${login}${mine ? `<h3 class="sec">${LL('Tus guilds', 'Your guilds')}</h3>${mine}` : `<div class="empty sm">${LL('No hace falta iniciar sesión: añade tus personajes abajo o busca tu guild y guárdala.', 'No sign-in needed: add your characters below or find your guild and save it.', 'Keine Anmeldung nötig: Füge unten deine Charaktere hinzu oder suche deine Gilde und speichere sie.', 'Aucune connexion nécessaire : ajoute tes personnages ci-dessous ou cherche ta guilde et enregistre-la.')}</div>`}
+      ${login}${mine ? `<h3 class="sec">${LL('Tus guilds', 'Your guilds')}</h3>${mine}` : `<div class="empty sm">${LL('No hace falta iniciar sesión: añade tus personajes abajo o busca tu guild y guárdala.', 'No sign-in needed: add your characters below or find your guild and save it.')}</div>`}
       ${bodyUnderMine ? bodyDiv : ''}
       ${charsHTML()}
-      <h4 class="subh">${LL('Añadir un personaje', 'Add a character', 'Charakter hinzufügen', 'Ajouter un personnage')}</h4>${charFormHTML()}
+      <h4 class="subh">${LL('Añadir un personaje', 'Add a character')}</h4>${charFormHTML()}
       <div class="bn-or"><span>${LL('o busca una guild a mano', 'or find a guild by hand')}</span></div>${manual}
       ${bodyUnderMine ? '' : bodyDiv}`;
     if (st.sel) afterBody();
@@ -102,7 +102,7 @@ const Guilds = (() => {
   const SLOTS_B = ['TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
   // La mano izquierda solo sale si el personaje lleva algo (con un arma a dos manos no hay hueco)
   const slotHTML = (bySlot, sl) => { const it = bySlot.get(sl); return !it && sl === 'OFF_HAND' ? '' : itemHTML(it, it?.slotName || sl); };
-  const modelHTML = (d) => `<div class="arm-model" data-tilt>${d.render ? `<img src="${Cards.media(d.render)}" alt="${esc(d.name)}" draggable="false">` : `<span class="arm-nomodel">${LL('Sin modelo disponible', 'No model available', 'Kein Modell verfügbar', 'Aucun modèle disponible')}</span>`}</div>`;
+  const modelHTML = (d) => `<div class="arm-model" data-tilt>${d.render ? `<img src="${Cards.media(d.render)}" alt="${esc(d.name)}" draggable="false">` : `<span class="arm-nomodel">${LL('Sin modelo disponible', 'No model available')}</span>`}</div>`;
 
   const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
   function itemHTML(it, slotLabel) {
@@ -117,25 +117,25 @@ const Guilds = (() => {
   }
 
   function statsHTML(s) {
-    if (!s) return `<div class="muted">${LL('Sin estadísticas disponibles.', 'No stats available.', 'Keine Werte verfügbar.', 'Aucune statistique disponible.')}</div>`;
+    if (!s) return `<div class="muted">${LL('Sin estadísticas disponibles.', 'No stats available.')}</div>`;
     const n0 = (v) => num(v || 0, 0);
     const p2 = (v) => `${num(v || 0, 2)} %`;
     const row = (label, value, pct) => `<div class="arm-st"><span>${label}</span><b>${value}</b>${pct != null ? `<em>${pct}</em>` : '<em></em>'}</div>`;
     const sec = (title, rows) => (rows.filter(Boolean).length ? `<h5>${title}</h5>${rows.join('')}` : '');
     const rated = (label, o) => (o ? row(label, n0(o.rating), p2(o.value)) : '');
     const main = Math.max(s.strength, s.agility, s.intellect);
-    const prim = [['strength', LL('Fuerza', 'Strength', 'Stärke', 'Force')], ['agility', LL('Agilidad', 'Agility', 'Beweglichkeit', 'Agilité')], ['intellect', LL('Intelecto', 'Intellect', 'Intelligenz', 'Intelligence')]]
+    const prim = [['strength', LL('Fuerza', 'Strength')], ['agility', LL('Agilidad', 'Agility')], ['intellect', LL('Intelecto', 'Intellect')]]
       .map(([k, l]) => row(`${l}${s[k] === main && main ? ' ★' : ''}`, n0(s[k])));
     return [
-      sec(LL('Principales', 'Primary', 'Primärwerte', 'Principales'), [...prim, row(LL('Aguante', 'Stamina', 'Ausdauer', 'Endurance'), n0(s.stamina)), row(LL('Salud', 'Health', 'Gesundheit', 'Santé'), n0(s.health))]),
-      sec(LL('Secundarias', 'Secondary', 'Sekundärwerte', 'Secondaires'), [
-        rated(LL('Golpe crítico', 'Critical strike', 'Kritischer Treffer', 'Coup critique'), s.crit), rated(LL('Celeridad', 'Haste', 'Tempo', 'Hâte'), s.haste), rated(LL('Maestría', 'Mastery', 'Meisterschaft', 'Maîtrise'), s.mastery),
-        row(LL('Versatilidad', 'Versatility', 'Vielseitigkeit', 'Polyvalence'), n0(s.versatility?.rating), `${p2(s.versatility?.value)} / ${p2(s.versatility?.taken)}`)]),
-      sec(LL('Terciarias', 'Tertiary', 'Tertiärwerte', 'Tertiaires'), [rated(LL('Parasitismo', 'Leech', 'Aderlass', 'Ponction'), s.leech), rated(LL('Evitación', 'Avoidance', 'Vermeidung', 'Évitement'), s.avoidance), rated(LL('Velocidad', 'Speed', 'Geschwindigkeit', 'Vitesse'), s.speed)]),
-      sec(LL('Defensivas', 'Defensive', 'Defensivwerte', 'Défensives'), [row(LL('Armadura', 'Armor', 'Rüstung', 'Armure'), n0(s.armor)),
-        s.dodge ? row(LL('Esquivar', 'Dodge', 'Ausweichen', 'Esquive'), n0(s.dodge.rating), p2(s.dodge.value)) : '',
-        s.parry ? row(LL('Parar', 'Parry', 'Parieren', 'Parade'), n0(s.parry.rating), p2(s.parry.value)) : '',
-        s.block ? row(LL('Bloqueo', 'Block', 'Blocken', 'Blocage'), n0(s.block.rating), p2(s.block.value)) : '']),
+      sec(LL('Principales', 'Primary'), [...prim, row(LL('Aguante', 'Stamina'), n0(s.stamina)), row(LL('Salud', 'Health'), n0(s.health))]),
+      sec(LL('Secundarias', 'Secondary'), [
+        rated(LL('Golpe crítico', 'Critical strike'), s.crit), rated(LL('Celeridad', 'Haste'), s.haste), rated(LL('Maestría', 'Mastery'), s.mastery),
+        row(LL('Versatilidad', 'Versatility'), n0(s.versatility?.rating), `${p2(s.versatility?.value)} / ${p2(s.versatility?.taken)}`)]),
+      sec(LL('Terciarias', 'Tertiary'), [rated(LL('Parasitismo', 'Leech'), s.leech), rated(LL('Evitación', 'Avoidance'), s.avoidance), rated(LL('Velocidad', 'Speed'), s.speed)]),
+      sec(LL('Defensivas', 'Defensive'), [row(LL('Armadura', 'Armor'), n0(s.armor)),
+        s.dodge ? row(LL('Esquivar', 'Dodge'), n0(s.dodge.rating), p2(s.dodge.value)) : '',
+        s.parry ? row(LL('Parar', 'Parry'), n0(s.parry.rating), p2(s.parry.value)) : '',
+        s.block ? row(LL('Bloqueo', 'Block'), n0(s.block.rating), p2(s.block.value)) : '']),
     ].join('');
   }
 
@@ -143,20 +143,20 @@ const Guilds = (() => {
     const a = st.armory;
     if (!a || a.key !== charKey(c)) return '';
     const head = `<div class="arm-top"><b>${esc(c.name)}</b><span class="arm-sp"></span>
-      <button type="button" class="btn ghost sm" data-gd="armory-refresh" data-key="${esc(a.key)}">↻ ${LL('Actualizar', 'Refresh', 'Aktualisieren', 'Actualiser')}</button>
-      ${c.guild ? `<button type="button" class="btn ghost sm" data-gd="pick-char" data-guild="${esc(c.guild.name)}" data-realm="${esc(c.guild.realmSlug)}" data-realmname="${esc(c.guild.realmName)}" data-region="${esc(c.region || '')}">${LL('Abrir guild', 'Open guild', 'Gilde öffnen', 'Ouvrir la guilde')}</button>` : ''}
-      <button type="button" class="btn ghost sm" data-gd="armory-close">${LL('Cerrar', 'Close', 'Schließen', 'Fermer')}</button></div>`;
+      <button type="button" class="btn ghost sm" data-gd="armory-refresh" data-key="${esc(a.key)}">↻ ${LL('Actualizar', 'Refresh')}</button>
+      ${c.guild ? `<button type="button" class="btn ghost sm" data-gd="pick-char" data-guild="${esc(c.guild.name)}" data-realm="${esc(c.guild.realmSlug)}" data-realmname="${esc(c.guild.realmName)}" data-region="${esc(c.region || '')}">${LL('Abrir guild', 'Open guild')}</button>` : ''}
+      <button type="button" class="btn ghost sm" data-gd="armory-close">${LL('Cerrar', 'Close')}</button></div>`;
     if (a.status === 'loading') return `<div class="arm">${head}<div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
     if (a.status === 'err') return `<div class="arm">${head}<div class="error"><p>${esc(friendly(a.err))}</p></div></div>`;
     const d = a.data;
     const bySlot = new Map(d.items.map((i) => [i.slot, i]));
     const col = (slots) => slots.map((sl) => slotHTML(bySlot, sl)).join('');
     const info = [
-      `<span><small>${LL('Nivel de objeto', 'Item level', 'Gegenstandsstufe', 'Niveau d’objet')}</small><b>${esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
-      d.ilvlAvg && d.ilvlAvg !== d.ilvlEquipped ? `<span><small>${LL('Media (inventario)', 'Average (bags)', 'Durchschnitt (Taschen)', 'Moyenne (sacs)')}</small><b>${esc(d.ilvlAvg)}</b></span>` : '',
-      d.spec ? `<span><small>${LL('Especialización', 'Spec', 'Spezialisierung', 'Spécialisation')}</small><b>${esc(d.spec)}</b></span>` : '',
-      `<span><small>${LL('Nivel', 'Level', 'Stufe', 'Niveau')}</small><b>${esc(d.level)}</b></span>`,
-      d.achievements ? `<span><small>${LL('Logros', 'Achievements', 'Erfolge', 'Hauts faits')}</small><b>${esc(d.achievements)}</b></span>` : '',
+      `<span><small>${LL('Nivel de objeto', 'Item level')}</small><b>${esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
+      d.ilvlAvg && d.ilvlAvg !== d.ilvlEquipped ? `<span><small>${LL('Media (inventario)', 'Average (bags)')}</small><b>${esc(d.ilvlAvg)}</b></span>` : '',
+      d.spec ? `<span><small>${LL('Especialización', 'Spec')}</small><b>${esc(d.spec)}</b></span>` : '',
+      `<span><small>${LL('Nivel', 'Level')}</small><b>${esc(d.level)}</b></span>`,
+      d.achievements ? `<span><small>${LL('Logros', 'Achievements')}</small><b>${esc(d.achievements)}</b></span>` : '',
     ].join('');
     return `<div class="arm">${head}<div class="arm-info">${info}</div>
       <div class="arm-body"><div class="arm-gear"><div class="arm-col">${col(SLOTS_L)}</div>${modelHTML(d)}<div class="arm-col">${col(SLOTS_R)}</div><div class="arm-weapons">${col(SLOTS_B)}</div></div>
@@ -222,10 +222,10 @@ const Guilds = (() => {
   const guildSaved = (g) => savedGuilds().some((x) => guildKey(x) === guildKey(g));
   function charFormHTML() {
     const last = lsGet('gd:charRegion') || st.status?.region || 'eu';
-    return `<form id="gdCharForm" class="gd-form"><input name="name" placeholder="${esc(LL('Nombre del personaje', 'Character name', 'Charaktername', 'Nom du personnage'))}" spellcheck="false" autocomplete="off" required>
-      <input name="realm" placeholder="${esc(LL('Reino (ej. Zul’jin)', 'Realm (e.g. Zul’jin)', 'Realm (z. B. Zul’jin)', 'Royaume (ex. Zul’jin)'))}" spellcheck="false" autocomplete="off" required>
+    return `<form id="gdCharForm" class="gd-form"><input name="name" placeholder="${esc(LL('Nombre del personaje', 'Character name'))}" spellcheck="false" autocomplete="off" required>
+      <input name="realm" placeholder="${esc(LL('Reino (ej. Zul’jin)', 'Realm (e.g. Zul’jin)'))}" spellcheck="false" autocomplete="off" required>
       <select name="region">${['eu', 'us', 'kr', 'tw'].map((r) => `<option value="${r}" ${r === last ? 'selected' : ''}>${r.toUpperCase()}</option>`).join('')}</select>
-      <button class="btn" type="submit">${LL('Añadir personaje', 'Add character', 'Charakter hinzufügen', 'Ajouter le personnage')}</button></form>
+      <button class="btn" type="submit">${LL('Añadir personaje', 'Add character')}</button></form>
       ${st.charMsg ? `<div class="error sm"><p>${esc(st.charMsg)}</p></div>` : ''}`;
   }
 
@@ -244,7 +244,7 @@ const Guilds = (() => {
     const list = st.chars.filter((c) => !hidden.has(charKey(c)));
     const hiddenN = st.chars.length - list.length;
     return `${favList.length ? `<h3 class="sec">${LL('Personajes favoritos', 'Favorite characters')}</h3><div class="cc-grid">${favList.map((c) => wrap(c, false)).join('')}</div>` : ''}
-      <h3 class="sec">${LL('Tus personajes', 'Your characters')}${hiddenN ? ` <button type="button" class="mini-btn" data-gd="unhide">${LL(`Restaurar ${hiddenN} quitado${hiddenN === 1 ? '' : 's'}`, `Restore ${hiddenN} removed`, `${hiddenN} entfernte wiederherstellen`, `Restaurer ${hiddenN} retiré${hiddenN === 1 ? '' : 's'}`)}</button>` : ''}</h3>
+      <h3 class="sec">${LL('Tus personajes', 'Your characters')}${hiddenN ? ` <button type="button" class="mini-btn" data-gd="unhide">${LL(`Restaurar ${hiddenN} quitado${hiddenN === 1 ? '' : 's'}`, `Restore ${hiddenN} removed`)}</button>` : ''}</h3>
       ${list.length ? `<div class="cc-grid">${list.map((c) => wrap(c, true)).join('')}</div>` : `<div class="empty sm">${LL('Has quitado todos los personajes de la lista.', 'You removed every character from the list.')}</div>`}`;
   }
 
@@ -253,15 +253,15 @@ const Guilds = (() => {
     if (!r) return '';
     if (r.loading) return `<div class="loading"><span class="spinner"></span>${LL('Buscando guilds…', 'Searching guilds…')}</div>`;
     if (r.error) return `<div class="error"><p>${esc(friendly(r.error))}</p></div>`;
-    if (!r.list.length) return `<div class="empty sm">${LL(`No encontré ninguna guild llamada "${esc(r.term)}". Prueba con otro nombre o escribe también el reino.`, `I found no guild called "${esc(r.term)}". Try another name or enter the realm too.`, `Ich habe keine Gilde namens „${esc(r.term)}“ gefunden. Versuche einen anderen Namen oder gib auch den Realm an.`, `Je n’ai trouvé aucune guilde nommée « ${esc(r.term)} ». Essaie un autre nom ou saisis aussi le royaume.`)}</div>`;
-    return `<h4 class="subh">${LL(`Guilds que coinciden con "${esc(r.term)}"`, `Guilds matching "${esc(r.term)}"`, `Gilden, die zu „${esc(r.term)}“ passen`, `Guildes correspondant à « ${esc(r.term)} »`)}</h4><div class="gd-results">${r.list.map((x, i) =>
+    if (!r.list.length) return `<div class="empty sm">${LL(`No encontré ninguna guild llamada "${esc(r.term)}". Prueba con otro nombre o escribe también el reino.`, `I found no guild called "${esc(r.term)}". Try another name or enter the realm too.`)}</div>`;
+    return `<h4 class="subh">${LL(`Guilds que coinciden con "${esc(r.term)}"`, `Guilds matching "${esc(r.term)}"`)}</h4><div class="gd-results">${r.list.map((x, i) =>
       `<button class="gd-res" data-gd="pick-found" data-i="${i}"><span class="crest-slot" data-crest data-realm="${esc(x.realmSlug)}" data-guild="${esc(x.name)}" data-size="34"></span><span class="gd-res-t"><b>${esc(x.name)}</b><small>${esc(x.realmName)}</small></span><span class="gd-reg">${esc(x.region.toUpperCase())}</span></button>`).join('')}</div>`;
   }
 
   function bodyHTML() {
     const g = st.sel;
     const tab = (k, l) => `<button class="chip ${st.tab === k ? 'on' : ''}" data-gd="tab" data-tab="${k}">${l}</button>`;
-    return `${st.tab === 'rank' ? '' : `<div class="gd-head"><span data-crest data-realm="${esc(g.realmSlug)}" data-guild="${esc(g.name)}" data-size="56"></span><h2>${esc(g.name)}</h2><span class="muted">${esc(g.realmName || g.realmSlug)} · ${region()}</span>${guildSaved(g) ? `<button type="button" class="btn ghost sm" data-gd="unsaveguild">${LL('Quitar de mis guilds', 'Remove from my guilds', 'Aus meinen Gilden entfernen', 'Retirer de mes guildes')}</button>` : `<button type="button" class="btn sm" data-gd="saveguild">★ ${LL('Guardar guild', 'Save guild', 'Gilde speichern', 'Enregistrer la guilde')}</button>`}</div>`}
+    return `${st.tab === 'rank' ? '' : `<div class="gd-head"><span data-crest data-realm="${esc(g.realmSlug)}" data-guild="${esc(g.name)}" data-size="56"></span><h2>${esc(g.name)}</h2><span class="muted">${esc(g.realmName || g.realmSlug)} · ${region()}</span>${guildSaved(g) ? `<button type="button" class="btn ghost sm" data-gd="unsaveguild">${LL('Quitar de mis guilds', 'Remove from my guilds')}</button>` : `<button type="button" class="btn sm" data-gd="saveguild">★ ${LL('Guardar guild', 'Save guild')}</button>`}</div>`}
       <div class="metricbar">${tab('logs', LL('Logs recientes', 'Recent logs'))}${tab('rank', LL('Ranking de parses', 'Parse ranking'))}</div>
       <div id="gdTab"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
   }
@@ -387,7 +387,7 @@ const Guilds = (() => {
           rows.push({ name: m.name, cls: CLASS_BY_ID[m.classId] || '', spec, role: HEAL.has(spec) ? 'healer' : TANK.has(spec) ? 'tank' : 'dps', avg: zr.bestPerformanceAverage, stars: zr.allStars?.[0]?.points ?? null, boss, kills });
         });
         const live = document.getElementById('gdRank');
-        if (live) live.innerHTML = `<div class="loading"><span class="spinner"></span>${LL(`Calculando… ${Math.min(i + 8, pool.length)}/${pool.length} jugadores`, `Computing… ${Math.min(i + 8, pool.length)}/${pool.length} players`, `Berechne… ${Math.min(i + 8, pool.length)}/${pool.length} Spieler`, `Calcul… ${Math.min(i + 8, pool.length)}/${pool.length} joueurs`)}</div>`;
+        if (live) live.innerHTML = `<div class="loading"><span class="spinner"></span>${LL(`Calculando… ${Math.min(i + 8, pool.length)}/${pool.length} jugadores`, `Computing… ${Math.min(i + 8, pool.length)}/${pool.length} players`)}</div>`;
         if (st.tab !== 'rank') return;
       }
       lsSet(key, JSON.stringify({ at: Date.now(), rows }));
@@ -406,7 +406,7 @@ const Guilds = (() => {
     const head = `<div class="gr-head"><div class="gr-prog"><div class="gr-title"><span data-crest data-realm="${esc(gd.realmSlug)}" data-guild="${esc(gd.name)}" data-size="64"></span><div class="gr-name">${esc(gd.name)}</div></div><small class="muted">${esc(gd.realmName || gd.realmSlug)} · ${regionLabel}</small>
         <div class="gr-bar"><i style="width:${encs.length ? (killed / encs.length) * 100 : 0}%"></i><span>${killed}/${encs.length} ${diffLabel}</span></div></div>
       <div class="gr-ranks">${rankBox(LL('Mundo', 'World'), standing.world, 'w')}${rankBox(regionLabel, standing.region, 'r')}${rankBox(LL('Reino', 'Realm'), standing.realm, 'n')}${spainBox}</div></div>
-      <p class="foot gr-src">${standing.source ? LL(`Posiciones de ${standing.source}${standing.spain != null ? ' · España según Raider.IO' : ''}.`, `Rankings from ${standing.source}${standing.spain != null ? ' · Spain according to Raider.IO' : ''}.`, `Platzierungen von ${standing.source}${standing.spain != null ? ' · Spanien laut Raider.IO' : ''}.`, `Classements de ${standing.source}${standing.spain != null ? ' · Espagne selon Raider.IO' : ''}.`) : LL('No hay posición de guild para esta dificultad y parche (la guild no aparece en el ranking).', 'No guild ranking for this difficulty and patch (the guild is not in the ranking).')}</p>`;
+      <p class="foot gr-src">${standing.source ? LL(`Posiciones de ${standing.source}${standing.spain != null ? ' · España según Raider.IO' : ''}.`, `Rankings from ${standing.source}${standing.spain != null ? ' · Spain according to Raider.IO' : ''}.`) : LL('No hay posición de guild para esta dificultad y parche (la guild no aparece en el ranking).', 'No guild ranking for this difficulty and patch (the guild is not in the ranking).')}</p>`;
 
     const sorted = (list) => {
       const l = [...list].sort((x, y) => y.avg - x.avg);
@@ -426,7 +426,7 @@ const Guilds = (() => {
     const by = (role) => rows.filter((r) => r.role === role);
     live.innerHTML = rows.length
       ? `${head}${table(LL('Daño', 'Damage dealers'), by('dps'))}${table(LL('Sanadores', 'Healers'), by('healer'))}${table(LL('Tanques', 'Tanks'), by('tank'))}
-        <p class="foot">${LL(`Los ${pool.length} miembros de nivel máximo con mejor rango en la guild y su parse en Warcraft Logs (${st.bracket ? 'comparado con su mismo nivel de objeto' : 'comparado con todos los de su especialización'}). Avg es la media de su mejor parse en cada jefe. Quien no tiene logs públicos en este parche y dificultad no aparece.`, `The ${pool.length} max-level members with the highest guild rank and their Warcraft Logs parses (${st.bracket ? 'compared with their item level' : 'compared with everyone of their spec'}). Avg is the mean of their best parse on each boss. Anyone without public logs for this patch and difficulty is hidden.`, `Die ${pool.length} Mitglieder mit Maximalstufe und dem höchsten Gildenrang sowie ihr Parse auf Warcraft Logs (${st.bracket ? 'verglichen mit ihrer Gegenstandsstufe' : 'verglichen mit allen ihrer Spezialisierung'}). Avg ist der Mittelwert ihres besten Parses bei jedem Boss. Wer für diesen Patch und diese Schwierigkeit keine öffentlichen Logs hat, wird nicht angezeigt.`, `Les ${pool.length} membres de niveau maximum avec le meilleur rang dans la guilde et leur parse sur Warcraft Logs (${st.bracket ? 'comparé à leur niveau d’objet' : 'comparé à tous ceux de leur spécialisation'}). Avg est la moyenne de leur meilleur parse sur chaque boss. Ceux qui n’ont pas de logs publics pour ce patch et cette difficulté n’apparaissent pas.`)}</p>`
+        <p class="foot">${LL(`Los ${pool.length} miembros de nivel máximo con mejor rango en la guild y su parse en Warcraft Logs (${st.bracket ? 'comparado con su mismo nivel de objeto' : 'comparado con todos los de su especialización'}). Avg es la media de su mejor parse en cada jefe. Quien no tiene logs públicos en este parche y dificultad no aparece.`, `The ${pool.length} max-level members with the highest guild rank and their Warcraft Logs parses (${st.bracket ? 'compared with their item level' : 'compared with everyone of their spec'}). Avg is the mean of their best parse on each boss. Anyone without public logs for this patch and difficulty is hidden.`)}</p>`
       : `${head}<div class="empty">${LL('Ningún miembro tiene parses públicos en este parche y dificultad.', 'No member has public parses for this patch and difficulty.')}</div>`;
   }
 

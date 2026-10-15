@@ -66,7 +66,7 @@
     try {
       const ttl = noCache ? 0 : qcacheTtl(gql);
       if (!ttl) return await wclFetch(gql, variables, lang);
-      const key = JSON.stringify([gql, variables, ['es', 'de', 'fr'].includes(lang) ? lang : 'en']);
+      const key = JSON.stringify([gql, variables, ['es'].includes(lang) ? lang : 'en']);
       const hit = QCACHE.get(key);
       if (hit && Date.now() - hit.at < ttl) return hit.res;
       if (!inflightQ.has(key)) {

@@ -63,13 +63,15 @@
     return cached(`rankfull:${raw.id}`, async () => {
       try {
         const d = await gql(`query($code:String!,$f:[Int]){reportData{report(code:$code){
-          dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps) bd:rankings(fightIDs:$f,playerMetric:bossdps)}}}`, { code: S.code, f: [raw.id] }, true);
+          dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps) bd:rankings(fightIDs:$f,playerMetric:bossdps)
+          dpsP:rankings(fightIDs:$f,playerMetric:dps,compare:Parses) hpsP:rankings(fightIDs:$f,playerMetric:hps,compare:Parses) bdP:rankings(fightIDs:$f,playerMetric:bossdps,compare:Parses)}}}`, { code: S.code, f: [raw.id] }, true);
         const r = d.reportData.report;
         const one = (x) => x?.data?.[0] || null;
-        const out = { dps: one(r.dps), hps: one(r.hps), bd: one(r.bd) };
+        const out = { dps: one(mergeRankings(r.dps, r.dpsP)), hps: one(mergeRankings(r.hps, r.hpsP)), bd: one(mergeRankings(r.bd, r.bdP)) };
         const chars = Object.values(out.dps?.roles || {}).flatMap((ro) => ro?.characters || []);
         // valores provisionales (sin parses totales): no se dan por buenos, la próxima vez se vuelven a pedir
         if (!out.dps || !chars.length || chars.some((c) => !c.totalParses)) setTimeout(() => S.cache.delete(`rankfull:${raw.id}`), 0);
+        else if (S.liveReport) setTimeout(() => S.cache.delete(`rankfull:${raw.id}`), 60000);
         return out;
       } catch (e) {
         console.warn('rankFull', e);
@@ -181,7 +183,7 @@
     const viewBar = canWcl ? `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), false)}${chip('view', 'adv', LL('Vista avanzada', 'Advanced view'), true)}</div>` : '';
     const bar = viewBar + `<div class="metricbar"><span class="muted">${LL('Clasificación por', 'Rank by')}</span>${METRICS.map(([k, es, en]) => chip('metric', k, LL(es, en), rk.metric === k)).join('')}
       <span class="sep"></span><span class="muted">${LL('Alcance', 'Scope')}</span>
-      ${chip('scope', 'sel', f.combined ? LL(`Pulls combinados (${list.length})`, `Combined pulls (${list.length})`, `Kombinierte Versuche (${list.length})`, `Essais combinés (${list.length})`) : LL('Este intento', 'This pull'), rk.scope === 'sel')}
+      ${chip('scope', 'sel', f.combined ? LL(`Pulls combinados (${list.length})`, `Combined pulls (${list.length})`) : LL('Este intento', 'This pull'), rk.scope === 'sel')}
       ${S.fight?.encounterID ? chip('scope', 'boss', LL('Todos los intentos del jefe', 'All attempts on this boss'), rk.scope === 'boss') : ''}</div>
       <div class="metricbar"><span class="muted">${LL('Ordenar', 'Sort')}</span>${sorts.map(([k, l]) => chip('sort', k, l, rk.sort === k)).join('')}</div>
       <div class="metricbar"><span class="muted">${LL('Clase', 'Class')}</span>${chip('cls', '', LL('Todas', 'All'), !rk.cls)}${classes.map((c) => chip('cls', c, `<img class="cls-ic" src="${classIconUrl(c)}" width="18" height="18" alt="">${esc(className(c))}`, rk.cls === c, `style="--cc:${classColor(c)}"`)).join('')}</div>`;
@@ -209,7 +211,7 @@
         ${mine.length ? `<div class="rk-table">${head}${mine.map((r, i) => rowHTML(r, i, crowns)).join('')}</div>` : `<div class="empty sm">${t('noData')}</div>`}</section>`;
     }).join('');
     const note = kills ? '' : `<p class="foot">${LL('Estos intentos son wipes: Warcraft Logs solo calcula parses en kills. Ordena por "Por segundo".', 'These pulls are wipes: Warcraft Logs only computes parses on kills. Sort by "Per second".')}</p>`;
-    return headerHTML(f, t('tabs.rankings'), LL(`<b>${rows.length}</b> jugadores · ${list.length} ${list.length === 1 ? 'intento' : 'intentos'} (${kills} kill${kills === 1 ? '' : 's'})`, `<b>${rows.length}</b> players · ${list.length} ${list.length === 1 ? 'pull' : 'pulls'} (${kills} kill${kills === 1 ? '' : 's'})`, `<b>${rows.length}</b> Spieler · ${list.length} ${list.length === 1 ? 'Versuch' : 'Versuche'} (${kills} Kill${kills === 1 ? '' : 's'})`, `<b>${rows.length}</b> joueurs · ${list.length} ${list.length === 1 ? 'essai' : 'essais'} (${kills} kill${kills === 1 ? '' : 's'})`))
+    return headerHTML(f, t('tabs.rankings'), LL(`<b>${rows.length}</b> jugadores · ${list.length} ${list.length === 1 ? 'intento' : 'intentos'} (${kills} kill${kills === 1 ? '' : 's'})`, `<b>${rows.length}</b> players · ${list.length} ${list.length === 1 ? 'pull' : 'pulls'} (${kills} kill${kills === 1 ? '' : 's'})`))
       + bar + wins + note
       + `<p class="foot">${LL('El parse es siempre el de tu rol (daño para DPS y tanques, sanación para sanadores); con varios intentos es la media de los kills y lo "por segundo" se calcula sobre el tiempo total jugado.', 'Parse always reflects your role (damage for DPS and tanks, healing for healers); with several pulls it is the kills\' average and per-second uses the total time played.')}</p>`;
   }

@@ -3,7 +3,7 @@
 // ============================================================ state
 const S = {
   specById: new Map(), // id de jugador -> «Clase-Spec», reunido de playerDetails y de las tablas
-  lang: ['es', 'en', 'de', 'fr'].includes(lsGet('lang')) ? lsGet('lang') : 'es',
+  lang: ['es', 'en'].includes(lsGet('lang')) ? lsGet('lang') : 'es',
   me: '',
   hasCreds: false,
   code: null,
@@ -87,7 +87,7 @@ const classColor = (cls) => CLASSES[cls]?.color || '#9aa3b2';
 const className = (cls) => CLASSES[cls]?.[S.lang] || CLASSES[cls]?.en || cls || '';
 function specName(spec) {
   if (!spec) return '';
-  const table = { es: SPECS_ES, de: SPECS_DE, fr: SPECS_FR }[S.lang];
+  const table = { es: SPECS_ES }[S.lang];
   return table ? table[spec] || spec : spec.replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 function isPlayer(id, entry) {
@@ -271,6 +271,28 @@ function rankMap(json, field = 'rankPercent') {
   return m;
 }
 
+// Warcraft Logs: en el modo por defecto («Rankings») da rankPercent 0 a los jugadores cuya posición es aproximada («~»,
+// fuera de la lista de ranking), mientras que en el modo «Parses» sí calcula su porcentaje, igual que la web. Se piden los
+// dos y, donde el primero da 0 con posición aproximada, se usa el valor del segundo.
+function mergeRankings(a, b) {
+  const fa = a?.data?.[0];
+  if (!fa) return a;
+  const byName = new Map();
+  for (const ro of Object.values(b?.data?.[0]?.roles || {})) for (const c of ro?.characters || []) byName.set(c.name, c);
+  const roles = {};
+  for (const [k, ro] of Object.entries(fa.roles || {})) {
+    roles[k] = { ...ro, characters: (ro.characters || []).map((c) => {
+      const p = byName.get(c.name);
+      const approx = typeof c.rank === 'string' && c.rank.startsWith('~');
+      if (p && (c.rankPercent == null || c.rankPercent === 0) && (approx || c.rank >= c.totalParses) && p.rankPercent > 0) {
+        return { ...c, rank: p.rank, best: p.best, totalParses: p.totalParses, rankPercent: p.rankPercent, bracketPercent: p.bracketPercent || c.bracketPercent, fromParses: true };
+      }
+      return c;
+    }) };
+  }
+  return { ...a, data: [{ ...fa, roles }, ...a.data.slice(1)] };
+}
+
 function rankings(f) {
   return cached(`rank:${f.id}`, async () => {
     if (!f.kill || !f.encounterID || !f.full || f.combined) return { dps: new Map(), hps: new Map(), dpsB: new Map(), hpsB: new Map() };
@@ -278,11 +300,14 @@ function rankings(f) {
       // sin caché en disco: Warcraft Logs recalcula los parses de un log (al subirlo da valores provisionales y luego
       // los ajusta al entrar más logs), y guardarlos horas hacía que WipeTime enseñara un número y la web otro
       const d = await gql(`query($code:String!,$f:[Int]){reportData{report(code:$code){
-        dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps)}}}`, { code: S.code, f: [f.id] }, true);
-      const r = d.reportData.report;
+        dps:rankings(fightIDs:$f,playerMetric:dps) hps:rankings(fightIDs:$f,playerMetric:hps)
+        dpsP:rankings(fightIDs:$f,playerMetric:dps,compare:Parses) hpsP:rankings(fightIDs:$f,playerMetric:hps,compare:Parses)}}}`, { code: S.code, f: [f.id] }, true);
+      const raw = d.reportData.report;
+      const r = { dps: mergeRankings(raw.dps, raw.dpsP), hps: mergeRankings(raw.hps, raw.hpsP) };
       const chars = [r.dps, r.hps].flatMap((x) => (x?.data || []).flatMap((fd) => Object.values(fd.roles || {}).flatMap((ro) => ro?.characters || [])));
       // provisional = sin ranking calculado todavía (sin total de parses): no se da por bueno, la próxima vez se vuelve a pedir
       if (!chars.length || chars.some((x) => !x.totalParses)) setTimeout(() => S.cache.delete(`rank:${f.id}`), 0);
+      else if (S.liveReport) setTimeout(() => S.cache.delete(`rank:${f.id}`), 60000); // log reciente: Warcraft Logs ajusta los parses
       return { dps: rankMap(r.dps), hps: rankMap(r.hps), dpsB: rankMap(r.dps, 'bracketPercent'), hpsB: rankMap(r.hps, 'bracketPercent') };
     } catch (e) {
       console.warn('rankings', e);
@@ -750,7 +775,7 @@ function renderSidebar() {
   let html = `<button class="whoami-line" data-action="whoami"><span class="me-av" id="meAv"></span>${S.me ? `${t('you')}: <b>${esc(S.me)}</b>` : t('notInLog')} · <span class="link">${t('change')}</span></button>
     <div class="rep-title">${esc(r.title)}</div>
     <div class="rep-sub">${esc(zoneName(r.zone?.name))}${r.owner?.name ? ' · ' + esc(r.owner.name) : ''}<br>${new Date(r.startTime).toLocaleString(locale())}</div>
-    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span> ' : ''}${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}">${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`, `${S.combine.length} Versuche`, `${S.combine.length} essais`)}</small>` : ''}</div>`;
+    <div class="combine-bar"><button class="chip refresh-btn ${S.refreshing ? 'busy' : ''}" data-action="refresh-report" title="${esc(LL('Vuelve a cargar el log para ver nuevos pulls y kills', 'Reload the log to see new pulls and kills'))}">${S.refreshing ? '<span class="spinner sm"></span> ' : ''}${LL('Actualizar', 'Refresh')}</button><button class="chip" data-action="combine-all" title="${esc(LL('Combinar todos los trys de todos los jefes del log', 'Combine every try of every boss in the log'))}">${LL('Todo el log', 'Whole log')}</button><button class="chip ${S.combineMode ? 'on' : ''}" data-action="combine-toggle" title="${esc(LL('Marca varios pulls y mira sus cifras sumadas', 'Tick several pulls and see their combined numbers'))}">${LL('Combinar pulls', 'Combine pulls')}</button>${S.combineMode ? `<small class="muted">${S.combine.length < 2 ? LL('Marca al menos 2 pulls', 'Tick at least 2 pulls') : LL(`${S.combine.length} pulls`, `${S.combine.length} pulls`)}</small>` : ''}</div>`;
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
@@ -807,7 +832,7 @@ async function render() {
   const rkBtn = S.player ? '' : `<button class="rank-btn ${S.tab === 'rankings' ? 'active' : ''}" data-action="tab" data-tab="rankings"><img class="wi" src="icons/achievement_bg_winwsg.jpg" width="22" height="22" alt="">${t('tabs.rankings')}</button>`;
   const nav = S.player ? '' : `${rkBtn}<nav class="tabs">${TABS.filter((k) => !window.tabHidden?.(k)).map((k) =>
     `<button class="tab ${S.tab === k ? 'active' : ''}" data-action="tab" data-tab="${k}">${t('tabs.' + k)}</button>`).join('')}</nav>`;
-  const banner = S.combine.length > 1 ? `<div class="combine-banner">${LL(`Combinando ${S.combine.length} pulls`, `Combining ${S.combine.length} pulls`, `${S.combine.length} Versuche kombinieren`, `Combinaison de ${S.combine.length} essais`)}${combined ? '' : ` · <span class="muted">${LL('esta pestaña muestra solo el pull seleccionado', 'this tab only shows the selected pull')}</span>`}<span class="grow"></span><button class="chip" data-action="combine-clear">${LL('Salir', 'Exit')}</button></div>` : '';
+  const banner = S.combine.length > 1 ? `<div class="combine-banner">${LL(`Combinando ${S.combine.length} pulls`, `Combining ${S.combine.length} pulls`)}${combined ? '' : ` · <span class="muted">${LL('esta pestaña muestra solo el pull seleccionado', 'this tab only shows the selected pull')}</span>`}<span class="grow"></span><button class="chip" data-action="combine-clear">${LL('Salir', 'Exit')}</button></div>` : '';
   main.innerHTML = `${nav}${banner}${combined ? '' : raw.encounterID || fightDur(raw) > 20000 ? rangeBar(raw) : ''}<section id="view">${loadingHTML()}</section>`;
   S.post = null;
   try {
@@ -838,7 +863,7 @@ function eyebrow(f) {
   const real = S.fight;
   if (f.encounterID && !f.combined) parts.push(fightLabel(real));
   if (!f.kill) parts.push(clock(fightDur(f.combined ? f : real)));
-  if (f.combined) parts.push(LL(`${f.ids.length} pulls combinados`, `${f.ids.length} pulls combined`, `${f.ids.length} Versuche kombiniert`, `${f.ids.length} essais combinés`));
+  if (f.combined) parts.push(LL(`${f.ids.length} pulls combinados`, `${f.ids.length} pulls combined`));
   if (!f.full) parts.push(`${f.rangeLabel ? f.rangeLabel + ' ' : ''}${clock(f.startTime - f.fightStart)}–${clock(f.endTime - f.fightStart)}`);
   return esc(parts.filter(Boolean).join(' · '));
 }
@@ -1063,7 +1088,8 @@ function parseOptions(f, rows, realMap, metric, realMapIlvl) {
 function leaderSub(rows, f) {
   if (!rows.length) return '';
   const total = rows.reduce((s, r) => s + r.total, 0);
-  const note = f && f.full && f.encounterID && !f.kill && !f.combined ? ` · <span class="dimmed">${t('estNote')}</span>` : '';
+  const note = f && f.full && f.encounterID && !f.kill && !f.combined ? ` · <span class="dimmed">${t('estNote')}</span>`
+    : f && f.full && f.encounterID && f.kill && !f.combined && S.liveReport ? ` · <span class="dimmed" title="${esc(LL('Warcraft Logs ajusta los parses durante las primeras horas tras subir el log; pulsa Actualizar más tarde.', 'Warcraft Logs adjusts parses during the first hours after the log is uploaded; press Refresh later.'))}">${LL('parses provisionales (log reciente)', 'provisional parses (recent log)')}</span>` : '';
   return t('sumLeader', { total: plain(total), name: esc(rows[0].name), val: plain(rows[0].total) }) + note;
 }
 
@@ -1128,10 +1154,10 @@ function wipeAnalysis(f, deaths, raidSize) {
 function wipeCauseText(w) {
   const nm = (c) => `<b>${esc(ability(c.abilityId).name)}</b>`;
   const src = (c) => (c.killerId != null && c.killerId !== -1 ? LL(' de ', ' from ') + esc(actorName(c.killerId)) : '');
-  if (w.kind === 'burst') return LL(`Muerte masiva por ${nm(w.causes[0])}${src(w.causes[0])}`, `Mass death caused by ${nm(w.causes[0])}${src(w.causes[0])}`, `Massensterben durch ${nm(w.causes[0])}${src(w.causes[0])}`, `Mort de masse due à ${nm(w.causes[0])}${src(w.causes[0])}`);
-  if (w.kind === 'mixed') return LL(`Varias habilidades a la vez: ${nm(w.causes[0])} y ${nm(w.causes[1])}`, `Several abilities at once: ${nm(w.causes[0])} and ${nm(w.causes[1])}`, `Mehrere Fähigkeiten gleichzeitig: ${nm(w.causes[0])} und ${nm(w.causes[1])}`, `Plusieurs capacités à la fois : ${nm(w.causes[0])} et ${nm(w.causes[1])}`);
+  if (w.kind === 'burst') return LL(`Muerte masiva por ${nm(w.causes[0])}${src(w.causes[0])}`, `Mass death caused by ${nm(w.causes[0])}${src(w.causes[0])}`);
+  if (w.kind === 'mixed') return LL(`Varias habilidades a la vez: ${nm(w.causes[0])} y ${nm(w.causes[1])}`, `Several abilities at once: ${nm(w.causes[0])} and ${nm(w.causes[1])}`);
   if (w.kind === 'attrition') return LL('Desgaste: fueron muriendo jugadores durante la pelea', 'Attrition: players kept dying through the fight');
-  return LL(`Muerte masiva por varias causas, sobre todo ${nm(w.causes[0])}`, `Mass death from several causes, mostly ${nm(w.causes[0])}`, `Massensterben durch mehrere Ursachen, vor allem ${nm(w.causes[0])}`, `Mort de masse due à plusieurs causes, surtout ${nm(w.causes[0])}`);
+  return LL(`Muerte masiva por varias causas, sobre todo ${nm(w.causes[0])}`, `Mass death from several causes, mostly ${nm(w.causes[0])}`);
 }
 
 function wipeCardHTML(w) {
@@ -1143,7 +1169,7 @@ function wipeCardHTML(w) {
   const names = w.first.map((d) => `<b style="color:${classColor(playerInfo(d.targetID).cls)}">${esc(playerInfo(d.targetID).name)}</b>`).join(', ');
   const body = w.kind === 'attrition'
     ? LL(`Murieron <b>${w.n}</b> de ${w.raid} jugadores a lo largo del intento; la primera muerte fue a los <b>${clock(w.rel)}</b>.`,
-      `<b>${w.n}</b> of ${w.raid} players died over the attempt; the first death was at <b>${clock(w.rel)}</b>.`, `Im Laufe des Versuchs starben <b>${w.n}</b> von ${w.raid} Spielern; der erste Tod war bei <b>${clock(w.rel)}</b>.`, `<b>${w.n}</b> joueurs sur ${w.raid} sont morts au cours de l’essai ; la première mort a eu lieu à <b>${clock(w.rel)}</b>.`)
+      `<b>${w.n}</b> of ${w.raid} players died over the attempt; the first death was at <b>${clock(w.rel)}</b>.`)
     : LL(`<b>${w.n} de ${w.raid}</b> jugadores murieron en ${num(w.span, 0)} s a los <b>${clock(w.rel)}</b>${w.before ? `. Antes ya habían muerto ${w.before}` : ''}.`,
       `<b>${w.n} of ${w.raid}</b> players died within ${num(w.span, 0)} s at <b>${clock(w.rel)}</b>${w.before ? `. ${w.before} had already died before` : ''}.`);
   return `<div class="wipe-card"><div class="wipe-ic">☠</div><div class="wipe-body">
@@ -1764,8 +1790,8 @@ function applyStaticText() {
   renderLangList();
   $('#homeLabel').textContent = t('home');
   $('#cmpLabel').textContent = t('cmpOpen');
-  $('#profLabel').textContent = tr('Personajes', 'Characters', 'Charaktere', 'Personnages');
-  $('#exportLabel').textContent = tr('Exportar', 'Export', 'Exportieren', 'Exporter');
+  $('#profLabel').textContent = tr('Personajes', 'Characters');
+  $('#exportLabel').textContent = tr('Exportar', 'Export');
   $('#brandHome').title = t('home');
 }
 
@@ -1811,7 +1837,7 @@ document.addEventListener('click', async (ev) => {
       } finally { S.refreshing = false; }
       renderSidebar();
       const added = S.fights.length - before;
-      toast(added > 0 ? LL(`${added} pulls nuevos`, `${added} new pulls`, `${added} neue Versuche`, `${added} nouveaux essais`) : LL('Sin pulls nuevos', 'No new pulls', 'Keine neuen Versuche', 'Aucun nouvel essai'));
+      toast(added > 0 ? LL(`${added} pulls nuevos`, `${added} new pulls`) : LL('Sin pulls nuevos', 'No new pulls'));
       break;
     }
     case 'combine-toggle':

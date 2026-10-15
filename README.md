@@ -23,7 +23,7 @@ Usa WipeTime directamente en el navegador, sin instalar nada:
 - **Comparar logs**, con consejos específicos para sanadores (maná) y tanques (mitigación).
 - **Guilds:** ranking de la guild y de sus miembros; al pulsar uno de tus personajes se despliega su armería (equipo y estadísticas en número y %).
 - **Buscar personaje:** escribe el nombre (reino opcional) y elige entre los personajes que existen, con su reino y bandera; la ficha al estilo WoWProgress muestra posiciones, tabla por jefe, equipo y modelo en vivo.
-- **Idiomas:** español, inglés, alemán y francés desde el botón «Idiomas».
+- **Idiomas:** español e inglés desde el botón «Idiomas».
 
 ## Cómo usarlo
 

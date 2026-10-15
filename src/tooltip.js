@@ -52,7 +52,7 @@ const SpellTip = (() => {
       const num = n.replace(',', '.');
       const val = Number(num).toLocaleString(langInfo().locale, { maximumFractionDigits: 1 });
       const name = SCALING[what.trim()];
-      return tr(`${val} % del ${name ? name[0] : what}`, `${val}% of ${what}`, `${val} % von ${what}`, `${val} % de ${what}`);
+      return tr(`${val} % del ${name ? name[0] : what}`, `${val}% of ${what}`);
     });
     // fórmulas sin resolver entre corchetes
     for (let i = 0; i < 6; i++) {
@@ -60,7 +60,7 @@ const SpellTip = (() => {
       if (next === t) break;
       t = next;
     }
-    t = t.replace(/\(\s*([\d.,]+)\s*\*\s*[\d.]+\s*\)/g, '$1').replace(/\[Item Effect\]/g, tr('Efecto de objeto', 'Item effect', 'Gegenstandseffekt', 'Effet de l’objet'))
+    t = t.replace(/\(\s*([\d.,]+)\s*\*\s*[\d.]+\s*\)/g, '$1').replace(/\[Item Effect\]/g, tr('Efecto de objeto', 'Item effect'))
       .replace(/\(\s*\)/g, '').replace(/\[\s*\]/g, '').replace(/[ \t]+/g, ' ').replace(/ ([.,;:)])/g, '$1');
     return t;
   }
@@ -85,17 +85,17 @@ const SpellTip = (() => {
     const m = typeof MechGuide !== 'undefined' ? MechGuide.forSpell(id, name) : null;
     if (!m) return '';
     const c = MechGuide.ringColor(m.type);
-    return `<div class="st-mech" style="--mc:${c}"><b>${tr('Guía de WipeTime', 'WipeTime guide', 'WipeTime-Leitfaden', 'Guide WipeTime')} · ${esc(MECH_DATA.types[m.type].label)}</b><p>${esc(m.note)}</p></div>`;
+    return `<div class="st-mech" style="--mc:${c}"><b>${tr('Guía de WipeTime', 'WipeTime guide')} · ${esc(MECH_DATA.types[m.type].label)}</b><p>${esc(m.note)}</p></div>`;
   }
 
   function render(id, data, fallbackName, extra) {
     const meta = data.head.map((l) => `<div>${esc(l)}</div>`).join('');
     const descHtml = data.desc.map((l) => (l.startsWith('⟦') ? `<h4>${esc(l.replace(/[⟦⟧]/g, ''))}</h4>` : `<p>${esc(l)}</p>`)).join('');
-    const buffHtml = data.buff?.length ? `<div class="st-buff"><b>${tr('Efecto', 'Effect', 'Effekt', 'Effet')}</b>${data.buff.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : '';
+    const buffHtml = data.buff?.length ? `<div class="st-buff"><b>${tr('Efecto', 'Effect')}</b>${data.buff.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : '';
     return `<div class="st-head">${data.icon ? `<img src="${abilityIconUrl(data.icon)}" width="40" height="40" alt="">` : ''}
       <div><b class="st-name">${esc(data.name || fallbackName || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div>
       ${meta ? `<div class="st-meta">${meta}</div>` : ''}
-      ${descHtml ? `<div class="st-desc">${descHtml}</div>` : `<div class="st-desc"><p class="muted">${tr('Sin descripción disponible.', 'No description available.', 'Keine Beschreibung verfügbar.', 'Aucune description disponible.')}</p></div>`}
+      ${descHtml ? `<div class="st-desc">${descHtml}</div>` : `<div class="st-desc"><p class="muted">${tr('Sin descripción disponible.', 'No description available.')}</p></div>`}
       ${buffHtml}${mechBlock(id, data.name || fallbackName)}<div class="st-foot">ID ${id} · Wowhead</div>`;
   }
 
@@ -131,7 +131,7 @@ const SpellTip = (() => {
     if (T == null) return null;
     const left = Math.max(0, (Number(box.dataset.auraEnd) - T) / 1000);
     const base = target.dataset.spellExtra || '';
-    return `${base ? base + ' · ' : ''}${tr('Quedan', 'Remaining', 'Verbleibend', 'Restant')} ${num(left, 1)} s`;
+    return `${base ? base + ' · ' : ''}${tr('Quedan', 'Remaining')} ${num(left, 1)} s`;
   }
 
   async function show(target, x, y) {
@@ -152,7 +152,7 @@ const SpellTip = (() => {
         if (txt != null && small) small.textContent = txt;
       }, 120);
     }
-    t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('Cargando…', 'Loading…', 'Lädt…', 'Chargement…')}</p></div>`;
+    t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('Cargando…', 'Loading…')}</p></div>`;
     t.hidden = false;
     place(x, y);
     try {
@@ -161,7 +161,7 @@ const SpellTip = (() => {
       t.innerHTML = render(id, data, name, extra);
     } catch {
       if (shownId !== id || t.hidden) return;
-      t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('No se pudo cargar la descripción.', 'Could not load the description.', 'Die Beschreibung konnte nicht geladen werden.', 'Impossible de charger la description.')}</p></div><div class="st-foot">ID ${id}</div>`;
+      t.innerHTML = `<div class="st-head"><div><b class="st-name">${esc(name || `#${id}`)}</b>${extra ? `<small>${esc(extra)}</small>` : ''}</div></div><div class="st-desc"><p class="muted">${tr('No se pudo cargar la descripción.', 'Could not load the description.')}</p></div><div class="st-foot">ID ${id}</div>`;
     }
     place(x, y);
   }

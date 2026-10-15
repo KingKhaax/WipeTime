@@ -311,23 +311,12 @@ const STRINGS = {
 const LANGS = [
   { code: 'es', name: 'Español', locale: 'es-ES', bnet: 'es_ES', wowhead: 6 },
   { code: 'en', name: 'English', locale: 'en-US', bnet: 'en_US', wowhead: 0 },
-  { code: 'de', name: 'Deutsch', locale: 'de-DE', bnet: 'de_DE', wowhead: 3 },
-  { code: 'fr', name: 'Français', locale: 'fr-FR', bnet: 'fr_FR', wowhead: 2 },
 ];
 const langInfo = () => LANGS.find((l) => l.code === S.lang) || LANGS[0];
 
-// Textos sueltos de de/fr, indexados por la frase en español (los rellenan i18n-de.js e i18n-fr.js)
-const TR_EXTRA = { de: {}, fr: {} };
-
-// tr(es, en[, de, fr]): elige el texto según el idioma. Si falta el alemán o el francés, usa la tabla
-// TR_EXTRA y, si tampoco está, el inglés.
-function tr(es, en, de, fr) {
-  switch (S.lang) {
-    case 'es': return es;
-    case 'de': return de ?? TR_EXTRA.de[es] ?? en;
-    case 'fr': return fr ?? TR_EXTRA.fr[es] ?? en;
-    default: return en;
-  }
+// tr(es, en): elige el texto según el idioma de la app (español o inglés)
+function tr(es, en) {
+  return S.lang === 'es' ? es : en;
 }
 
 function t(key, vars) {

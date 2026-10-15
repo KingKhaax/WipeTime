@@ -13,19 +13,19 @@ const classIconUrl = (cls) => { const k = String(cls).toLowerCase().replace(/[^a
 const specIconUrl = (icon) => (icon && !String(icon).includes('-') ? classIconUrl(icon) : `specs/${String(icon).toLowerCase().replace(/[^a-z-]/g, '')}.png`);
 
 const CLASSES = {
-  DeathKnight: { color: '#C41E3A', es: 'Caballero de la Muerte', en: 'Death Knight', de: 'Todesritter', fr: 'Chevalier de la mort' },
-  DemonHunter: { color: '#A330C9', es: 'Cazador de demonios', en: 'Demon Hunter', de: 'Dämonenjäger', fr: 'Chasseur de démons' },
-  Druid: { color: '#FF7C0A', es: 'Druida', en: 'Druid', de: 'Druide', fr: 'Druide' },
-  Evoker: { color: '#33937F', es: 'Evocador', en: 'Evoker', de: 'Rufer', fr: 'Évocateur' },
-  Hunter: { color: '#AAD372', es: 'Cazador', en: 'Hunter', de: 'Jäger', fr: 'Chasseur' },
-  Mage: { color: '#3FC7EB', es: 'Mago', en: 'Mage', de: 'Magier', fr: 'Mage' },
-  Monk: { color: '#00FF98', es: 'Monje', en: 'Monk', de: 'Mönch', fr: 'Moine' },
-  Paladin: { color: '#F48CBA', es: 'Paladín', en: 'Paladin', de: 'Paladin', fr: 'Paladin' },
-  Priest: { color: '#FFFFFF', es: 'Sacerdote', en: 'Priest', de: 'Priester', fr: 'Prêtre' },
-  Rogue: { color: '#FFF468', es: 'Pícaro', en: 'Rogue', de: 'Schurke', fr: 'Voleur' },
-  Shaman: { color: '#0070DD', es: 'Chamán', en: 'Shaman', de: 'Schamane', fr: 'Chaman' },
-  Warlock: { color: '#8788EE', es: 'Brujo', en: 'Warlock', de: 'Hexenmeister', fr: 'Démoniste' },
-  Warrior: { color: '#C69B6D', es: 'Guerrero', en: 'Warrior', de: 'Krieger', fr: 'Guerrier' },
+  DeathKnight: { color: '#C41E3A', es: 'Caballero de la Muerte', en: 'Death Knight' },
+  DemonHunter: { color: '#A330C9', es: 'Cazador de demonios', en: 'Demon Hunter' },
+  Druid: { color: '#FF7C0A', es: 'Druida', en: 'Druid' },
+  Evoker: { color: '#33937F', es: 'Evocador', en: 'Evoker' },
+  Hunter: { color: '#AAD372', es: 'Cazador', en: 'Hunter' },
+  Mage: { color: '#3FC7EB', es: 'Mago', en: 'Mage' },
+  Monk: { color: '#00FF98', es: 'Monje', en: 'Monk' },
+  Paladin: { color: '#F48CBA', es: 'Paladín', en: 'Paladin' },
+  Priest: { color: '#FFFFFF', es: 'Sacerdote', en: 'Priest' },
+  Rogue: { color: '#FFF468', es: 'Pícaro', en: 'Rogue' },
+  Shaman: { color: '#0070DD', es: 'Chamán', en: 'Shaman' },
+  Warlock: { color: '#8788EE', es: 'Brujo', en: 'Warlock' },
+  Warrior: { color: '#C69B6D', es: 'Guerrero', en: 'Warrior' },
 };
 
 const SPECS_ES = {
@@ -44,15 +44,13 @@ const SPECS_ES = {
   Arms: 'Armas', Fury: 'Furia',
 };
 
-const SPECS_DE = { Blood: 'Blut', Frost: 'Frost', Unholy: 'Unheilig', Havoc: 'Verwüstung', Vengeance: 'Rachsucht', Devourer: 'Verschlinger', Balance: 'Gleichgewicht', Feral: 'Wilder Kampf', Guardian: 'Wächter', Restoration: 'Wiederherstellung', Devastation: 'Verheerung', Preservation: 'Bewahrung', Augmentation: 'Verstärkung', BeastMastery: 'Tierherrschaft', Marksmanship: 'Treffsicherheit', Survival: 'Überleben', Arcane: 'Arkan', Fire: 'Feuer', Brewmaster: 'Braumeister', Mistweaver: 'Nebelwirker', Windwalker: 'Windläufer', Holy: 'Heilig', Protection: 'Schutz', Retribution: 'Vergeltung', Discipline: 'Disziplin', Shadow: 'Schatten', Assassination: 'Meucheln', Outlaw: 'Gesetzlosigkeit', Subtlety: 'Täuschung', Elemental: 'Elementar', Enhancement: 'Verstärkung', Affliction: 'Gebrechen', Demonology: 'Dämonologie', Destruction: 'Zerstörung', Arms: 'Waffen', Fury: 'Furor' };
-const SPECS_FR = { Blood: 'Sang', Frost: 'Givre', Unholy: 'Impie', Havoc: 'Dévastation', Vengeance: 'Vengeance', Devourer: 'Dévoreur', Balance: 'Équilibre', Feral: 'Farouche', Guardian: 'Gardien', Restoration: 'Restauration', Devastation: 'Dévastation', Preservation: 'Préservation', Augmentation: 'Augmentation', BeastMastery: 'Maîtrise des bêtes', Marksmanship: 'Précision', Survival: 'Survie', Arcane: 'Arcane', Fire: 'Feu', Brewmaster: 'Maître brasseur', Mistweaver: 'Tisserand de brume', Windwalker: 'Marche-vent', Holy: 'Sacré', Protection: 'Protection', Retribution: 'Vindicte', Discipline: 'Discipline', Shadow: 'Ombre', Assassination: 'Assassinat', Outlaw: 'Hors-la-loi', Subtlety: 'Finesse', Elemental: 'Élémentaire', Enhancement: 'Amélioration', Affliction: 'Affliction', Demonology: 'Démonologie', Destruction: 'Destruction', Arms: 'Armes', Fury: 'Fureur' };
 
 const DIFFICULTY = {
-  1: { es: 'Buscador de bandas', en: 'LFR', de: 'Raidfinder', fr: 'Recherche de raid' },
-  3: { es: 'Normal', en: 'Normal', de: 'Normal', fr: 'Normal' },
-  4: { es: 'Heroico', en: 'Heroic', de: 'Heroisch', fr: 'Héroïque' },
-  5: { es: 'Mítico', en: 'Mythic', de: 'Mythisch', fr: 'Mythique' },
-  10: { es: 'Mítica+', en: 'Mythic+', de: 'Mythisch+', fr: 'Mythique+' },
+  1: { es: 'Buscador de bandas', en: 'LFR' },
+  3: { es: 'Normal', en: 'Normal' },
+  4: { es: 'Heroico', en: 'Heroic' },
+  5: { es: 'Mítico', en: 'Mythic' },
+  10: { es: 'Mítica+', en: 'Mythic+' },
 };
 
 // Colores oficiales de parse de Warcraft Logs
