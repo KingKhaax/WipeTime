@@ -291,14 +291,27 @@ const ClassChanges = (() => {
   const cls = (k) => L(D[k].es, D[k].en);
   let cur = 'deathknight';
 
-  function sectionHTML() {
-    const chips = ORDER.map((k) => `<button type="button" class="cc-chip" style="--cc:${COLORS[k]}" data-cc="${k}" title="${esc(cls(k))}">
-        <img src="${classIconUrl(k)}" width="40" height="40" alt=""><span>${esc(cls(k))}</span><em>${count(k)}</em></button>`).join('');
-    return `<section class="cc-home">
-      <div class="cc-head"><div><h2>${L('Cambios de las clases', 'Class changes')}</h2>
-        <p>${L('Todos los cambios de PvE por clase y especialización, del parche 12.1.0 al 12.1.5.', 'Every PvE change by class and specialization, from patch 12.1.0 to 12.1.5.')}</p></div>
-        <button type="button" class="btn primary" data-cc="deathknight">${L('Ver todos', 'View all')}</button></div>
-      <div class="cc-chips">${chips}</div></section>`;
+  function homeHTML() {
+    return `<button type="button" class="pn-btn cc-btn" data-cc="deathknight"><span class="cc-btn-ic"><img src="${classIconUrl('warrior')}" alt=""><img src="${classIconUrl('mage')}" alt=""><img src="${classIconUrl('rogue')}" alt=""></span><span class="cc-btn-t">${L('Cambios de clase', 'Class changes')}<small>${L('PvE · 12.1.0 a 12.1.5', 'PvE · 12.1.0 to 12.1.5')}</small></span></button>`;
+  }
+
+  // Nombres de habilidades en el idioma de la app, cada uno con su tooltip (data-spell → SpellTip)
+  const NAMES = typeof CLASS_SPELLS !== 'undefined' ? CLASS_SPELLS : {};
+  const NAME_RE = (() => {
+    const keys = Object.keys(NAMES).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    return keys.length ? new RegExp(`(?<![\\w'’-])(${keys.join('|')})(?![\\w'’-])`, 'g') : null;
+  })();
+  const spanish = () => L('es', 'en') === 'es';
+  function linkNames(raw) {
+    if (!NAME_RE) return esc(raw);
+    let out = '';
+    let last = 0;
+    for (const m of raw.matchAll(NAME_RE)) {
+      const [id, es] = NAMES[m[1]];
+      out += esc(raw.slice(last, m.index)) + `<span class="cc-sp" data-spell="${id}">${esc(spanish() ? es : m[1])}</span>`;
+      last = m.index + m[0].length;
+    }
+    return out + esc(raw.slice(last));
   }
 
   function specBlock(k, sk) {
@@ -313,7 +326,7 @@ const ClassChanges = (() => {
       if (d !== last) { body += `<li class="cc-day"><b>${esc(fmtDate(d))}</b></li>`; last = d; }
       for (const seg of String(L(es, en)).split(/; |\. (?=[A-ZÁÉÍÓÚ])/)) {
         const s = signOf(seg, t);
-        body += `<li class="cc-row s-${s}"><span class="cc-type">${L(...SIGNS[s])}</span><span class="cc-txt">${esc(seg.replace(/\.$/, ''))}</span></li>`;
+        body += `<li class="cc-row s-${s}"><span class="cc-type">${L(...SIGNS[s])}</span><span class="cc-txt">${linkNames(seg.replace(/\.$/, ''))}</span></li>`;
       }
     }
     if (!rows.length) body = `<li class="cc-none">${L('Sin cambios de PvE registrados en este periodo.', 'No PvE changes recorded in this period.')}</li>`;
@@ -360,5 +373,5 @@ const ClassChanges = (() => {
     if (b) open(b.dataset.cc);
   });
 
-  return { sectionHTML, open };
+  return { homeHTML, open, D };
 })();

@@ -1689,12 +1689,12 @@ function renderWelcome() {
             <span class="patch"><small>${t('patchLabel')}</small>${esc(currentPatch())}</span>
             ${typeof Patch115 !== 'undefined' ? Patch115.homeHTML() : ''}
             ${typeof Patch122 !== 'undefined' ? Patch122.homeHTML() : ''}
+            ${typeof ClassChanges !== 'undefined' ? ClassChanges.homeHTML() : ''}
           </div>
           <small class="exp-hint" id="expHint"></small>
         </div>
       </div>
     </section>
-    ${typeof ClassChanges !== 'undefined' ? ClassChanges.sectionHTML() : ''}
     ${S.hasCreds ? '' : `<div class="notice">${t('noCreds')}</div>`}
     ${typeof Profile !== 'undefined' ? Profile.sectionHTML() : ''}
     <div class="feats">${feats.map(([h, p, icon]) => `<div class="feat">
@@ -2093,6 +2093,7 @@ $('#profBtn').addEventListener('click', openCharSearch);
 $('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; S.profileOpen = false; Compare.open(); });
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);
+ServerClock.init({ after: $('#brandHome'), lang: () => S.lang, region: () => WCSettings.get('serverRegion') || 'eu', setRegion: (v) => WCSettings.set('serverRegion', v) });
 
 // Menú «Idiomas»: el idioma en uso va resaltado
 function renderLangList() {

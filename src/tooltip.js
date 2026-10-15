@@ -20,8 +20,10 @@ const SpellTip = (() => {
       el = document.createElement('div');
       el.className = 'spelltip surface-dark';
       el.hidden = true;
-      document.body.appendChild(el);
     }
+    // dentro de un diálogo modal (capa superior) el tooltip debe vivir en el propio diálogo para verse
+    const host = document.querySelector('dialog[open]') || document.body;
+    if (el.parentNode !== host) host.appendChild(el);
     return el;
   }
 

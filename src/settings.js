@@ -25,6 +25,7 @@ async function openSettings(tab) {
       ${row(LL('Fuente', 'Font'), `<select data-font>${fonts}</select><div class="font-prev" id="fontPrev">${LL('Así se ve el texto: Zul’jan 261,2 k · Cénit', 'This is how text looks: Zul’jan 261.2 k · Zenith')}</div>`, LL('Expressway y Bahnschrift usan la fuente instalada en tu PC; si no la tienes, se usa una parecida.', 'Expressway and Bahnschrift use the font installed on your PC; if you do not have it, a similar one is used.'))}
       ${row(LL('Densidad', 'Density'), seg('density', [['comfortable', LL('Cómoda', 'Comfortable')], ['compact', LL('Compacta', 'Compact')]]), LL('Compacta muestra más datos en pantalla', 'Compact shows more data on screen'))}
       ${row(LL('Animaciones', 'Animations'), seg('motion', [['full', LL('Normales', 'Normal')], ['reduced', LL('Reducidas', 'Reduced')]]))}
+      ${row(LL('Hora del servidor', 'Server time'), ServerClock.selectHTML(), LL('Reloj de arriba a la izquierda; al pasar el ratón ves cuánto falta para el reinicio semanal', 'Clock at the top left; hover it to see the time left until the weekly reset'))}
       ${row(LL('Idioma', 'Language'), seg('lang', LANGS.map((l) => [l.code, l.name])))}
       ${toggle('spellTips', LL('Tooltips de habilidades', 'Ability tooltips'), LL('Al pasar el ratón por una habilidad o pasiva, muestra qué hace', 'Hover an ability or passive to see what it does'))}`,
     replay: `
