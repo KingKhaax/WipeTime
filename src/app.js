@@ -1368,9 +1368,17 @@ const VIEWS = {
     for (const e of players) for (const a of abilList(e.abilities)) byAbil.set(a.name, (byAbil.get(a.name) || 0) + a.total);
     const abilities = [...byAbil.entries()].sort((x, y) => y[1] - x[1]);
     const sel = byAbil.has(S.takenAbility) ? S.takenAbility : '';
-    const opts = `<option value="">${esc(LL('Todas las habilidades (total)', 'All abilities (total)'))} · ${plain(players.reduce((x, e) => x + e.total, 0))}</option>` +
-      abilities.map(([name, tot]) => `<option value="${esc(name)}" ${name === sel ? 'selected' : ''}>${esc(name)} · ${plain(tot)}</option>`).join('');
-    const picker = abilities.length ? `<div class="sortbar"><span class="muted">${LL('Habilidad', 'Ability')}</span><select data-taken-ability>${opts}</select></div>` : '';
+    // Desplegable propio (un <select> no puede llevar iconos ni tooltips): icono + nombre, con el tooltip de la habilidad
+    const idByName = new Map();
+    for (const a of S.abilities.values()) if (!idByName.has(a.name)) idByName.set(a.name, a);
+    const allTxt = `${LL('Todas las habilidades (total)', 'All abilities (total)')} · ${plain(players.reduce((x, e) => x + e.total, 0))}`;
+    const item = (name, label, ab) => `<div class="abdd-i ${name === sel ? 'on' : ''}" data-action="taken-ability" data-name="${esc(name)}">
+      <span class="abdd-ab" ${ab ? `data-spell="${ab.gameID}"` : ''}>${ab ? iconImg(ab.icon, 22) : '<i class="abdd-noic"></i>'}</span><span class="abdd-t">${label}</span></div>`;
+    const cur = sel ? idByName.get(sel) : null;
+    const curTxt = sel ? `${esc(sel)} · ${plain(byAbil.get(sel))}` : esc(allTxt);
+    const picker = abilities.length ? `<div class="sortbar"><span class="muted">${LL('Habilidad', 'Ability')}</span>
+      <div class="abdd"><button type="button" class="abdd-btn" data-action="taken-ability-toggle">${cur ? iconImg(cur.icon, 20) : ''}<span class="abdd-t">${curTxt}</span><span class="abdd-car">▾</span></button>
+      <div class="abdd-list surface-dark" hidden>${item('', esc(allTxt), null)}${abilities.map(([name, tot]) => item(name, `${esc(name)} · ${plain(tot)}`, idByName.get(name))).join('')}</div></div></div>` : '';
     const rows = players
       .map((e) => {
         const ab = abilList(e.abilities);
@@ -1879,6 +1887,15 @@ document.addEventListener('click', async (ev) => {
     case 'export-img':
       await exportRankedImage(el.dataset.m);
       break;
+    case 'taken-ability-toggle': {
+      const list = el.parentElement.querySelector('.abdd-list');
+      list.hidden = !list.hidden;
+      break;
+    }
+    case 'taken-ability':
+      S.takenAbility = el.dataset.name;
+      render();
+      break;
     case 'sort':
       S.sortMode = el.dataset.m;
       lsSet('sortMode', S.sortMode);
@@ -2209,3 +2226,9 @@ document.addEventListener('change', (ev) => {
   document.addEventListener('scroll', hide, true);
 })();
 
+
+// Desplegable de habilidades de Daño recibido: se cierra al pulsar fuera
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest?.('.abdd')) return;
+  document.querySelectorAll('.abdd-list:not([hidden])').forEach((l) => { l.hidden = true; });
+});

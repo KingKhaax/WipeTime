@@ -1,7 +1,7 @@
 {
   "name": "wipetime",
   "productName": "WipeTime",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "WipeTime: visor, replay y analizador local de reportes de Warcraft Logs",
   "main": "main.js",
   "author": "sr.kitkat",

@@ -8,6 +8,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['1.0.13', 'Daño recibido: el desplegable de habilidades muestra el icono de cada habilidad y, al pasar el ratón junto al icono, su tooltip.', 'Damage taken: the ability dropdown shows each ability’s icon and, hovering next to the icon, its tooltip.'],
     ['1.0.12', 'Daño evitable: «Quién recibió más daño evitable» muestra el icono de especialización junto a cada nombre en lugar del punto de color.', 'Avoidable damage: «Who took the most avoidable damage» shows the spec icon next to each name instead of the colored dot.'],
     ['1.0.11', 'Lista de pulls: cada try muestra entre «Try N» y el porcentaje la hora (24 h, sin segundos) a la que acabó.', 'Pull list: each try shows the time it ended (24 h, no seconds) between «Try N» and the percentage.'],
     ['1.0.10', 'Portada: el botón «Comparar logs» es ahora una copia exacta del desplegable «Todas las regiones» del buscador de personajes: mismo fondo, borde, esquinas, tamaño y letra, y el mismo efecto al pasar el ratón (sube 1 px con borde de acento y halo suave).', 'Home: the «Compare logs» button is now an exact copy of the «All regions» dropdown of the character search: same background, border, corners, size and font, and the same hover effect (it rises 1 px with an accent border and a soft halo).'],
