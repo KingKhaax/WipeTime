@@ -37,6 +37,10 @@ const CLASS_SPELLS = {
   0,
   "Armas"
  ],
+ "Army of the Dead": [
+  1263406,
+  "Ejército de muertos"
+ ],
  "Art of the Glaive": [
   444810,
   "Arte de la guja"
@@ -161,6 +165,10 @@ const CLASS_SPELLS = {
   474399,
   "Llamar a terracechadores"
  ],
+ "Cataclysm": [
+  242943,
+  "Cataclismo"
+ ],
  "Caustic Spatter": [
   421979,
   "Salpicadura cáustica"
@@ -168,6 +176,10 @@ const CLASS_SPELLS = {
  "Celestial Brew": [
   425965,
   "Brebaje celestial"
+ ],
+ "Celestial Conduit": [
+  1248992,
+  "Conducto celestial"
  ],
  "Celestial Infusion": [
   1241059,
@@ -244,6 +256,10 @@ const CLASS_SPELLS = {
  "Dark Ranger": [
   0,
   "Forestal oscuro"
+ ],
+ "Dark Simulacrum": [
+  77616,
+  "Simulación oscura"
  ],
  "Darkest Night": [
   469637,
@@ -349,6 +365,10 @@ const CLASS_SPELLS = {
   1265855,
   "Furia resonadora"
  ],
+ "Emerald Communion": [
+  370984,
+  "Comunión esmeralda"
+ ],
  "Empyrean Hammer": [
   431625,
   "Martillo empíreo"
@@ -392,6 +412,10 @@ const CLASS_SPELLS = {
  "Executioner": [
   445584,
   "Verdugo"
+ ],
+ "Explosive Shot": [
+  464619,
+  "Disparo explosivo"
  ],
  "Exterminate": [
   447954,
@@ -444,6 +468,10 @@ const CLASS_SPELLS = {
  "Flash Heal": [
   1233784,
   "Sanación relámpago"
+ ],
+ "Flurry Strikes": [
+  470670,
+  "Aluviones de golpes"
  ],
  "Font of Venomous Rage": [
   1297908,
@@ -613,6 +641,14 @@ const CLASS_SPELLS = {
   1249149,
   "Latigazo de lava"
  ],
+ "Lesser Ghoul": [
+  1294180,
+  "Necrófago inferior"
+ ],
+ "Lifecinders": [
+  444323,
+  "Ceniza viviente"
+ ],
  "Lightning Strike": [
   1251370,
   "Golpe de relámpagos"
@@ -653,6 +689,14 @@ const CLASS_SPELLS = {
   390196,
   "Magus de los muertos"
  ],
+ "Malefic Grasp": [
+  1279659,
+  "Yugo maléfico"
+ ],
+ "Mangle": [
+  292587,
+  "Destrozar"
+ ],
  "Master Marksman": [
   269576,
   "Maestro tirador"
@@ -664,6 +708,10 @@ const CLASS_SPELLS = {
  "Master the Darkness": [
   1253845,
   "Dominar la oscuridad"
+ ],
+ "Mastery: Dreadblade": [
+  77515,
+  "Maestría: Hoja terrorífica"
  ],
  "Mastery: Fel Blood": [
   321299,
@@ -777,10 +825,6 @@ const CLASS_SPELLS = {
   1257703,
   "Disparos precisos"
  ],
- "Preservation": [
-  0,
-  "Preservación"
- ],
  "Pretense of Instability": [
   393516,
   "Fingir inestabilidad"
@@ -812,6 +856,10 @@ const CLASS_SPELLS = {
  "Quick Sip": [
   388505,
   "Trago rápido"
+ ],
+ "Radiant Glory": [
+  462048,
+  "Gloria radiante"
  ],
  "Rain of Fire": [
   1293524,
@@ -868,6 +916,10 @@ const CLASS_SPELLS = {
  "Renewed Vigor": [
   1306118,
   "Vigor renovado"
+ ],
+ "Renewing Blaze": [
+  374349,
+  "Llamarada de renovación"
  ],
  "Ringing of the Heavens": [
   1241542,
@@ -944,10 +996,6 @@ const CLASS_SPELLS = {
  "Shadow Word: Pain": [
   435397,
   "Palabra de las Sombras: dolor"
- ],
- "Shadowbolt Volley": [
-  1273031,
-  "Salva de descarga de las Sombras"
  ],
  "Shadowburn": [
   1311913,
@@ -1092,6 +1140,10 @@ const CLASS_SPELLS = {
  "Thistle Tea": [
   1298826,
   "Té de cardo"
+ ],
+ "Thrash": [
+  1241470,
+  "Vapulear"
  ],
  "Thunder Clap": [
   1286244,
@@ -1260,6 +1312,10 @@ const CLASS_SPELLS = {
  "Wild Growth": [
   419344,
   "Crecimiento salvaje"
+ ],
+ "Wild Guardian": [
+  1270277,
+  "Guardián salvaje"
  ],
  "Wild Imp": [
   464894,
