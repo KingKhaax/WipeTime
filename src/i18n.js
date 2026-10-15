@@ -4,7 +4,7 @@ const STRINGS = {
   es: {
     urlPlaceholder: 'Pega un enlace de Warcraft Logs (warcraftlogs.com/reports/…)',
     load: 'Cargar',
-    langButton: 'Idiomas',
+    langButton: 'Idioma',
     heroTag: 'ANÁLISIS DE LOGS EN LOCAL',
     welcomeHello: 'Bienvenido a',
     expLabel: 'Expansión actual',
@@ -156,7 +156,7 @@ const STRINGS = {
   en: {
     urlPlaceholder: 'Paste a Warcraft Logs link (warcraftlogs.com/reports/…)',
     load: 'Load',
-    langButton: 'Languages',
+    langButton: 'Language',
     heroTag: 'LOCAL LOG ANALYSIS',
     welcomeHello: 'Welcome to',
     expLabel: 'Current expansion',

@@ -37,6 +37,17 @@ const S = {
   viewCombined: false,
 };
 
+
+// El botón «Exportar» solo aparece con un reporte abierto: no en el inicio ni en comparar logs, guilds o personajes
+(() => {
+  const sync = () => { const b = document.getElementById('exportBtn'); if (b) b.hidden = !(S.report && !S.home); };
+  for (const k of ['report', 'home']) {
+    let v = S[k];
+    Object.defineProperty(S, k, { get: () => v, set: (x) => { v = x; sync(); }, enumerable: true, configurable: true });
+  }
+  sync();
+})();
+
 const $ = (sel, el = document) => el.querySelector(sel);
 const main = $('#main');
 const sidebar = $('#sidebar');
@@ -2094,7 +2105,7 @@ $('#cmpBtn').addEventListener('click', () => { S.guildOpen = false; S.profileOpe
 $('#guildBtn').addEventListener('click', () => Guilds.open());
 $('#brandHome').addEventListener('click', goHome);
 
-// Menú «Idiomas»: el idioma en uso va resaltado
+// Menú «Idioma»: el idioma en uso va resaltado
 function renderLangList() {
   $('#langList').innerHTML = LANGS.map((l) =>
     `<button type="button" role="menuitemradio" aria-checked="${l.code === S.lang}" class="lang-item ${l.code === S.lang ? 'on' : ''}" data-lang="${l.code}"><span class="lang-dot"></span>${l.name}</button>`).join('');

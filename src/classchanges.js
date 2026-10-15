@@ -368,7 +368,9 @@ const ClassChanges = (() => {
     let last = 0;
     for (const m of raw.matchAll(NAME_RE)) {
       const [id, es] = NAMES[m[1]];
-      out += esc(raw.slice(last, m.index)) + `<span class="cc-sp" data-spell="${id}">${esc(spanish() ? es : m[1])}</span>`;
+      const label = esc(spanish() ? es : m[1]);
+      // id 0 = nombre traducido sin tooltip (árboles de héroe, banda, hechizos sin descripción)
+      out += esc(raw.slice(last, m.index)) + (id ? `<span class="cc-sp" data-spell="${id}">${label}</span>` : `<span class="cc-nm">${label}</span>`);
       last = m.index + m[0].length;
     }
     return out + esc(raw.slice(last));

@@ -1,5 +1,5 @@
 'use strict';
-// Generado por tools/build-classspells.mjs: nombre inglés -> [id de hechizo, nombre en español]
+// Generado por tools/build-classspells.mjs: nombre inglés -> [id de hechizo (0 = sin tooltip), nombre en español]
 const CLASS_SPELLS = {
  "Abundance": [
   1251294,
@@ -14,8 +14,12 @@ const CLASS_SPELLS = {
   "Agonía"
  ],
  "Aimed Shot": [
-  1264746,
+  446877,
   "Disparo de puntería"
+ ],
+ "Aldrachi Reaver": [
+  0,
+  "Atracador Aldrachi"
  ],
  "Alpha Predator": [
   269737,
@@ -28,6 +32,10 @@ const CLASS_SPELLS = {
  "Arcane Missiles": [
   1284548,
   "Misiles Arcanos"
+ ],
+ "Arms": [
+  0,
+  "Armas"
  ],
  "Art of the Glaive": [
   444810,
@@ -49,6 +57,14 @@ const CLASS_SPELLS = {
   451769,
   "Expiación"
  ],
+ "Augury Abounds": [
+  1280165,
+  "Augurio abundante"
+ ],
+ "Avenger's Shield": [
+  1276635,
+  "Escudo de vengador"
+ ],
  "Avenging Wrath": [
   1319100,
   "Cólera vengativa"
@@ -69,6 +85,10 @@ const CLASS_SPELLS = {
   433998,
   "Tajo de la bestia"
  ],
+ "Benediction": [
+  1262766,
+  "Plegaria de bendición"
+ ],
  "Bind in Darkness": [
   443532,
   "Vínculo de oscuridad"
@@ -77,6 +97,10 @@ const CLASS_SPELLS = {
   445736,
   "Alma ennegrecida"
  ],
+ "Bladestorm": [
+  1271676,
+  "Filotormenta"
+ ],
  "Blaze of Glory": [
   1283787,
   "Fulgor de gloria"
@@ -84,6 +108,10 @@ const CLASS_SPELLS = {
  "Bleak Powder": [
   472084,
   "Pólvora desoladora"
+ ],
+ "Blessed Hammer": [
+  420092,
+  "Martillo bendito"
  ],
  "Blightfall": [
   1272116,
@@ -106,7 +134,7 @@ const CLASS_SPELLS = {
   "Pluma de flecha de sangre"
  ],
  "Bloodthirst": [
-  1252791,
+  1250181,
   "Sed de sangre"
  ],
  "Blur": [
@@ -144,6 +172,10 @@ const CLASS_SPELLS = {
  "Celestial Infusion": [
   1241059,
   "Infusión celestial"
+ ],
+ "Chronowarden": [
+  0,
+  "Cronoguarda"
  ],
  "Cobra Shot": [
   427406,
@@ -189,6 +221,10 @@ const CLASS_SPELLS = {
   1252433,
   "Estallido de relámpagos"
  ],
+ "Crashing Thunder": [
+  1214326,
+  "Trueno aplastante"
+ ],
  "Crystalline Refraction": [
   1247544,
   "Refracción cristalina"
@@ -205,12 +241,20 @@ const CLASS_SPELLS = {
   1264353,
   "Arma de runa danzante"
  ],
+ "Dark Ranger": [
+  0,
+  "Forestal oscuro"
+ ],
+ "Darkest Night": [
+  469637,
+  "Noche cerrada"
+ ],
  "Death": [
-  374491,
+  327095,
   "Muerte"
  ],
  "Death Knight": [
-  462062,
+  137005,
   "Caballero de la Muerte"
  ],
  "Death Strike": [
@@ -226,8 +270,12 @@ const CLASS_SPELLS = {
   "Impactos mortíferos"
  ],
  "Deathstalker": [
-  453494,
+  0,
   "Mortacechador"
+ ],
+ "Deathstalker's Mark": [
+  1273061,
+  "Marca de mortacechador"
  ],
  "Deep Breath": [
   1247728,
@@ -253,6 +301,10 @@ const CLASS_SPELLS = {
   1300249,
   "Devorar"
  ],
+ "Discipline": [
+  419835,
+  "Disciplina"
+ ],
  "Divine Arbiter": [
   1310461,
   "Enjuiciador divino"
@@ -261,6 +313,14 @@ const CLASS_SPELLS = {
   1310389,
   "Guía divina"
  ],
+ "Divine Hymn": [
+  64844,
+  "Himno divino"
+ ],
+ "Divine Resonance": [
+  1266308,
+  "Resonancia divina"
+ ],
  "Dominion of Argus": [
   1276318,
   "Dominio de Argus"
@@ -268,6 +328,10 @@ const CLASS_SPELLS = {
  "Doom Winds": [
   469270,
   "Vientos de fatalidad"
+ ],
+ "Dread Plague": [
+  1242564,
+  "Peste aterradora"
  ],
  "Dual Threat": [
   451839,
@@ -298,7 +362,7 @@ const CLASS_SPELLS = {
   "Falla entrópica"
  ],
  "Enveloping Mist": [
-  344240,
+  344008,
   "Niebla envolvente"
  ],
  "Eradicate": [
@@ -317,6 +381,10 @@ const CLASS_SPELLS = {
   1244470,
   "Floreterna"
  ],
+ "Evoker": [
+  0,
+  "Evocador"
+ ],
  "Execute": [
   1235386,
   "Ejecutar"
@@ -329,8 +397,16 @@ const CLASS_SPELLS = {
   447954,
   "Exterminar"
  ],
+ "Farseer": [
+  0,
+  "Clarividente"
+ ],
+ "Fatal Echoes": [
+  1260229,
+  "Ecos fatales"
+ ],
  "Fazed": [
-  460927,
+  441224,
   "Desconcertado"
  ],
  "Fel Blood": [
@@ -354,12 +430,20 @@ const CLASS_SPELLS = {
   "Dedos de Escarcha"
  ],
  "Fire Breath": [
-  1307679,
+  1307096,
   "Aliento de Fuego"
+ ],
+ "Flameshaper": [
+  0,
+  "Moldeallamas"
  ],
  "Flamestrike": [
   1254851,
   "Fogonazo"
+ ],
+ "Flash Heal": [
+  1233784,
+  "Sanación relámpago"
  ],
  "Font of Venomous Rage": [
   1297908,
@@ -378,12 +462,16 @@ const CLASS_SPELLS = {
   "Sed de sangre frenética"
  ],
  "Frost Strike": [
-  1305762,
+  400515,
   "Golpe de Escarcha"
  ],
  "Frostbolt": [
   1292107,
   "Descarga de Escarcha"
+ ],
+ "Frostfire": [
+  0,
+  "Pirofrío"
  ],
  "Frostfire Empowerment": [
   431186,
@@ -409,20 +497,44 @@ const CLASS_SPELLS = {
   379029,
   "Asalto glacial"
  ],
+ "Glory of the Vanguard": [
+  1307639,
+  "Gloria de la Vanguardia"
+ ],
  "Grace": [
   92090,
   "Gracia"
+ ],
+ "Grip of the Dead": [
+  273984,
+  "Garra de los muertos"
  ],
  "Ground Current": [
   436148,
   "Corriente terrestre"
  ],
+ "Grove Guardians": [
+  1226140,
+  "Guardianes de la arboleda"
+ ],
+ "Guardian Angel": [
+  345201,
+  "Ángel guardián"
+ ],
+ "Guardian Spirit": [
+  289623,
+  "Espíritu guardián"
+ ],
  "Hammer of Light": [
   1246643,
   "Martillo de Luz"
  ],
+ "Hand of Gul'dan": [
+  1250273,
+  "Mano de Gul'dan"
+ ],
  "Havoc": [
-  335174,
+  194835,
   "Estragos"
  ],
  "Healing": [
@@ -433,13 +545,29 @@ const CLASS_SPELLS = {
   1307888,
   "Lluvia de sanación"
  ],
+ "Healing Surge": [
+  460438,
+  "Oleada de sanación"
+ ],
  "Heart of the Wild": [
   1261872,
   "Corazón de lo Salvaje"
  ],
+ "Hellcaller": [
+  0,
+  "Clamainferno"
+ ],
  "Holy Celerity": [
   1215275,
   "Celeridad sagrada"
+ ],
+ "Holy Fire": [
+  1255187,
+  "Fuego Sagrado"
+ ],
+ "Hot Streak": [
+  1224110,
+  "Buena racha"
  ],
  "Howling Blast": [
   316800,
@@ -461,6 +589,10 @@ const CLASS_SPELLS = {
   460049,
   "Infligir pesar"
  ],
+ "Insanity": [
+  472320,
+  "Demencia"
+ ],
  "Invigorating Mists": [
   425804,
   "Nieblas vigorizadoras"
@@ -473,13 +605,21 @@ const CLASS_SPELLS = {
   1310253,
   "Instinto asesino"
  ],
+ "Lava Burst": [
+  1254777,
+  "Ráfaga de lava"
+ ],
  "Lava Lash": [
   1249149,
   "Latigazo de lava"
  ],
  "Lightning Strike": [
-  1311712,
+  1251370,
   "Golpe de relámpagos"
+ ],
+ "Lightsmith": [
+  0,
+  "Forjador de luz"
  ],
  "Lingering Darkness": [
   1280075,
@@ -490,16 +630,28 @@ const CLASS_SPELLS = {
   "Llama viva"
  ],
  "Lord of the Dead": [
-  1293166,
+  1256813,
   "Señor de los muertos"
  ],
  "Madness": [
   1266768,
   "Locura"
  ],
+ "Maelstrom": [
+  343725,
+  "Vorágine"
+ ],
+ "Maelstrom Supremacy": [
+  443447,
+  "Supremacía de vorágine"
+ ],
  "Maelstrom Weapon": [
   1219440,
   "Arma vorágine"
+ ],
+ "Magus of the Dead": [
+  390196,
+  "Magus de los muertos"
  ],
  "Master Marksman": [
   269576,
@@ -525,8 +677,12 @@ const CLASS_SPELLS = {
   406380,
   "Maestría: Caminante del Tiempo"
  ],
+ "Mayhem": [
+  394087,
+  "Caos"
+ ],
  "Melee": [
-  1317558,
+  1311572,
   "Cuerpo a cuerpo"
  ],
  "Melt Armor": [
@@ -542,7 +698,7 @@ const CLASS_SPELLS = {
   "Explosión mental"
  ],
  "Mind Flay": [
-  1296961,
+  1268733,
   "Tortura mental"
  ],
  "Mind Flay: Insanity": [
@@ -552,6 +708,10 @@ const CLASS_SPELLS = {
  "Monster Rising": [
   452550,
   "Alzamiento monstruoso"
+ ],
+ "Mountain Thane": [
+  0,
+  "Señor feudal de la montaña"
  ],
  "Natural Harmony": [
   443442,
@@ -572,6 +732,30 @@ const CLASS_SPELLS = {
  "Obliterate": [
   1264084,
   "Asolar"
+ ],
+ "Oracle": [
+  0,
+  "Oráculo"
+ ],
+ "Overcharge": [
+  1251026,
+  "Sobrecarga"
+ ],
+ "Overflowing Shores": [
+  383223,
+  "Orillas desbordantes"
+ ],
+ "Overgrowth": [
+  1301989,
+  "Sobrecrecimiento"
+ ],
+ "Oversurge": [
+  445030,
+  "Supersobrecarga"
+ ],
+ "Pain": [
+  249194,
+  "Dolor"
  ],
  "Patient Custodian": [
   1270592,
@@ -594,16 +778,24 @@ const CLASS_SPELLS = {
   "Disparos precisos"
  ],
  "Preservation": [
-  412889,
+  0,
   "Preservación"
  ],
  "Pretense of Instability": [
   393516,
   "Fingir inestabilidad"
  ],
+ "Primal Strike": [
+  79926,
+  "Golpe primigenio"
+ ],
  "Prompt Prognosis": [
   1246799,
   "Diagnóstico inmediato"
+ ],
+ "Protection": [
+  74234,
+  "Protección"
  ],
  "Psychic Link": [
   199486,
@@ -612,6 +804,10 @@ const CLASS_SPELLS = {
  "Pyre": [
   1236970,
   "Pira"
+ ],
+ "Pyroclasm": [
+  1231014,
+  "Piroestallido"
  ],
  "Quick Sip": [
   388505,
@@ -654,12 +850,28 @@ const CLASS_SPELLS = {
   "Temeridad"
  ],
  "Regrowth": [
-  1264664,
+  1236647,
   "Recrecimiento"
  ],
  "Rejuvenation": [
   1240326,
   "Rejuvenecimiento"
+ ],
+ "Rend": [
+  1283533,
+  "Desgarrar"
+ ],
+ "Renew": [
+  473506,
+  "Renovar"
+ ],
+ "Renewed Vigor": [
+  1306118,
+  "Vigor renovado"
+ ],
+ "Ringing of the Heavens": [
+  1241542,
+  "Tañido celestial"
  ],
  "Riptide": [
   460436,
@@ -678,12 +890,20 @@ const CLASS_SPELLS = {
   "Santificar"
  ],
  "Savagery": [
-  1273057,
+  1251790,
   "Salvajismo"
+ ],
+ "Scalecommander": [
+  0,
+  "Escamandante"
  ],
  "Scourging": [
   1242604,
   "Apestar"
+ ],
+ "Seed of Corruption": [
+  1217265,
+  "Semilla de corrupción"
  ],
  "Shadeburst": [
   1231479,
@@ -698,7 +918,7 @@ const CLASS_SPELLS = {
   "Descarga de las Sombras"
  ],
  "Shadow Dance": [
-  394929,
+  394029,
   "Danza de las Sombras"
  ],
  "Shadow Mend": [
@@ -709,21 +929,33 @@ const CLASS_SPELLS = {
   1262710,
   "Sombra de Nathreza"
  ],
+ "Shadow Word": [
+  0,
+  "Palabra de las Sombras"
+ ],
  "Shadow Word: Death": [
-  1240008,
+  361460,
   "Palabra de las Sombras: muerte"
  ],
  "Shadow Word: Madness": [
-  471800,
+  335467,
   "Palabra de las Sombras: locura"
  ],
+ "Shadow Word: Pain": [
+  435397,
+  "Palabra de las Sombras: dolor"
+ ],
  "Shadowbolt Volley": [
-  1299938,
+  1273031,
   "Salva de descarga de las Sombras"
  ],
  "Shadowburn": [
   1311913,
   "Quemadura de las Sombras"
+ ],
+ "Shard Instability": [
+  1260269,
+  "Inestabilidad de fragmento"
  ],
  "Shatter": [
   1313456,
@@ -745,9 +977,33 @@ const CLASS_SPELLS = {
   91810,
   "Destripador"
  ],
+ "Soothing Mist": [
+  1260617,
+  "Niebla reconfortante"
+ ],
+ "Soothing Rain": [
+  1252874,
+  "Lluvia reconfortante"
+ ],
+ "Soul Harvester": [
+  0,
+  "Cosechador de almas"
+ ],
  "Soul Immolation": [
   1266696,
   "Inmolación de alma"
+ ],
+ "Soul Leech": [
+  1311653,
+  "Parasitar almas"
+ ],
+ "Soul of the Forest": [
+  168255,
+  "Alma del bosque"
+ ],
+ "Soulburst": [
+  1297433,
+  "Ráfaga de almas"
  ],
  "Soulforged Blades": [
   1272432,
@@ -756,6 +1012,14 @@ const CLASS_SPELLS = {
  "Specialized Arsenal": [
   459542,
   "Arsenal especializado"
+ ],
+ "Spellslinger": [
+  0,
+  "Lanzahechizos"
+ ],
+ "Splinters": [
+  1312868,
+  "Astillas"
  ],
  "Splinterstorm": [
   1247908,
@@ -778,12 +1042,20 @@ const CLASS_SPELLS = {
   "Amplificación estelar"
  ],
  "Strike": [
-  1240680,
+  404921,
   "Golpear"
+ ],
+ "Sudden Death": [
+  280776,
+  "Muerte súbita"
  ],
  "Summon Felguard": [
   1255845,
   "Invocar guardia vil"
+ ],
+ "Surging Totem": [
+  1221348,
+  "Tótem emergente"
  ],
  "Swelling Tides": [
   1312843,
@@ -792,6 +1064,14 @@ const CLASS_SPELLS = {
  "Swift": [
   1269651,
   "Presto"
+ ],
+ "Swiftmend": [
+  419458,
+  "Alivio presto"
+ ],
+ "Templar": [
+  0,
+  "Templario"
  ],
  "Temporal Burst": [
   431698,
@@ -809,9 +1089,33 @@ const CLASS_SPELLS = {
   1247730,
   "Vacío térmico"
  ],
+ "Thistle Tea": [
+  1298826,
+  "Té de cardo"
+ ],
+ "Thunder Clap": [
+  1286244,
+  "Atronar"
+ ],
  "Timewalker": [
   105877,
   "Caminante del Tiempo"
+ ],
+ "Tip of the Spear": [
+  1280140,
+  "Punta de la lanza"
+ ],
+ "Tip the Scales": [
+  408795,
+  "Inclinar la balanza"
+ ],
+ "Totemic": [
+  0,
+  "Totémico"
+ ],
+ "Tranquility": [
+  1269491,
+  "Tranquilidad"
  ],
  "Transcendence": [
   434782,
@@ -833,6 +1137,10 @@ const CLASS_SPELLS = {
   1226288,
   "Disparos trucados"
  ],
+ "Trickster": [
+  0,
+  "Timador"
+ ],
  "Twin Moons": [
   281847,
   "Lunas gemelas"
@@ -845,9 +1153,17 @@ const CLASS_SPELLS = {
   1292325,
   "Llama desatada"
  ],
+ "Unholy Devotion": [
+  1241858,
+  "Devoción profana"
+ ],
  "Unload": [
   1277548,
   "Descargar"
+ ],
+ "Unravel": [
+  1264379,
+  "Desenredar"
  ],
  "Unseen Blade": [
   459485,
@@ -869,8 +1185,16 @@ const CLASS_SPELLS = {
   1227882,
   "Retirada vengativa"
  ],
+ "Venomous Abyss": [
+  0,
+  "Abismo Venenoso"
+ ],
+ "Venomous Heart": [
+  1318312,
+  "Corazón venenoso"
+ ],
  "Verdant Embrace": [
-  1242513,
+  409895,
   "Abrazo verde"
  ],
  "Violent Transformation": [
@@ -878,7 +1202,7 @@ const CLASS_SPELLS = {
   "Transformación violenta"
  ],
  "Visceral Strength": [
-  1237848,
+  1234532,
   "Fuerza visceral"
  ],
  "Vivify": [
@@ -900,6 +1224,10 @@ const CLASS_SPELLS = {
  "Void Shield": [
   1293007,
   "Escudo del Vacío"
+ ],
+ "Void-Scarred": [
+  0,
+  "Marcado por el Vacío"
  ],
  "Voidblade": [
   1245414,
@@ -934,7 +1262,7 @@ const CLASS_SPELLS = {
   "Crecimiento salvaje"
  ],
  "Wild Imp": [
-  1250204,
+  464894,
   "Diablillo salvaje"
  ],
  "Wild Thrash": [
@@ -948,6 +1276,14 @@ const CLASS_SPELLS = {
  "Wildspeaker": [
   1232739,
   "Portavoz salvaje"
+ ],
+ "Wildstalker": [
+  0,
+  "Acechador salvaje"
+ ],
+ "Windfury": [
+  466443,
+  "Viento furioso"
  ],
  "Wither": [
   1279686,

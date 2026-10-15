@@ -78,8 +78,11 @@ const SpellTip = (() => {
       return clean(out.join('')).split('\n').map((l) => l.trim()).filter(Boolean);
     };
     const nameEl = root.querySelector('.whtt-name');
-    const head = tables[0] ? (() => { const c = tables[0].cloneNode(true); c.querySelectorAll('a.whtt-name').forEach((n) => n.remove()); return lines(c); })() : [];
-    const desc = tables[1] ? lines(tables[1]) : [];
+    // Algunos tooltips traen la cabecera en dos tablas (alcance / tiempo de lanzamiento y reutilización): la descripción es siempre la última
+    const descTable = tables.length > 2 ? tables[tables.length - 1] : tables[1];
+    const headTables = tables.length > 2 ? tables.slice(0, -1) : tables.slice(0, 1);
+    const head = headTables.flatMap((tb) => { const c = tb.cloneNode(true); c.querySelectorAll('a.whtt-name').forEach((n) => n.remove()); return lines(c); });
+    const desc = descTable ? lines(descTable) : [];
     return { name: nameEl?.textContent || '', head: head.filter((l) => !/^(Requiere nivel|Requires level)/i.test(l)), desc };
   }
 

@@ -1680,6 +1680,29 @@ select option { background: #17171a; color: var(--text); }
 @keyframes pn-shine { 0%, 60% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { .exp-card::before, .exp-card::after, .exp-card .exp-img, .pn-box::after { animation: none; } }
 
+/* Portada: aurora que se mueve detrás del panel y borde de luz que gira alrededor, como en NinjaLoot pero en el color de acento de
+   WipeTime (sigue al acento elegido en Ajustes). Se desactiva con «Animaciones reducidas». */
+@property --wt-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.hero { isolation: isolate; }
+.hero::before {
+  content: ''; position: absolute; inset: -40%; z-index: -1; pointer-events: none; opacity: .45;
+  background:
+    radial-gradient(closest-side at 30% 40%, color-mix(in srgb, var(--accent) 38%, transparent), transparent),
+    radial-gradient(closest-side at 70% 60%, color-mix(in srgb, var(--accent) 24%, #3e42c6 40%), transparent),
+    radial-gradient(closest-side at 55% 25%, color-mix(in srgb, var(--accent) 22%, #7ff0e8), transparent);
+  animation: wt-aurora 14s ease-in-out infinite alternate;
+}
+.hero::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--wt-a), transparent 0 55%, color-mix(in srgb, var(--accent) 65%, #000) 68%, var(--accent) 75%,
+    color-mix(in srgb, var(--accent) 35%, #fff) 77%, color-mix(in srgb, var(--accent) 80%, #3e42c6) 84%, transparent 95%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: wt-spin 8s linear infinite;
+}
+@keyframes wt-spin { to { --wt-a: 360deg; } }
+@keyframes wt-aurora { 0% { transform: translate(-4%, -3%) rotate(0deg); } 100% { transform: translate(4%, 3%) rotate(12deg); } }
+@media (prefers-reduced-motion: reduce) { .hero::before, .hero::after { animation: none; } }
+
 /* Tipografía como NinjaLoot: misma fuente (Noto Sans) con los mismos pesos y tamaños en la barra superior y el texto */
 body { line-height: 1.45; }
 .home-btn { font-size: 14.5px; font-weight: 500; }
@@ -1915,6 +1938,7 @@ button.dbf-row:hover { background: var(--hover); }
 .cc-dlg button, .cc-dlg a { cursor: pointer; }
 .cc-sp { cursor: help !important; border-bottom: 1px dotted currentColor; font-weight: 700; }
 .cc-sp:hover { border-bottom-style: solid; }
+.cc-nm { font-weight: 700; }
 .cc-wrap { display: grid; grid-template-columns: 210px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100%; overflow: hidden; }
 .cc-side { padding: 14px 10px; border-right: 1px solid var(--line); overflow-y: auto; display: grid; align-content: start; gap: 4px; }
 .cc-side h2 { margin: 2px 8px 10px; font-size: 15px; }
@@ -1954,3 +1978,21 @@ button.dbf-row:hover { background: var(--hover); }
 @media (max-width: 760px) { .cc-wrap { grid-template-columns: 1fr; } .cc-side { grid-auto-flow: column; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); } .cc-nav span { display: none; } }
 /* Tarjetas informativas del inicio: no se seleccionan y el cursor no cambia a «I» */
 .feat, .feat * { user-select: none; -webkit-user-select: none; cursor: default; }
+
+/* Barra superior como la de NinjaLoot: más limpia. Los botones de navegación van sin caja; el activo lleva fondo suave y una línea de
+   acento abajo. Solo Idioma, Exportar, la versión y Ajustes mantienen su caja. */
+.topbar { gap: 8px; padding: 10px 22px; background: color-mix(in srgb, var(--bg) 55%, var(--panel)); border-bottom: 1px solid var(--line); box-shadow: none; }
+button.brand { gap: 12px; margin-right: 6px; padding: 4px 8px; }
+button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
+.topbar .home-btn { padding: 8px 14px; gap: 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; box-shadow: none; color: var(--muted); font-size: 14.5px; font-weight: 500; }
+.topbar .home-btn:hover { color: var(--text); background: var(--panel-2); border-color: transparent; }
+.topbar .home-btn.on { color: var(--text); font-weight: 600; background: var(--panel-2); border-color: var(--line); box-shadow: inset 0 -2px 0 var(--accent); }
+.topbar .home-btn img.wi { width: 22px; height: 22px; margin: 0; object-view-box: none; }
+.top-actions { align-items: center; gap: 8px; }
+.top-actions .home-btn#langBtn, .top-actions .home-btn#exportBtn { color: var(--text); background: var(--panel-2); border-color: var(--line); padding: 8px 14px; }
+.top-actions .home-btn#langBtn:hover, .top-actions .home-btn#exportBtn:hover { border-color: var(--line-strong, var(--line)); }
+#settingsBtn { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); }
+#settingsBtn img.wi { width: 22px; height: 22px; }
+.load input { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.ver-badge { padding: 7px 12px; }
+@media (max-width: 1100px) { .topbar .home-btn { padding: 8px 10px; } }
