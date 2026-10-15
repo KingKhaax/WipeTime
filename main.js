@@ -1045,7 +1045,7 @@ async function armory(realmSlug, name, lang, region = bnetRegion()) {
   } : null;
   return {
     name: sum.name, level: sum.level, race: sum.race?.name, cls: sum.character_class?.name, classId: sum.character_class?.id,
-    spec: sum.active_spec?.name || '', faction: sum.faction?.type, guild: sum.guild?.name || '', realmName: sum.realm?.name || realmSlug,
+    spec: sum.active_spec?.name || '', specId: sum.active_spec?.id || 0, faction: sum.faction?.type, guild: sum.guild?.name || '', realmName: sum.realm?.name || realmSlug,
     ilvlAvg: sum.average_item_level || 0, ilvlEquipped: sum.equipped_item_level || 0, achievements: sum.achievement_points || 0,
     render: md?.assets?.find((a) => a.key === 'main-raw')?.value || md?.assets?.find((a) => a.key === 'main')?.value || md?.assets?.find((a) => a.key === 'inset')?.value || '',
     avatar: md?.assets?.find((a) => a.key === 'avatar')?.value || '', lastLogin: sum.last_login_timestamp || 0, gender: sum.gender?.type || '', faction: sum.faction?.type || '',

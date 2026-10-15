@@ -103,7 +103,20 @@ const Guilds = (() => {
   const SLOTS_B = ['TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
   // La mano izquierda solo sale si el personaje lleva algo (con un arma a dos manos no hay hueco)
   const slotHTML = (bySlot, sl) => { const it = bySlot.get(sl); return !it && sl === 'OFF_HAND' ? '' : itemHTML(it, it?.slotName || sl); };
-  const modelHTML = (d) => `<div class="arm-model" data-tilt>${d.render ? `<img src="${Cards.media(d.render)}" alt="${esc(d.name)}" draggable="false">` : `<span class="arm-nomodel">${LL('Sin modelo disponible', 'No model available')}</span>`}</div>`;
+  // Especialización de Blizzard (id) -> icono incluido en src/specs
+  const SPEC_KEY = { 250: 'deathknight-blood', 251: 'deathknight-frost', 252: 'deathknight-unholy', 577: 'demonhunter-havoc', 581: 'demonhunter-vengeance', 1480: 'demonhunter-devourer',
+    102: 'druid-balance', 103: 'druid-feral', 104: 'druid-guardian', 105: 'druid-restoration', 1467: 'evoker-devastation', 1468: 'evoker-preservation', 1473: 'evoker-augmentation',
+    253: 'hunter-beastmastery', 254: 'hunter-marksmanship', 255: 'hunter-survival', 62: 'mage-arcane', 63: 'mage-fire', 64: 'mage-frost',
+    268: 'monk-brewmaster', 269: 'monk-windwalker', 270: 'monk-mistweaver', 65: 'paladin-holy', 66: 'paladin-protection', 70: 'paladin-retribution',
+    256: 'priest-discipline', 257: 'priest-holy', 258: 'priest-shadow', 259: 'rogue-assassination', 260: 'rogue-outlaw', 261: 'rogue-subtlety',
+    262: 'shaman-elemental', 263: 'shaman-enhancement', 264: 'shaman-restoration', 265: 'warlock-affliction', 266: 'warlock-demonology', 267: 'warlock-destruction',
+    71: 'warrior-arms', 72: 'warrior-fury', 73: 'warrior-protection' };
+  const specInfoHTML = (d) => {
+    const k = SPEC_KEY[d.specId];
+    if (!k) return d.spec ? `<span><small>${LL('Especialización', 'Spec')}</small><b>${esc(d.spec)}</b></span>` : '';
+    return `<span><small>${LL('Especialización', 'Spec')}</small><b class="arm-spec"><img src="${specIconUrl(k)}" width="34" height="34" alt="${esc(d.spec)}" title="${esc(d.spec)}"></b></span>`;
+  };
+  const modelHTML = (d) => `<div class="arm-model" data-tilt>${d.render ? `<img src="${Cards.media(d.render)}" alt="${esc(d.name)}" draggable="false" crossorigin="anonymous">` : `<span class="arm-nomodel">${LL('Sin modelo disponible', 'No model available')}</span>`}</div>`;
 
   const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
   function itemHTML(it, slotLabel) {
@@ -155,13 +168,16 @@ const Guilds = (() => {
     const info = [
       `<span><small>${LL('Nivel de objeto', 'Item level')}</small><b>${esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
       d.ilvlAvg && d.ilvlAvg !== d.ilvlEquipped ? `<span><small>${LL('Media (inventario)', 'Average (bags)')}</small><b>${esc(d.ilvlAvg)}</b></span>` : '',
-      d.spec ? `<span><small>${LL('Especialización', 'Spec')}</small><b>${esc(d.spec)}</b></span>` : '',
+      specInfoHTML(d),
       `<span><small>${LL('Nivel', 'Level')}</small><b>${esc(d.level)}</b></span>`,
       d.achievements ? `<span><small>${LL('Logros', 'Achievements')}</small><b>${esc(d.achievements)}</b></span>` : '',
     ].join('');
+    // parses personales y logs por jefe: la misma tabla que la ficha de personaje
+    Profile.embed({ name: c.name, realmSlug: c.realmSlug, realmName: c.realmName, region: a.region || c.region || st.status?.region });
+    const parses = `<h3 class="sec arm-sec">${LL('Parses y logs', 'Parses and logs')}</h3>${Profile.embedHTML()}`;
     return `<div class="arm">${head}<div class="arm-info">${info}</div>
       <div class="arm-body"><div class="arm-gear"><div class="arm-col">${col(SLOTS_L)}</div>${modelHTML(d)}<div class="arm-col">${col(SLOTS_R)}</div><div class="arm-weapons">${col(SLOTS_B)}</div></div>
-      <div class="arm-stats">${statsHTML(d.stats)}</div></div></div>`;
+      <div class="arm-stats">${statsHTML(d.stats)}</div></div>${parses}</div>`;
   }
 
   // Siempre se pide a Blizzard en el momento (sin caché) y, con la armería abierta, se vuelve a pedir cada minuto

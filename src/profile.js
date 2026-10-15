@@ -13,6 +13,8 @@ const Profile = (() => {
   const regionName = (r) => ({ eu: LL('Europa', 'Europe'), us: LL('América', 'America'), kr: LL('Corea', 'Korea'), tw: LL('Taiwán', 'Taiwan') }[r] || r.toUpperCase());
   const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
   const num0 = (v) => num(v || 0, 0);
+  // Vista incrustada (ventana de armería de Guilds): usa el mismo estado, tabla y logs que la ficha, repintando en la ventana que la aloja
+  const repaint = () => { if (S.profileOpen) render(); else if (S.guildOpen && st.embed && typeof Guilds !== 'undefined') Guilds.render(); };
   const recent = () => { try { return JSON.parse(lsGet('prof:recent') || '[]'); } catch { return []; } };
 
   function ago(ms) {
@@ -53,7 +55,7 @@ const Profile = (() => {
   function encLogsHTML(id, clsKey) {
     const data = st.encLogs[encKey(id)];
     let body;
-    if (!data && !encPending.has(encKey(id))) { const k = encKey(id); encPending.add(k); fetchEncLogs(id).finally(() => { encPending.delete(k); if (S.profileOpen) render(); }); }
+    if (!data && !encPending.has(encKey(id))) { const k = encKey(id); encPending.add(k); fetchEncLogs(id).finally(() => { encPending.delete(k); repaint(); }); }
     if (!data) body = `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
     else if (data.error) body = `<div class="empty sm">${esc(data.error)}</div>`;
     else if (!data.length) body = `<div class="empty sm">${LL('No hay logs públicos de este jefe.', 'No public logs for this boss.')}</div>`;
@@ -197,6 +199,7 @@ const Profile = (() => {
     sidebar.hidden = true;
     st.q = { name: q.name, slug: q.slug, realm: q.realm || q.slug, region: REGIONS.includes(q.region) ? q.region : 'eu', locale: q.locale || '' };
     st.arm = null; st.rio = null; st.wcl = null; st.wclErr = ''; st.armErr = '';
+    st.embed = null; st.encLogs = {}; st.openEnc = null;
     const l = recent().filter((x) => !(x.slug === st.q.slug && x.name.toLowerCase() === st.q.name.toLowerCase() && x.region === st.q.region));
     l.unshift({ name: st.q.name, realm: st.q.realm, slug: st.q.slug, region: st.q.region, locale: st.q.locale });
     lsSet('prof:recent', JSON.stringify(l.slice(0, 8)));
@@ -349,7 +352,7 @@ const Profile = (() => {
   function render() {
     if (!S.profileOpen || !st.q) return;
     const a = st.arm;
-    const model = a?.render ? `<div class="pf-model" data-tilt><img src="${Cards.media(a.render)}" alt="${esc(a.name)}" draggable="false"></div>` : '';
+    const model = a?.render ? `<div class="pf-model" data-tilt><img src="${Cards.media(a.render)}" alt="${esc(a.name)}" draggable="false" crossorigin="anonymous"></div>` : '';
     main.innerHTML = `<div class="pf">
       <div class="pf-back"><button type="button" class="btn ghost sm" data-pf="home">${LL('← Inicio', '← Home')}</button></div>
       ${headerHTML()}
@@ -401,22 +404,34 @@ const Profile = (() => {
     else if (a === 'closesearch') $('#pfSearch').close();
     else if (a === 'ext') { ev.preventDefault(); window.api.openExternal(el.dataset.u); }
     else if (a === 'focus') { const i = document.querySelector('#pfForm input[name="name"]'); if (i) i.focus(); }
-    else if (!S.profileOpen) return;
+    else if (!S.profileOpen && !(S.guildOpen && st.embed)) return;
     else if (a === 'update') load();
-    else if (a === 'enc') { const id = Number(el.dataset.e); st.openEnc = st.openEnc === id ? null : id; render(); }
+    else if (a === 'enc') { const id = Number(el.dataset.e); st.openEnc = st.openEnc === id ? null : id; repaint(); }
     else if (a === 'log') loadReport(`https://www.warcraftlogs.com/reports/${el.dataset.code}${el.dataset.fight ? `#fight=${el.dataset.fight}` : ''}`);
     else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»'))); }
     else if (a === 'home') goHome();
-    else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; render(); fetchWcl().then(render); }
-    else if (a === 'metric') { st.metric = el.dataset.v; st.wcl = null; render(); fetchWcl().then(render); }
+    else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; repaint(); fetchWcl().then(repaint); }
+    else if (a === 'metric') { st.metric = el.dataset.v; st.wcl = null; repaint(); fetchWcl().then(repaint); }
   });
   document.addEventListener('change', (ev) => {
-    if (!S.profileOpen || !ev.target.matches?.('[data-pf-zone]')) return;
+    if ((!S.profileOpen && !(S.guildOpen && st.embed)) || !ev.target.matches?.('[data-pf-zone]')) return;
     st.zone = Number(ev.target.value);
     st.wcl = null;
-    render();
-    fetchWcl().then(render);
+    repaint();
+    fetchWcl().then(repaint);
   });
 
-  return { open, render, formHTML, sectionHTML, search, load };
+  // Carga los parses de un personaje para mostrarlos dentro de otra ventana (no cambia de página)
+  function embed(c) {
+    const region = String(c.region || 'eu').toLowerCase();
+    const key = `${region}/${c.realmSlug}/${String(c.name).toLowerCase()}`;
+    if (st.embed === key) return;
+    st.embed = key;
+    st.q = { name: c.name, slug: c.realmSlug, realm: c.realmName || c.realmSlug, region: REGIONS.includes(region) ? region : 'eu', locale: '' };
+    st.arm = null; st.rio = null; st.wcl = null; st.wclErr = ''; st.openEnc = null; st.encLogs = {};
+    fetchWcl().then(() => { if (st.embed === key) repaint(); });
+  }
+  const embedHTML = () => (st.embed ? `<div class="pf pf-embed"><div class="pf-tiles">${tilesHTML()}</div>${controlsHTML()}${tableHTML()}</div>` : '');
+
+  return { open, render, formHTML, sectionHTML, search, load, embed, embedHTML };
 })();

@@ -82,5 +82,36 @@ const Cards = (() => {
     if (box && !box.contains(ev.relatedTarget)) { box.style.setProperty('--ry', '0deg'); box.style.setProperty('--rx', '0deg'); }
   });
 
+  // El render de Blizzard es un lienzo 4:3 casi vacío con el personaje pequeño en medio: se recorta a la silueta
+  // (cuadro de píxeles no transparentes) para que el modelo llene su marco, sea cual sea la raza.
+  document.addEventListener('load', (ev) => {
+    const img = ev.target;
+    if (!(img instanceof HTMLImageElement) || !img.matches?.('.arm-model img, .pf-model img') || img.dataset.fit) return;
+    img.dataset.fit = '1';
+    try {
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      const sc = Math.min(1, 400 / nw);
+      const w = Math.max(1, Math.round(nw * sc)), h = Math.max(1, Math.round(nh * sc));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(img, 0, 0, w, h);
+      const px = cx.getImageData(0, 0, w, h).data;
+      let x0 = w, x1 = 0, y0 = h, y1 = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (px[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 <= x0 || y1 <= y0) return;
+      const padX = (x1 - x0) * 0.08, padT = (y1 - y0) * 0.06, padB = (y1 - y0) * 0.03;
+      const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const rx0 = cl(x0 - padX, 0, w), rx1 = cl(x1 + padX, 0, w), ry0 = cl(y0 - padT, 0, h), ry1 = cl(y1 + padB, 0, h);
+      const cw = rx1 - rx0, ch = ry1 - ry0;
+      const box = img.parentElement;
+      const crop = document.createElement('div');
+      crop.className = 'mdl-crop';
+      crop.style.aspectRatio = `${cw} / ${ch}`;
+      box.insertBefore(crop, img);
+      crop.appendChild(img);
+      img.style.cssText = `position:absolute;max-width:none;max-height:none;width:${(w / cw) * 100}%;left:${-(rx0 / cw) * 100}%;top:${-(ry0 / ch) * 100}%`;
+    } catch { /* imagen sin acceso a sus píxeles: se deja como estaba */ }
+  }, true);
+
   return { char, crest, charCardHTML, crestHTML, portraitHTML, fillCrests, fillMe, slugOf, media, CLASS_KEY };
 })();
