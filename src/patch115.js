@@ -10,6 +10,10 @@ const Patch115 = (() => {
   const TARGET = new Date(2026, 9, 14, 0, 0, 0);
   const LINK_NEWS = 'https://worldofwarcraft.blizzard.com/en-us/news/24307306';
   const LINK_NOTES = 'https://worldofwarcraft.blizzard.com/en-us/news/24304162';
+  // Tráiler oficial «12.1.5 Content Update» en cada idioma de la web (canales oficiales de World of Warcraft en YouTube)
+  const VIDEOS = { es: 'p2mAOys5pAU', en: 'phxy5Gat_Gs' };
+  // El panel se abre desde file://, donde YouTube rechaza la incrustación: se usa la misma página de la web publicada (https)
+  const videoSrc = (id) => `${location.protocol === 'file:' ? 'https://kingkhaax.github.io/WipeTime/' : ''}video.html?v=${id}`;
   let timer = null;
 
   const pad = (n) => String(n).padStart(2, '0');
@@ -61,6 +65,12 @@ const Patch115 = (() => {
   }
 
   const SECTIONS = () => [
+    ['video', L('Vídeo', 'Video'), () => {
+      const id = VIDEOS[L('es', 'en')] || VIDEOS.en;
+      return `<div class="pn-video"><iframe src="${videoSrc(id)}" title="${L('Tráiler de la actualización 12.1.5', '12.1.5 Content Update trailer')}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
+        + p(L('Tráiler oficial de la actualización de contenido 12.1.5 · Midnight (en español).', 'Official 12.1.5 content update trailer · Midnight (in English).'))
+        + p(`<a href="#" data-pn-link="https://www.youtube.com/watch?v=${id}">${L('Abrir en YouTube', 'Open on YouTube')}</a>`);
+    }],
     ['resumen', L('Resumen', 'Overview'), () =>
       h(L('Fecha de salida', 'Release date'))
       + ul([

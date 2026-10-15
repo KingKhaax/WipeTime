@@ -90,6 +90,7 @@ WipeTime does not collect telemetry and has no user accounts of its own. Setting
 | [Blizzard Battle.net](https://www.blizzard.com/) | Only if you choose to log in, or look up characters/guilds | Login happens on Blizzard's own page; WipeTime receives your BattleTag and a read-only `wow.profile` token |
 | [Raider.IO](https://raider.io/) | When you search characters/guilds or view Mythic+ rankings | The names searched |
 | [Wowhead](https://www.wowhead.com/), [Raidbots](https://www.raidbots.com/), assets.rpglogs.com, cdn.raidplan.io | When spells, talents, icons or boss maps are shown | Spell IDs and image requests |
+| [YouTube](https://www.youtube.com/) (modo de privacidad ampliada, `youtube-nocookie.com`) | Solo al abrir el panel del 12.1.5, donde se muestra el tráiler oficial | La petición del vídeo y tu dirección IP; el reproductor se carga desde la página de la web de WipeTime |
 | [GitHub Pages](https://pages.github.com/) | Only if you use the web version | Serves the page; your settings, chosen character and uploaded maps stay in your browser (localStorage/IndexedDB) |
 | [GitHub](https://github.com/) | At startup and when you click update; first run downloads an icon pack | Checks for a new version and downloads updates |
 
