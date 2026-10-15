@@ -1244,8 +1244,12 @@ ipcMain.handle('open:external', (_e, url) => {
   if (/^https:\/\/(([a-z]+\.)?warcraftlogs\.com|worldofwarcraft\.blizzard\.com|news\.blizzard\.com)\//.test(url)) shell.openExternal(url);
 });
 
+// Modo silencioso para pruebas automáticas: con WIPETIME_QUIET=1 la ventana no se muestra ni roba el foco.
+const QUIET = process.env.WIPETIME_QUIET === '1';
+
 function createWindow() {
   const win = new BrowserWindow({
+    show: !QUIET,
     width: 1400,
     height: 900,
     minWidth: 960,
@@ -1259,6 +1263,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: !QUIET, // en modo silencioso la página sigue animándose aunque no se vea
     },
   });
   win.loadFile(path.join(__dirname, 'src', 'index.html'));

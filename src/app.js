@@ -100,7 +100,10 @@ function actorName(id) {
   return S.actors.get(id)?.name || t('unknown');
 }
 function ability(id) {
-  return S.abilities.get(id) || { name: `#${id}`, icon: 'inv_misc_questionmark.jpg' };
+  const ab = S.abilities.get(id);
+  // Warcraft Logs llama «Unknown Ability» a las habilidades sin nombre: se muestra en el idioma de la app
+  if (ab && /^unknown ability$/i.test(ab.name || '')) return { ...ab, name: LL('Habilidad desconocida', 'Unknown ability') };
+  return ab || { name: `#${id}`, icon: 'inv_misc_questionmark.jpg' };
 }
 function iconImg(icon, size = 20, title = '', spell = null) {
   const src = abilityIconUrl(icon);
