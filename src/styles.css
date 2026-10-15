@@ -2043,3 +2043,20 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
   box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 @media (prefers-reduced-motion: reduce) { .feat:hover, .rcard:hover, .pf-search input:hover, .pf-search select:hover, .pf-rec .chip:hover, .feat:hover .feat-ic img { transform: none; } .feat::after, .rcard::after { display: none; } }
+
+/* «Comparar logs» de la portada: mismo efecto al pasar el ratón que las tarjetas y botones de abajo (se eleva, borde y halo de acento,
+   brillo que lo cruza y el icono se inclina) */
+.cmp-cta { position: relative; overflow: hidden; transition: transform .2s cubic-bezier(.2, .8, .2, 1), border-color .2s, box-shadow .2s, background .2s, color .2s; }
+.cmp-cta:hover {
+  transform: translateY(-3px); color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.cmp-cta::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, .1)) 50%, transparent 65%);
+}
+.cmp-cta:hover::after { transition: transform .8s ease; transform: translateX(120%); }
+.cmp-cta img.wi { transition: transform .25s; }
+.cmp-cta:hover img.wi { transform: scale(1.12) rotate(-4deg); }
+@media (prefers-reduced-motion: reduce) { .cmp-cta:hover, .cmp-cta:hover img.wi { transform: none; } .cmp-cta::after { display: none; } }
