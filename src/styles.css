@@ -261,6 +261,7 @@ details.enc > summary::-webkit-details-marker { display: none; }
 .table { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .tr { display: grid; grid-template-columns: minmax(220px, 2fr) 3fr 80px; gap: 14px; align-items: center; padding: 7px 16px; border-top: 1px solid var(--line-soft); }
 .table.abil .tr { grid-template-columns: minmax(220px, 2fr) 3fr 70px 80px 70px 70px 70px; }
+.table.abil.tk .tr { grid-template-columns: minmax(220px, 2fr) 3fr 70px 80px 70px 70px minmax(120px, 1.4fr); }
 .tr.th { border-top: 0; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; background: var(--head); }
 .tr .r { text-align: right; font-variant-numeric: tabular-nums; }
 .ab { display: flex; align-items: center; gap: 9px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

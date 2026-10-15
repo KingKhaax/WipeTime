@@ -480,6 +480,17 @@ function enemyTable(f, id) {
   });
 }
 
+// Daño que recibió un jugador: por habilidad (golpes, ticks) y por fuente (jefe, adds, entorno)
+function takenData(f, id) {
+  return cached(`taken:${f.key}:${id}`, async () => {
+    const d = await gql(`query($code:String!,$f:[Int],$p:Int,$s:Float,$e:Float){reportData{report(code:$code){
+      ab:table(fightIDs:$f,dataType:DamageTaken,targetID:$p,viewBy:Ability,hostilityType:Enemies,startTime:$s,endTime:$e)
+      src:table(fightIDs:$f,dataType:DamageTaken,targetID:$p,viewBy:Source,hostilityType:Enemies,startTime:$s,endTime:$e)}}}`, { code: S.code, f: fightIds(f), p: id, s: f.startTime, e: f.endTime });
+    const r = d.reportData.report;
+    return { abil: entriesOf(r.ab), src: entriesOf(r.src) };
+  });
+}
+
 function playerData(f, id) {
   return cached(`player:${f.key}:${id}`, async () => {
     const [d, casts] = await Promise.all([
@@ -1564,13 +1575,15 @@ async function viewPlayer(f, id) {
   const dmgEntry = fd.dmg.find((e) => e.id === id);
   const healEntry = fd.heal.find((e) => e.id === id);
   const p = playerInfo(id, dmgEntry || healEntry);
-  const pd = await playerData(f, id);
+  const takenMode = S.ptab === 'taken';
+  const pd = takenMode ? null : await playerData(f, id);
+  const td = takenMode ? await takenData(f, id) : null;
   const dur = fightDur(f) / 1000;
   const color = classColor(p.cls);
   let dps = rk.dps.get(p.name);
   let hps = rk.hps.get(p.name);
   const est = !f.kill && f.full;
-  if (est && f.encounterID) {
+  if (!takenMode && est && f.encounterID) {
     const healer = HEALER_SPECS.has(p.spec);
     const entry = healer ? healEntry : dmgEntry;
     if (entry) {
@@ -1579,17 +1592,25 @@ async function viewPlayer(f, id) {
     }
   }
 
-  const stats = [
+  const takenTotal = td ? td.abil.reduce((x, e) => x + (e.total || 0), 0) : 0;
+  const takenHits = td ? td.abil.reduce((x, e) => x + (e.hitCount || 0), 0) : 0;
+  const takenTicks = td ? td.abil.reduce((x, e) => x + (e.tickCount || 0), 0) : 0;
+  const stats = takenMode ? [
+    `<div class="stat"><small>${t('takenTitle')}</small><b>${big(takenTotal)}</b><span>${plain(takenTotal / dur)}${t('perSec')}</span></div>`,
+    `<div class="stat"><small>${t('hits')}</small><b>${takenHits}</b></div>`,
+    `<div class="stat"><small>${LL('Ticks', 'Ticks')}</small><b>${takenTicks}</b></div>`,
+  ].join('') : [
     dmgEntry ? `<div class="stat"><small>${t('tabs.damage')}</small><b>${big(dmgEntry.total)}</b><span>${plain(dmgEntry.total / dur)}${t('perSec')}</span>${dps != null ? parsePill(dps, est) : ''}</div>` : '',
     healEntry?.total ? `<div class="stat"><small>${t('tabs.healing')}</small><b>${big(healEntry.total)}</b><span>${plain(healEntry.total / dur)}${t('perSec')}</span>${hps != null ? parsePill(hps, est) : ''}</div>` : '',
     `<div class="stat"><small>${t('casts')}</small><b>${pd.casts.length}</b></div>`,
   ].join('');
 
-  const ptabs = ['analyze', 'abilities', 'healing', 'rotation', 'buffs'].map((k) =>
+  const ptabs = ['taken', 'analyze', 'abilities', 'healing', 'rotation', 'buffs'].map((k) =>
     `<button class="tab ${S.ptab === k ? 'active' : ''}" data-action="ptab" data-tab="${k}">${t('ptabs.' + k)}</button>`).join('');
 
   let body = '';
-  if (S.ptab === 'analyze') {
+  if (takenMode) body = takenTable(td, takenTotal, dur);
+  else if (S.ptab === 'analyze') {
     S.post = (seq) => Analysis.mountPlayer(f, id, p, seq);
     body = `<div id="anRoot" class="an"><div class="loading"><span class="spinner"></span><span id="anProg">${t('loading')}</span></div></div>`;
   } else if (S.ptab === 'abilities') body = abilitiesTable(pd.abil, pd.casts, dur, color);
@@ -1608,6 +1629,40 @@ async function viewPlayer(f, id) {
       </div>
     </div>
     <nav class="tabs">${ptabs}</nav>${body}`;
+}
+
+// Daño recibido por habilidad: golpes, ticks y quién lo causó (jefe, adds, entorno)
+function takenTable(td, total, dur) {
+  const rows = [...td.abil].filter((e) => e.total > 0).sort((a, b) => b.total - a.total);
+  if (!rows.length) return `<div class="empty">${t('noData')}</div>`;
+  // fuente principal de cada habilidad
+  const srcOf = new Map();
+  for (const sEnt of td.src) {
+    for (const a of sEnt.abilities || []) {
+      const c = srcOf.get(a.name);
+      if (!c || a.total > c.total) srcOf.set(a.name, { name: sEnt.name, total: a.total });
+    }
+  }
+  const max = rows[0].total;
+  const sum = total || 1;
+  const abilRows = rows.map((e) => {
+    const icon = e.abilityIcon || e.icon || (e.guid ? ability(e.guid).icon : '');
+    const src = srcOf.get(e.name)?.name || '';
+    return `<div class="tr"><span class="ab" ${e.guid ? `data-spell="${e.guid}"` : ''}>${iconImg(icon, 22)}${esc(e.name)}</span>
+      <span class="up"><span class="mbar"><span style="width:${(e.total / max) * 100}%;background:#e05a5a"></span></span>${plain(e.total)}</span>
+      <span class="r">${num((e.total / sum) * 100, 1)} %</span>
+      <span class="r">${plain(e.total / dur)}</span>
+      <span class="r">${e.hitCount || ''}</span>
+      <span class="r">${e.tickCount || ''}</span>
+      <span class="ab muted">${esc(src)}</span></div>`;
+  }).join('');
+  const srcs = [...td.src].filter((e) => e.total > 0).sort((a, b) => b.total - a.total);
+  const smax = srcs[0]?.total || 1;
+  const srcRows = srcs.map((e) => `<div class="tr tk-src"><span class="ab">${esc(e.name)}</span>
+      <span class="up"><span class="mbar"><span style="width:${(e.total / smax) * 100}%;background:#c9884a"></span></span>${plain(e.total)}</span>
+      <span class="r">${num((e.total / sum) * 100, 1)} %</span></div>`).join('');
+  return `<div class="table abil tk"><div class="tr th"><span>${t('ability')}</span><span>${t('amount')}</span><span class="r">${t('share')}</span><span class="r">${t('rate')}</span><span class="r">${t('hits')}</span><span class="r">Ticks</span><span>${LL('Fuente', 'Source')}</span></div>${abilRows}</div>
+    ${srcRows ? `<h3 class="sec">${LL('Por fuente (jefe, adds, entorno)', 'By source (boss, adds, environment)')}</h3><div class="table">${srcRows}</div>` : ''}`;
 }
 
 function abilitiesTable(entries, casts, dur, color) {
@@ -1996,7 +2051,7 @@ document.addEventListener('click', async (ev) => {
       break;
     case 'player':
       S.player = id;
-      S.ptab = el.dataset.ptab || (S.tab === 'healing' ? 'healing' : 'abilities');
+      S.ptab = el.dataset.ptab || (S.tab === 'taken' ? 'taken' : S.tab === 'healing' ? 'healing' : 'abilities');
       render();
       main.scrollTop = 0;
       break;

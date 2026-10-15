@@ -8,6 +8,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['1.0.14', 'Daño recibido: al pulsar un jugador se ve el daño que recibió de cada habilidad (golpes y ticks) y de qué fuente venía (jefe, adds, entorno), en vez de su rotación y su daño.', 'Damage taken: clicking a player now shows the damage they took from each ability (hits and ticks) and which source it came from (boss, adds, environment), instead of their rotation and damage.'],
     ['1.0.13', 'Daño recibido: el desplegable de habilidades muestra el icono de cada habilidad y, al pasar el ratón junto al icono, su tooltip.', 'Damage taken: the ability dropdown shows each ability’s icon and, hovering next to the icon, its tooltip.'],
     ['1.0.12', 'Daño evitable: «Quién recibió más daño evitable» muestra el icono de especialización junto a cada nombre en lugar del punto de color.', 'Avoidable damage: «Who took the most avoidable damage» shows the spec icon next to each name instead of the colored dot.'],
     ['1.0.11', 'Lista de pulls: cada try muestra entre «Try N» y el porcentaje la hora (24 h, sin segundos) a la que acabó.', 'Pull list: each try shows the time it ended (24 h, no seconds) between «Try N» and the percentage.'],
