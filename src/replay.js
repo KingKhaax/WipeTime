@@ -1674,6 +1674,8 @@ const Replay = (() => {
     return out;
   }
 
+  // Las auras activas salen de la tabla de Warcraft Logs (las mismas bandas que usa su web): incluye lo que ya estaba puesto antes
+  // del pull (frasco, comida, runas…), que no genera ningún evento, y cada aura sale una sola vez. Los stacks se leen aparte de los eventos.
   function wantAuras(kind, type, id) {
     const key = `${kind}:${type}:${id}`;
     R.au = R.au || new Map();
@@ -1681,14 +1683,41 @@ const Replay = (() => {
     if (R.au.has(key) || R.auWait.has(key)) return R.au.get(key) || null;
     R.auWait.add(key);
     const mine = R;
-    allEvents(fullWin(R.raw), type, `,targetID:${id}${kind === 'enemy' ? ',hostilityType:Enemies' : ''}`).then((ev) => {
+    const raw = R.raw;
+    const host = kind === 'enemy' ? ',hostilityType:Enemies' : '';
+    gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){
+      t:table(fightIDs:$f,dataType:${type},targetID:${id}${host},startTime:$s,endTime:$e)}}}`, { code: S.code, f: [raw.id], s: raw.startTime, e: raw.endTime }, true).then((d) => {
       if (R !== mine) return;
-      R.au.set(key, buildIntervals(ev, R.raw.startTime, R.raw.endTime));
+      const out = [];
+      for (const a of d.reportData.report.t?.data?.auras || []) {
+        for (const b of a.bands || []) out.push({ guid: a.guid, name: a.name, icon: a.abilityIcon, s: b.startTime, e: b.endTime, stacks: 1, stk: null });
+      }
+      R.au.set(key, out);
       R.auWait.delete(key);
       R.lastUi = 0;
+      allEvents(fullWin(raw), type, `,targetID:${id}${host}`).then((ev) => {
+        if (R !== mine) return;
+        const by = new Map();
+        for (const e of ev) {
+          if (!/^(apply|remove)(buff|debuff)stack$/.test(e.type) || !e.stack) continue;
+          if (!by.has(e.abilityGameID)) by.set(e.abilityGameID, []);
+          by.get(e.abilityGameID).push({ t: e.timestamp, n: e.stack });
+        }
+        for (const l of by.values()) l.sort((x, y) => x.t - y.t);
+        for (const a of out) a.stk = by.get(a.guid) || null;
+        R.lastUi = 0;
+      }).catch(() => {});
     }).catch((err) => { console.warn('auras', key, err); if (R === mine) { R.au.set(key, []); R.auWait.delete(key); } });
     return null;
   }
+
+  // número de stacks de un aura en el instante T (1 si no hay datos de stacks)
+  const stackOf = (a, T) => {
+    if (!a.stk) return a.stacks || 1;
+    let n = 1;
+    for (const x of a.stk) { if (x.t > T) break; if (x.t >= a.s) n = x.n; }
+    return n;
+  };
 
   // objetivo del jugador: el destino de su último lanzamiento contra un enemigo
   function wantTargets(id) {
@@ -1805,7 +1834,7 @@ const Replay = (() => {
     if (arr == null) return `<div class="au-sec"><small>${label}</small><span class="muted">${t('loading')}</span></div>`;
     const act = activeAuras(arr, T);
     return `<div class="au-sec ${cls}"><small>${label} <b>${act.length}</b></small><div class="au-grid">${act.length ? act.map((a) => {
-      const ab = ability(a.guid);
+      const ab = a.name ? { name: a.name, icon: a.icon } : ability(a.guid);
       return `<span class="au-ic">${iconImg(ab.icon, 26, `${esc(ab.name)}${a.stacks > 1 ? ` ×${a.stacks}` : ''} · ${clock(a.e - T)}`, a.guid)}${a.stacks > 1 ? `<i>${a.stacks}</i>` : ''}</span>`;
     }).join('') : '<span class="muted">—</span>'}</div></div>`;
   }
@@ -1814,18 +1843,20 @@ const Replay = (() => {
   const shortNum = (n) => (n >= 1e9 ? `${num(n / 1e9, 1)}b` : n >= 1e6 ? `${Math.round(n / 1e6)}m` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(Math.round(n)));
 
   function frameAuras(buffs, debuffs, T) {
+    const info = (a) => (a.name ? { name: a.name, icon: a.icon } : ability(a.guid));
     const icon = (a, cls) => {
-      const ab = ability(a.guid);
-      return `<span class="rpf-au ${cls}" data-aura-end="${a.e}" data-aura-name="${esc(ab.name)}">${iconImg(ab.icon, 24, `${cls === 'b' ? LL('Perjuicio', 'Debuff') : LL('Beneficio', 'Buff')}${a.stacks > 1 ? ` · ×${a.stacks}` : ''}`, a.guid)}${a.stacks > 1 ? `<i>${a.stacks}</i>` : ''}</span>`;
+      const ab = info(a);
+      const n = stackOf(a, T);
+      return `<span class="rpf-au ${cls}" data-aura-end="${a.e}" data-aura-name="${esc(ab.name)}">${iconImg(ab.icon, 24, `${cls === 'b' ? LL('Perjuicio', 'Debuff') : LL('Beneficio', 'Buff')}${n > 1 ? ` · ×${n}` : ''}`, a.guid)}${n > 1 ? `<i>${n}</i>` : ''}</span>`;
     };
     // un icono por hechizo: si varios IDs comparten nombre e icono (rangos, auras ocultas del mismo efecto) se muestra una vez
     const uniq = (arr) => {
       const seen = new Map();
       for (const a of activeAuras(arr, T)) {
-        const ab = ability(a.guid);
+        const ab = info(a);
         const k = `${ab.name}|${ab.icon}`;
         const prev = seen.get(k);
-        if (!prev || a.stacks > prev.stacks) seen.set(k, a);
+        if (!prev || stackOf(a, T) > stackOf(prev, T)) seen.set(k, a);
       }
       return [...seen.values()].sort((x, y) => x.s - y.s).slice(0, 40);
     };
