@@ -629,7 +629,7 @@ const Extras = (() => {
     for (const a of avoid) {
       for (const x of a.targets) {
         const key = x.name;
-        if (!per.has(key)) per.set(key, { id: x.id, name: key, cls: x.type, spec: x.icon?.split('-')[1] || '', total: 0, abil: [] });
+        if (!per.has(key)) per.set(key, { id: x.id, name: key, cls: x.type, icon: x.icon || '', spec: x.icon?.split('-')[1] || '', total: 0, abil: [] });
         const p = per.get(key);
         p.total += x.total;
         p.abil.push([a.name, x.total]);
