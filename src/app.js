@@ -780,6 +780,11 @@ function renderSidebar() {
     // Color estilo parse pero invertido: cuanto menos vida le queda al jefe, mejor «parse»
     const pcol = p != null ? parseColor(100 - Math.min(100, p)) : '';
     let label = esc(fightLabel(f));
+    // Hora (24 h, sin segundos) a la que acabó el try, entre «Try N» y el porcentaje
+    if (f.encounterID && r.startTime != null) {
+      const hm = new Date(r.startTime + f.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+      label = label.replace(' · ', ` · <span class="fl-clock">${hm}</span> · `);
+    }
     if (!f.kill && p != null) label = label.replace(`${num(p, 1)} %`, (m) => `<b class="fl-pct" style="color:${pcol}">${m}</b>`);
     const bar = f.encounterID && f.kill ? '<span class="hpbar kill"><span style="width:100%;--c:${parseColor(100)}"></span></span>'
       : f.encounterID && p != null
