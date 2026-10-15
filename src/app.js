@@ -1658,7 +1658,9 @@ function takenTable(td, total, dur) {
   }).join('');
   const srcs = [...td.src].filter((e) => e.total > 0).sort((a, b) => b.total - a.total);
   const smax = srcs[0]?.total || 1;
-  const srcRows = srcs.map((e) => `<div class="tr tk-src"><span class="ab">${esc(e.name)}</span>
+  // habilidades de cada fuente para el tooltip de su barra
+  S.lastTakenSrc = srcs.map((e) => ({ name: e.name, segs: [{ color: '#c9884a' }], abil: (e.abilities || []).filter((a) => a.total > 0).map((a) => ({ name: a.name, total: a.total, icon: a.icon || a.abilityIcon || '' })).sort((x, y) => y.total - x.total) }));
+  const srcRows = srcs.map((e, i) => `<div class="tr tk-src" data-si="${i}"><span class="ab">${esc(e.name)}</span>
       <span class="up"><span class="mbar"><span style="width:${(e.total / smax) * 100}%;background:#c9884a"></span></span>${plain(e.total)}</span>
       <span class="r">${num((e.total / sum) * 100, 1)} %</span></div>`).join('');
   return `<div class="table abil tk"><div class="tr th"><span>${t('ability')}</span><span>${t('amount')}</span><span class="r">${t('share')}</span><span class="r">${t('rate')}</span><span class="r">${t('hits')}</span><span class="r">Ticks</span><span>${LL('Fuente', 'Source')}</span></div>${abilRows}</div>
@@ -2256,8 +2258,8 @@ document.addEventListener('change', (ev) => {
   };
   const hide = () => { if (tip) tip.hidden = true; };
   document.addEventListener('mouseover', (ev) => {
-    const row = ev.target.closest?.('.ranked .row[data-ri]');
-    const r = row && S.lastRanked?.[Number(row.dataset.ri)];
+    const row = ev.target.closest?.('.ranked .row[data-ri], .tk-src[data-si]');
+    const r = row && (row.dataset.si != null ? S.lastTakenSrc?.[Number(row.dataset.si)] : S.lastRanked?.[Number(row.dataset.ri)]);
     if (!r || !r.abil?.length) return hide();
     if (!tip) { tip = document.createElement('div'); tip.className = 'bartip surface-dark'; document.body.appendChild(tip); }
     const sum = r.abil.reduce((x, a) => x + a.total, 0) || 1;
@@ -2277,7 +2279,7 @@ document.addEventListener('change', (ev) => {
     tip.style.left = x + 'px';
     tip.style.top = y + 'px';
   });
-  document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('.ranked')) hide(); });
+  document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('.ranked, .tk-src')) hide(); });
   document.addEventListener('scroll', hide, true);
 })();
 

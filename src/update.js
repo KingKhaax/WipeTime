@@ -8,6 +8,7 @@ const WCUpdate = (() => {
 
   // Historial: [versión, es, en]
   const CHANGELOG = [
+    ['1.0.16', 'Daño recibido de un jugador: al pasar el ratón por la barra de una fuente (jefe, add, entorno) aparece un tooltip con las habilidades que le hicieron daño, cada una con su icono.', 'Damage taken by a player: hovering a source bar (boss, add, environment) shows a tooltip with the abilities that hit them, each with its icon.'],
     ['1.0.15', 'Ficha del jugador: se quita la pestaña «Analizar» de la barra de pestañas, porque ya está el botón «Analizar» más arriba.', 'Player page: the «Analyze» tab is removed from the tab bar, since the «Analyze» button is already above it.'],
     ['1.0.14', 'Daño recibido: al pulsar un jugador se ve el daño que recibió de cada habilidad (golpes y ticks) y de qué fuente venía (jefe, adds, entorno), en vez de su rotación y su daño.', 'Damage taken: clicking a player now shows the damage they took from each ability (hits and ticks) and which source it came from (boss, adds, environment), instead of their rotation and damage.'],
     ['1.0.13', 'Daño recibido: el desplegable de habilidades muestra el icono de cada habilidad y, al pasar el ratón junto al icono, su tooltip.', 'Damage taken: the ability dropdown shows each ability’s icon and, hovering next to the icon, its tooltip.'],
