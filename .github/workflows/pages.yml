@@ -1,13 +1,11 @@
 # Publica la versión web de WipeTime en GitHub Pages (https://kingkhaax.github.io/WipeTime/).
-# Se lanza sola al subir a main cambios de la app (src/, herramientas web, package.json) o a mano desde Actions.
+# La lanza el workflow «Release» justo después de publicar la release (misma versión que el instalador y el portable), o a mano desde Actions.
 # Antes hay que activar Pages una vez: Settings -> Pages -> Source: "GitHub Actions".
 
 name: Web
 
 on:
-  push:
-    branches: [main]
-    paths: ['src/**', 'tools/web/**', 'tools/build-web.mjs', 'build/proxy.json', 'package.json', '.github/workflows/pages.yml']
+  workflow_call:
   workflow_dispatch:
 
 permissions:
