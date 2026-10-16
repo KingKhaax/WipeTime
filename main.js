@@ -1264,7 +1264,7 @@ ipcMain.handle('rio:guilds', async (_e, term) => {
 });
 
 ipcMain.handle('open:external', (_e, url) => {
-  if (/^https:\/\/(([a-z]+\.)?warcraftlogs\.com|worldofwarcraft\.blizzard\.com|news\.blizzard\.com)\//.test(url)) shell.openExternal(url);
+  if (/^https:\/\/(([a-z]+\.)?warcraftlogs\.com|worldofwarcraft\.blizzard\.com|news\.blizzard\.com|(www\.)?raider\.io|(www\.)?raidbots\.com|kingkhaax\.github\.io)\//.test(url)) shell.openExternal(url);
 });
 
 // Modo silencioso para pruebas automáticas: con WIPETIME_QUIET=1 la ventana no se muestra ni roba el foco.

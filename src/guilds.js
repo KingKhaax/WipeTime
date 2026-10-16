@@ -5,7 +5,7 @@ const Guilds = (() => {
   const CLASS_BY_ID = { 1: 'Warrior', 2: 'Paladin', 3: 'Hunter', 4: 'Rogue', 5: 'Priest', 6: 'DeathKnight', 7: 'Shaman', 8: 'Mage', 9: 'Warlock', 10: 'Monk', 11: 'Druid', 12: 'DemonHunter', 13: 'Evoker' };
   const RANK_TTL = 24 * 3600 * 1000;
   const MAX_MEMBERS = 80;
-  const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, armory: null, loginMine: null, loginChars: null, manualChars: [], charMsg: '', guildMsg: '', tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
+  const st = { status: null, mine: null, chars: null, results: null, mineErr: '', sel: null, armory: null, loginMine: null, loginChars: null, manualChars: [], cmpPl: [], charMsg: '', guildMsg: '', tab: 'logs', diff: 5, metric: 'dps', bracket: false, sort: 'desc', zones: null, zone: null, logs: null, rank: null, busy: '' };
 
   const region = () => (st.sel?.region || st.status?.region || 'eu').toUpperCase();
   const guildKey = (g) => `${g.realmSlug}/${g.name}`;
@@ -154,6 +154,8 @@ const Guilds = (() => {
     const head = `<div class="arm-top"><b>${esc(c.name)}</b><span class="arm-sp"></span>
       <button type="button" class="btn ghost sm" data-gd="armory-refresh" data-key="${esc(a.key)}">↻ ${LL('Actualizar', 'Refresh')}</button>
       ${c.guild ? `<button type="button" class="btn ghost sm" data-gd="pick-char" data-guild="${esc(c.guild.name)}" data-realm="${esc(c.guild.realmSlug)}" data-realmname="${esc(c.guild.realmName)}" data-region="${esc(c.region || '')}">${LL('Abrir guild', 'Open guild')}</button>` : ''}
+      <button type="button" class="btn ghost sm" data-gd="ext" data-u="https://www.raidbots.com/simbot/droptimizer">Droptimizer ↗</button>
+      <button type="button" class="btn ghost sm" data-gd="ext" data-u="https://kingkhaax.github.io/NinjaLoot/">NinjaLoot ↗</button>
       <button type="button" class="btn ghost sm" data-gd="armory-close">${LL('Cerrar', 'Close')}</button></div>`;
     if (a.status === 'loading') return `<div class="arm">${head}<div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
     if (a.status === 'err') return `<div class="arm">${head}<div class="error"><p>${esc(friendly(a.err))}</p></div></div>`;
@@ -300,11 +302,49 @@ const Guilds = (() => {
       `<button class="gd-res" data-gd="pick-found" data-i="${i}"><span class="crest-slot" data-crest data-realm="${esc(x.realmSlug)}" data-guild="${esc(x.name)}" data-size="34"></span><span class="gd-res-t"><b>${esc(x.name)}</b><small>${esc(x.realmName)}</small></span><span class="gd-reg">${esc(x.region.toUpperCase())}</span></button>`).join('')}</div>`;
   }
 
+  // Pestañas de la guild: logs, progreso, asistencia, banda y ranking de parses
+  function tabsBar() {
+    const tab = (k, l) => `<button class="chip ${st.tab === k ? 'on' : ''}" data-gd="tab" data-tab="${k}">${l}</button>`;
+    return tab('logs', LL('Logs recientes', 'Recent logs')) + tab('prog', LL('Progreso', 'Progress')) + tab('att', LL('Asistencia', 'Attendance')) + tab('roster', LL('Banda', 'Roster')) + tab('rank', LL('Ranking de parses', 'Parse ranking'));
+  }
+  // Avisos: se mira cada 5 minutos si una guild con la campana activada ha subido un log nuevo o ha matado un jefe
+  const alertsMap = () => { try { return JSON.parse(lsGet('gd:alerts') || '{}'); } catch { return {}; } };
+  const alertOn = (g) => !!alertsMap()[guildKey(g)]?.on;
+  function notify(title, body) {
+    try { if (typeof toast === 'function') toast(`${title}: ${body}`); } catch { /* sin aviso en pantalla */ }
+    try { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon: 'icon.png' }); } catch { /* sin notificaciones */ }
+  }
+  async function pollAlerts() {
+    const map = alertsMap();
+    for (const k of Object.keys(map)) {
+      const a = map[k];
+      if (!a.on || !a.guild) continue;
+      try {
+        const d = await gql(`query($n:String!,$s:String!,$r:String!){reportData{reports(guildName:$n,guildServerSlug:$s,guildServerRegion:$r,limit:1){data{code title startTime fights(killType:Kills){encounterID name}}}}}`, { n: a.guild.name, s: a.guild.realmSlug, r: String(a.guild.region || 'eu').toUpperCase() });
+        const rep = d.reportData?.reports?.data?.[0];
+        if (!rep) continue;
+        const kills = (rep.fights || []).filter((f) => f.encounterID);
+        if (a.code == null) { a.code = rep.code; a.kills = kills.length; continue; } // primera lectura: se toma como punto de partida
+        if (rep.code !== a.code) {
+          notify(a.guild.name, LL(`ha subido un log nuevo: «${rep.title}»`, `uploaded a new log: «${rep.title}»`));
+          a.code = rep.code; a.kills = 0;
+        }
+        if (kills.length > (a.kills || 0)) {
+          notify(a.guild.name, LL(`ha matado ${kills[kills.length - 1].name}`, `killed ${kills[kills.length - 1].name}`));
+          a.kills = kills.length;
+        }
+      } catch { /* sin conexión: se vuelve a intentar en 5 minutos */ }
+    }
+    lsSet('gd:alerts', JSON.stringify(map));
+  }
+  setTimeout(pollAlerts, 20000);
+  setInterval(pollAlerts, 5 * 60 * 1000);
+
   function bodyHTML() {
     const g = st.sel;
     const tab = (k, l) => `<button class="chip ${st.tab === k ? 'on' : ''}" data-gd="tab" data-tab="${k}">${l}</button>`;
-    return `${st.tab === 'rank' ? '' : `<div class="gd-head"><span data-crest data-realm="${esc(g.realmSlug)}" data-guild="${esc(g.name)}" data-size="56"></span><h2>${esc(g.name)}</h2><span class="muted">${esc(g.realmName || g.realmSlug)} · ${region()}</span>${guildSaved(g) ? `<button type="button" class="btn ghost sm" data-gd="unsaveguild">${LL('Quitar de mis guilds', 'Remove from my guilds')}</button>` : `<button type="button" class="btn sm" data-gd="saveguild">★ ${LL('Guardar guild', 'Save guild')}</button>`}</div>`}
-      <div class="metricbar">${tab('logs', LL('Logs recientes', 'Recent logs'))}${tab('rank', LL('Ranking de parses', 'Parse ranking'))}</div>
+    return `${st.tab === 'rank' ? '' : `<div class="gd-head"><span data-crest data-realm="${esc(g.realmSlug)}" data-guild="${esc(g.name)}" data-size="56"></span><h2>${esc(g.name)}</h2><span class="muted">${esc(g.realmName || g.realmSlug)} · ${region()}</span><button type="button" class="btn ghost sm bell ${alertOn(g) ? 'on' : ''}" data-gd="bell" title="${esc(LL('Avisarme cuando suba un log nuevo o mate un jefe (mientras WipeTime esté abierto)', 'Notify me when it uploads a new log or kills a boss (while WipeTime is open)'))}">${alertOn(g) ? '🔔' : '🔕'} ${alertOn(g) ? LL('Avisos activados', 'Alerts on') : LL('Avisarme', 'Notify me')}</button>${guildSaved(g) ? `<button type="button" class="btn ghost sm" data-gd="unsaveguild">${LL('Quitar de mis guilds', 'Remove from my guilds')}</button>` : `<button type="button" class="btn sm" data-gd="saveguild">★ ${LL('Guardar guild', 'Save guild')}</button>`}</div>`}
+      <div class="metricbar">${tabsBar()}</div>
       <div id="gdTab"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
   }
 
@@ -312,7 +352,18 @@ const Guilds = (() => {
     const el = document.getElementById('gdTab');
     if (!el) return;
     try {
-      if (st.tab === 'logs') await logsTab(el); else await rankTab(el);
+      if (st.tab === 'logs') await logsTab(el);
+      else if (st.tab === 'rank') await rankTab(el);
+      else {
+        // zona y dificultad (los mismos filtros que el ranking) y el contenido de la pestaña
+        const zones = await zonesList();
+        const zone = zones.find((z) => z.id === st.zone) || zones[zones.length - 1];
+        const chip = (attr, on, label) => `<button class="chip ${on ? 'on' : ''}" ${attr}>${label}</button>`;
+        const diffs = st.tab === 'roster' ? '' : `<div class="metricbar"><span class="muted">${LL('Dificultad', 'Difficulty')}</span>${[[5, LL('Mítico', 'Mythic')], [4, LL('Heroico', 'Heroic')], [3, 'Normal']].map(([d, l]) => chip(`data-gd="diff" data-v="${d}"`, st.diff === d, l)).join('')}</div>`;
+        const zs = st.tab === 'roster' ? '' : `<div class="metricbar"><span class="muted">${LL('Parche', 'Patch')}</span>${zones.map((z) => chip(`data-gd="zone" data-v="${z.id}"`, z.id === zone.id, `${esc(PATCH_OF_ZONE[z.id] || z.name)} <span class="muted">${esc(z.name)}</span>`)).join('')}</div>`;
+        el.innerHTML = `${zs}${diffs}<div id="gtBody"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
+        await GuildTabs.show(st.tab, document.getElementById('gtBody'), { g: st.sel, region: region(), zones, zone: zone.id, diff: st.diff, rosterOf, classKey: (id) => CLASS_BY_ID[id], tab: () => st.tab });
+      }
     } catch (e) {
       console.warn('guilds', e);
       const box = document.getElementById('gdTab');
@@ -395,7 +446,7 @@ const Guilds = (() => {
     const zones = await zonesList();
     const zone = zones.find((z) => z.id === st.zone) || zones[zones.length - 1];
     const chip = (attr, on, label) => `<button class="chip ${on ? 'on' : ''}" ${attr}>${label}</button>`;
-    const controls = `<div class="metricbar"><span class="muted">${LL('Parche', 'Patch')}</span>${zones.map((z) => chip(`data-gd="zone" data-v="${z.id}"`, z.id === zone.id, `${esc(PATCH_OF_ZONE[z.id] || z.name)} <span class="muted">${esc(z.name)}</span>`)).join('')}</div>
+    const controls = `<div class="metricbar">${tabsBar()}</div><div class="metricbar"><span class="muted">${LL('Parche', 'Patch')}</span>${zones.map((z) => chip(`data-gd="zone" data-v="${z.id}"`, z.id === zone.id, `${esc(PATCH_OF_ZONE[z.id] || z.name)} <span class="muted">${esc(z.name)}</span>`)).join('')}</div>
       <div class="metricbar"><span class="muted">${LL('Clasificación por', 'Rank by')}</span>${[['dps', LL('Daño', 'Damage')], ['hps', LL('Sanación', 'Healing')], ['bossdps', LL('Daño al jefe', 'Boss damage')]].map(([k, l]) => chip(`data-gd="metric" data-v="${k}"`, st.metric === k, l)).join('')}</div>
       <div class="metricbar"><span class="muted">${LL('Dificultad', 'Difficulty')}</span>${[[5, LL('Mítico', 'Mythic')], [4, LL('Heroico', 'Heroic')], [3, 'Normal']].map(([d, l]) => chip(`data-gd="diff" data-v="${d}"`, st.diff === d, l)).join('')}
         <span class="sep"></span><span class="muted">Parse</span>${chip('data-gd="bracket" data-v="0"', !st.bracket, LL('Global', 'Global'))}${chip('data-gd="bracket" data-v="1"', st.bracket, LL('Por nivel de objeto', 'By item level'))}
@@ -460,14 +511,28 @@ const Guilds = (() => {
       if (!list.length) return '';
       return `<h3 class="sec">${title}</h3><div class="gr-scroll"><div class="gr-table" style="--n:${encs.length}">
         <div class="gr-r th"><span>${LL('Nombre', 'Name')}</span><span>Avg</span>${encs.map((e) => `<span class="gr-boss" title="${esc(e.name)}"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="38" height="38" alt=""></span>`).join('')}<span>All Stars</span></div>
-        ${sorted(list).map((r) => `<div class="gr-r"><span class="gr-n" style="color:${classColor(r.cls)}">${esc(r.name)}</span>
+        ${sorted(list).map((r) => `<div class="gr-r${st.cmpPl.includes(r.name) ? ' sel' : ''}" data-gd="pickpl" data-name="${esc(r.name)}" title="${esc(LL('Pulsa para elegirlo y compararlo con otro jugador', 'Click to pick it and compare it with another player'))}"><span class="gr-n" style="color:${classColor(r.cls)}">${esc(r.name)}</span>
           <span class="gr-avg">${parseCell(r.avg)}</span>
           ${encs.map((e) => { const c = r.boss[e.id]; return `<span class="gr-c">${c ? `${parseCell(c.p)}<img src="${specIconUrl(`${r.cls}-${c.spec}`)}" width="16" height="16" alt="">` : '<span class="gr-dash">-</span>'}</span>`; }).join('')}
           <span class="gr-stars">${r.stars != null ? `<b>${num(r.stars, 0)}</b>` : '<span class="gr-dash">-</span>'}</span></div>`).join('')}</div></div>`;
     };
+    // Comparar dos jugadores de la guild: se eligen pulsando sus filas
+    const cmpCard = () => {
+      if (!st.cmpPl.length) return '';
+      const pair = st.cmpPl.map((n) => rows.find((r) => r.name === n)).filter(Boolean);
+      const chips = pair.map((r, i) => `<span class="gc-chipn" style="--gc:${i ? '#e0a43a' : '#5b8def'}">${esc(r.name)}</span>`).join(' vs ');
+      const bar = `<div class="gr-cmpbar"><b>${LL('Comparar jugadores', 'Compare players')}</b> ${chips}<button type="button" class="btn ghost sm" data-gd="clearpl">${LL('Quitar selección', 'Clear selection')}</button></div>`;
+      if (pair.length < 2) return bar + `<p class="foot">${LL('Elige otro jugador de la tabla para compararlos.', 'Pick another player from the table to compare them.')}</p>`;
+      const [A, B] = pair;
+      const dl = (a, b) => (a == null || b == null ? '<span class="muted">—</span>' : `<b class="${a - b >= 0 ? 'okc' : 'badc'}">${a - b >= 0 ? '+' : '−'}${Math.abs(Math.floor(a) - Math.floor(b))}</b>`);
+      const line = (label, a, b) => `<div class="gr-cr"><span class="gr-cb">${label}</span><span>${parseCell(a)}</span><span>${parseCell(b)}</span><span>${dl(a, b)}</span></div>`;
+      const lines = encs.map((e) => line(`<span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="22" height="22" alt=""></span>${esc(e.name)}`, A.boss[e.id]?.p ?? null, B.boss[e.id]?.p ?? null)).join('');
+      const head2 = `<div class="gr-cr th"><span></span><span style="color:#5b8def">${esc(A.name)}<small>${esc(A.spec)}</small></span><span style="color:#e0a43a">${esc(B.name)}<small>${esc(B.spec)}</small></span><span>${LL('Diferencia', 'Difference')}</span></div>`;
+      return bar + `<div class="gr-cmp">${head2}${line(LL('Media (Avg)', 'Average (Avg)'), A.avg, B.avg)}${lines}${line('All Stars', A.stars, B.stars)}</div>`;
+    };
     const by = (role) => rows.filter((r) => r.role === role);
     live.innerHTML = rows.length
-      ? `${head}${table(LL('Daño', 'Damage dealers'), by('dps'))}${table(LL('Sanadores', 'Healers'), by('healer'))}${table(LL('Tanques', 'Tanks'), by('tank'))}
+      ? `${head}${cmpCard()}${table(LL('Daño', 'Damage dealers'), by('dps'))}${table(LL('Sanadores', 'Healers'), by('healer'))}${table(LL('Tanques', 'Tanks'), by('tank'))}
         <p class="foot">${LL(`Los ${pool.length} miembros de nivel máximo con mejor rango en la guild y su parse en Warcraft Logs (${st.bracket ? 'comparado con su mismo nivel de objeto' : 'comparado con todos los de su especialización'}). Avg es la media de su mejor parse en cada jefe. Quien no tiene logs públicos en este parche y dificultad no aparece.`, `The ${pool.length} max-level members with the highest guild rank and their Warcraft Logs parses (${st.bracket ? 'compared with their item level' : 'compared with everyone of their spec'}). Avg is the mean of their best parse on each boss. Anyone without public logs for this patch and difficulty is hidden.`)}</p>`
       : `${head}<div class="empty">${LL('Ningún miembro tiene parses públicos en este parche y dificultad.', 'No member has public parses for this patch and difficulty.')}</div>`;
   }
@@ -522,12 +587,28 @@ const Guilds = (() => {
       const g = st.sel;
       if (g) { const rest = savedGuilds().filter((x) => guildKey(x) !== guildKey(g)); saveList('gd:guilds', a === 'saveguild' ? [...rest, { name: g.name, realmSlug: g.realmSlug, realmName: g.realmName || g.realmSlug, region: g.region || st.status?.region || 'eu' }] : rest); rebuild(); render(); }
     }
+    else if (a === 'ext') { try { window.api.openExternal(el.dataset.u); } catch { window.open(el.dataset.u, '_blank', 'noopener'); } }
     else if (a === 'tab') { st.tab = el.dataset.tab; render(); }
-    else if (a === 'diff') { st.diff = Number(el.dataset.v); rankTab(); }
+    else if (a === 'bell') {
+      const g = st.sel; if (!g) return;
+      const map = alertsMap(), k = guildKey(g), on = !map[k]?.on;
+      map[k] = { on, guild: { name: g.name, realmSlug: g.realmSlug, realmName: g.realmName || g.realmSlug, region: g.region || region().toLowerCase() }, code: null, kills: 0 };
+      lsSet('gd:alerts', JSON.stringify(map));
+      if (on) {
+        if (!guildSaved(g)) saveList('gd:guilds', [...savedGuilds(), { name: g.name, realmSlug: g.realmSlug, realmName: g.realmName || g.realmSlug, region: g.region || st.status?.region || 'eu' }]);
+        try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch { /* sin notificaciones */ }
+        pollAlerts();
+        toast(LL('Avisos activados: te diré cuando suba un log nuevo o mate un jefe mientras WipeTime esté abierto', 'Alerts on: I will tell you when it uploads a new log or kills a boss while WipeTime is open'));
+      } else toast(LL('Avisos desactivados', 'Alerts off'));
+      rebuild(); render();
+    }
+    else if (a === 'pickpl') { const n = el.dataset.name; st.cmpPl = st.cmpPl.includes(n) ? st.cmpPl.filter((x) => x !== n) : [...st.cmpPl, n].slice(-2); rankTab(); }
+    else if (a === 'clearpl') { st.cmpPl = []; rankTab(); }
+    else if (a === 'diff') { st.diff = Number(el.dataset.v); if (st.tab === 'rank') rankTab(); else afterBody(); }
     else if (a === 'metric') { st.metric = el.dataset.v; rankTab(); }
     else if (a === 'sort') { st.sort = el.dataset.v; rankTab(); }
     else if (a === 'bracket') { st.bracket = el.dataset.v === '1'; rankTab(); }
-    else if (a === 'zone') { st.zone = Number(el.dataset.v); rankTab(); }
+    else if (a === 'zone') { st.zone = Number(el.dataset.v); if (st.tab === 'rank') rankTab(); else afterBody(); }
     else if (a === 'report') { S.guildOpen = false; S.cmpOpen = false; loadReport(el.dataset.code); }
   });
 

@@ -260,6 +260,8 @@ const Profile = (() => {
       ['Warcraft Logs', `https://www.warcraftlogs.com/character/${q.region}/${slug}/${nm}`],
       ['Raider.IO', st.rio?.url || `https://raider.io/characters/${q.region}/${slug}/${nm}`],
       [LL('Armería', 'Armory'), `https://worldofwarcraft.blizzard.com/${lang}/character/${q.region}/${slug}/${nm}`],
+      ['Droptimizer', 'https://www.raidbots.com/simbot/droptimizer'],
+      ['NinjaLoot', 'https://kingkhaax.github.io/NinjaLoot/'],
     ];
     return links.map(([l, u]) => `<a href="#" class="link" data-pf="ext" data-u="${esc(u)}">${esc(l)} ↗</a>`).join(' · ');
   }
@@ -486,6 +488,15 @@ const Profile = (() => {
     fetchWcl().then(() => { if (st.embed === key) repaint(); });
   }
   const embedHTML = () => (st.embed ? `<div class="pf pf-embed"><div class="pf-tiles">${tilesHTML()}</div>${controlsHTML()}${tableHTML()}</div>` : '');
+
+  // Enlace desde NinjaLoot: …/WipeTime/#char=eu/zuljin/okita abre directamente la ficha de ese personaje
+  setTimeout(() => {
+    const m = /#char=([a-z]{2})\/([^/]+)\/(.+)$/i.exec(location.hash || '');
+    if (!m) return;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch { /* sin historial */ }
+    const slug = decodeURIComponent(m[2]), name = decodeURIComponent(m[3]);
+    open({ name, slug, realm: slug, region: m[1].toLowerCase() });
+  }, 900);
 
   return { open, render, formHTML, sectionHTML, search, load, embed, embedHTML };
 })();

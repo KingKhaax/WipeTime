@@ -2273,6 +2273,28 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .gc-t em { color: var(--muted); font-style: normal; text-align: right; }
 @media (max-width: 900px) { .gc-slots { grid-template-columns: 1fr; } .gc-vs { justify-self: center; } .gc-head, .gc-row { grid-template-columns: 1.2fr 1fr 1fr; } .gc-head span:last-child, .gc-d { display: none; } .gc-detail { grid-template-columns: 1fr; } }
 
+
+/* ---------- Guilds: progreso, asistencia, banda, avisos y comparar jugadores ---------- */
+.bell.on { color: #ffd100; border-color: rgba(255, 209, 0, .5); background: rgba(255, 209, 0, .08); }
+.gt-weeks { display: flex; gap: 6px; align-items: flex-end; overflow-x: auto; padding: 8px 4px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.gt-w { flex: 0 0 46px; display: grid; justify-items: center; gap: 2px; } .gt-w small { color: var(--dim); font-size: 10.5px; white-space: nowrap; } .gt-w b { font-size: 12px; min-height: 15px; color: #5fe08a; }
+.gt-bars { position: relative; width: 28px; height: 110px; display: flex; align-items: flex-end; } .gt-bars i { position: absolute; bottom: 0; border-radius: 4px 4px 2px 2px; } .gt-bars i.p { left: 0; width: 28px; background: color-mix(in srgb, var(--accent) 30%, transparent); } .gt-bars i.k { left: 6px; width: 16px; background: linear-gradient(180deg, #7bf0a0, #2fb26a); box-shadow: 0 0 10px -2px #3fe08a; }
+.gt-legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin: 6px 2px 0; } .gt-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; } .gt-legend i.k { background: #3fe08a; } .gt-legend i.p { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.gt-head, .gt-row { display: grid; grid-template-columns: minmax(180px, 1.5fr) 1.1fr 70px 70px 1fr; gap: 0; align-items: center; } .gt-head { padding: 6px 12px; } .gt-head span:not(:first-child) { text-align: center; }
+.gt-row { padding: 2px 0; border-top: 1px solid var(--line); font-size: 13px; } .gt-row:first-child { border-top: 0; } .gt-row > span, .gt-row > b { text-align: center; padding: 6px 8px; } .gt-row.kill { background: color-mix(in srgb, #3fe08a 6%, transparent); }
+.at-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.at-row { display: grid; grid-template-columns: minmax(150px, 1.2fr) repeat(var(--n), 44px) 54px; align-items: center; border-top: 1px solid var(--line-soft, var(--line)); font-size: 13px; padding: 2px 10px; min-width: calc(220px + var(--n) * 44px); }
+.at-row.th { border-top: 0; color: var(--muted); font-size: 11px; background: var(--head, transparent); padding: 6px 10px; } .at-row.th span:not(:first-child) { text-align: center; }
+.at-c { display: grid; place-items: center; height: 26px; color: var(--dim); } .at-c.on { color: #5fe08a; font-weight: 800; background: rgba(95, 224, 138, .1); } .at-c.bench { color: #e0a43a; background: rgba(224, 164, 58, .1); } .at-p { text-align: right; font-variant-numeric: tabular-nums; }
+.rs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } @media (max-width: 900px) { .rs-grid { grid-template-columns: 1fr; } }
+.rs-c { position: relative; display: flex; align-items: center; gap: 10px; padding: 6px 10px; margin-bottom: 5px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); overflow: hidden; } .rs-c span { color: var(--cc); font-weight: 600; z-index: 1; } .rs-c b { margin-left: auto; z-index: 1; } .rs-c i { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--cc) 20%, transparent); }
+.rs-b { display: flex; align-items: center; gap: 10px; padding: 6px 10px; margin-bottom: 5px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); } .rs-b em { color: var(--muted); font-size: 12px; font-style: normal; } .rs-b b { margin-left: auto; } .rs-b.ok b { color: #5fe08a; } .rs-b.no { border-color: rgba(255, 93, 93, .45); background: rgba(255, 93, 93, .07); } .rs-b.no b { color: #ff7a7a; }
+.gr-r[data-gd="pickpl"] { cursor: pointer; transition: background .2s; } .gr-r[data-gd="pickpl"]:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); } .gr-r.sel { background: color-mix(in srgb, var(--accent) 18%, transparent) !important; box-shadow: inset 3px 0 0 var(--accent); }
+.gr-cmpbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 6px; } .gc-chipn { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--gc); color: var(--gc); font-weight: 700; font-size: 13px; }
+.gr-cmp { max-width: 760px; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; margin-bottom: 14px; background: var(--panel); }
+.gr-cr { display: grid; grid-template-columns: minmax(170px, 1.4fr) 1fr 1fr 1fr; align-items: center; border-top: 1px solid var(--line); padding: 4px 12px; font-size: 13px; text-align: center; } .gr-cr:first-child { border-top: 0; } .gr-cr.th { background: color-mix(in srgb, var(--panel-2) 75%, #000); font-weight: 700; } .gr-cr.th small { display: block; color: var(--muted); font-weight: 500; font-size: 11px; }
+.gr-cb { display: flex; align-items: center; gap: 8px; text-align: left; font-weight: 600; } .gr-cb .pf-bic { width: 22px; height: 22px; }
+
 /* ---------- Comparar guilds: tabla compacta ---------- */
 .gc-ctl, .gc-warn, .gc-tools, .gc-sum, .gc-head, .gc-tbl, #gcBody > .foot { max-width: 900px; }
 .gc-warn { margin: 6px 0 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(224, 164, 58, .5); background: rgba(224, 164, 58, .1); color: #f0c777; font-size: 13px; }
