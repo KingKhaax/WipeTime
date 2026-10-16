@@ -2262,3 +2262,8 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .gc-c small, .gc-d small { font-size: 11px; line-height: 1.25; }
 .gc-d { font-weight: 600; }
 .gc-detail { padding: 8px 10px 10px; }
+
+/* ---------- Comparar guilds: bloque inferior centrado ---------- */
+.gc-ctl, .gc-warn, .gc-tools, .gc-sum, .gc-head, .gc-tbl, #gcBody > .foot { margin-left: auto; margin-right: auto; }
+.gc-ctl { justify-content: center; }
+.mini .spec-ic-sm { flex: none; border-radius: 6px; }

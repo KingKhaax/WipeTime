@@ -16,35 +16,35 @@ const ClassChanges = (() => {
     deathknight: { es: 'Caballero de la Muerte', en: 'Death Knight', specs: {
       blood: [
         ['2026-09-09', 'f', 'Grip of the Dead: ya no se queda activo de forma permanente en los objetivos.', 'Grip of the Dead no longer stays permanently active on targets.'],
-        ['2026-09-22', 'r', 'Daño de habilidades y esbirros −6 %; Death Strike +15 %; Deadly Reach: daño secundario de Death Strike 60 % (antes 75 %); Exterminate +25 %; Reaper\'s Mark +20 %; Wave of Souls +20 %; Bind in Darkness (Blood Boil) +50 % (antes 30 %); Deathly Blows 20 % (antes 12 %); Swift and Painful Strength 15 % (antes 10 %).', 'All ability and minion damage −6%; Death Strike +15%; Deadly Reach Death Strike secondary damage 60% (was 75%); Exterminate +25%; Reaper\'s Mark +20%; Wave of Souls +20%; Bind in Darkness (Blood Boil) +50% (was 30%); Deathly Blows 20% (was 12%); Swift and Painful Strength 15% (was 10%).'],
+        ['2026-09-22', 'r', 'Daño de habilidades y esbirros −6 %; Death Strike +15 %; Deadly Reach: daño secundario de Death Strike 60 % (antes 75 %); Exterminate +25 %; Reaper\'s Mark +20 %; Wave of Souls +20 %; Bind in Darkness (Blood Boil) +50 % (antes 30 %); Deathly Blows 20 % (antes 12 %); Fuerza veloz y dolorosa 15 % (antes 10 %).', 'All ability and minion damage −6%; Death Strike +15%; Deadly Reach Death Strike secondary damage 60% (was 75%); Exterminate +25%; Reaper\'s Mark +20%; Wave of Souls +20%; Bind in Darkness (Blood Boil) +50% (was 30%); Deathly Blows 20% (was 12%); Swift and Painful Strength 15% (was 10%).'],
         ['2026-08-18', 'n', 'San\'layn — Visceral Strength: fuerza 10 % → 6 %; Transfusion: daño de Dancing Rune Weapon 10 % → 5 %.', 'San\'layn — Visceral Strength: strength 10% → 6%; Transfusion: Dancing Rune Weapon damage 10% → 5%.'],
         ['2026-08-18', 'f', 'Deathbringer — Echoing Fury: las acumulaciones de Exterminate sobre Reaper\'s Mark se aplican bien.', 'Deathbringer — Echoing Fury: Exterminate stacks on Reaper\'s Mark now apply correctly.'],
       ],
       frost: [
         ['2026-09-22', 'b', 'Frostreaper +100 %; Obliterate +10 %.', 'Frostreaper +100%; Obliterate +10%.'],
-        ['2026-09-01', 'b', 'Howling Blast (objetivo principal) +15 %; Obliterate +15 %; Frost Strike +20 %; daño cuerpo a cuerpo +10 %.', 'Howling Blast main target +15%; Obliterate +15%; Frost Strike +20%; melee +10%.'],
+        ['2026-09-01', 'b', 'Howling Blast (objetivo principal) +15 %; Obliterate +15 %; Frost Strike +20 %; daño de todos los ataques cuerpo a cuerpo +10 %.', 'Howling Blast main target +15%; Obliterate +15%; Frost Strike +20%; damage of all melee attacks +10%.'],
         ['2026-08-25', 'b', 'Daño de habilidades y cuerpo a cuerpo +6 %; Obliterate +15 %.', 'All ability and melee damage +6%; Obliterate +15%.'],
-        ['2026-08-18', 'r', 'Daño de habilidades y auto-ataque +9 %. Venomous Abyss (2 piezas): velocidad de ataque por acumulación 2 % → 1 %; daño de Icy Death Torrent por acumulación 4 % → 2 %.', 'All ability and auto-attack damage +9%. Venomous Abyss 2-piece: attack speed per stack 2% → 1%; Icy Death Torrent damage per stack 4% → 2%.'],
+        ['2026-08-18', 'r', 'Daño de habilidades y auto-ataque +9 %. Venomous Abyss (2 piezas): velocidad de ataque por acumulación 2 % → 1 %; Venomous Abyss (2 piezas): daño de Icy Death Torrent por acumulación 4 % → 2 %.', 'All ability and auto-attack damage +9%. Venomous Abyss 2-piece: attack speed per stack 2% → 1%; Venomous Abyss 2-piece: Icy Death Torrent damage per stack 4% → 2%.'],
       ],
       unholy: [
         ['2026-09-10', 'f', 'Magus of the Dead: corregida su aparición con diferencias de altura extremas.', 'Magus of the Dead: fixed spawning at extreme vertical differences.'],
-        ['2026-08-31', 'f', 'Dread Plague y Virulent Plague Erupt: corregida la interacción con los modificadores de daño indicados.', 'Dread Plague and Virulent Plague Erupt: fixed interaction with the listed damage modifiers.'],
+        ['2026-08-31', 'f', 'Dread Plague y la erupción de Virulent Plague: corregida la interacción con los modificadores de daño indicados.', 'Dread Plague and Virulent Plague Erupt: fixed interaction with the listed damage modifiers.'],
         ['2026-08-25', 'f', 'Unholy Devotion: el aumento de velocidad de ataque ya no reduce también el daño de ataque.', 'Unholy Devotion: the attack speed increase no longer also reduces attack damage.'],
         ['2026-10-06', 'n', 'Blightfall inflige el 100 % del daño restante de la plaga (antes 200 %). Corregido: el daño de Reattribution del Evocador de Aumento ya no se atribuye al caballero de la muerte.', 'Blightfall deals 100% of the remaining plague damage (was 200%). Fixed: Augmentation Evoker Reattribution damage is no longer credited to the Death Knight.'],
         ['2026-09-23', 'f', 'Blightfall ya no hace menos daño cuanto más tiempo lleva la plaga en el objetivo.', 'Blightfall no longer deals less damage the longer the plague has been on the target.'],
         ['2026-09-22', 'b', 'Scourging: umbrales de erupción 65 % / 100 % (antes 50 % / 70 %); Blightfall 200 % (antes 100 %); Infliction of Sorrow: efectividad de la erupción +75 % (antes 30 %); Thrill of Blood: Dread Plague +20 % (antes 10 %); Frenzied Bloodthirst +5 % por acumulación.', 'Scourging erupt thresholds 65% / 100% (was 50% / 70%); Blightfall 200% (was 100%); Infliction of Sorrow erupt effectiveness +75% (was 30%); Thrill of Blood Dread Plague +20% (was 10%); Frenzied Bloodthirst +5% per stack.'],
-        ['2026-09-01', 'f', 'Maestría: Dreadblade y Foul Infections: ya aumentan la probabilidad de crítico de los efectos de Plague Erupt.', 'Mastery: Dreadblade and Foul Infections: now increase the critical strike chance of Plague Erupt effects.'],
-        ['2026-08-19', 'f', 'Army of the Dead: Epidemic Orders se lanza desde el Lesser Ghoul y no desde el caballero de la muerte. Forbidden Knowledge (rango 4): puede activarse aunque el objetivo de Dread Plague tenga una absorción de daño. Transfusion: ya potencia a los Lesser Ghouls invocados. Lord of the Dead: eliminado el retraso ocasional al lanzarse. Dark Simulacrum: se puede seguir en el Gestor de Recargas.', 'Army of the Dead: Epidemic Orders is now cast from the Lesser Ghoul, not the Death Knight. Forbidden Knowledge (rank 4): can activate when the Dread Plague target has a damage absorb. Transfusion: now empowers summoned Lesser Ghouls. Lord of the Dead: removed the occasional cast delay. Dark Simulacrum: can now be tracked in the Cooldown Manager.'],
+        ['2026-09-01', 'f', 'Maestría: Dreadblade y Foul Infections: ya aumentan la probabilidad de crítico de las erupciones de plaga.', 'Mastery: Dreadblade and Foul Infections: now increase the critical strike chance of Plague Erupt effects.'],
+        ['2026-08-19', 'f', 'Army of the Dead: la orden de Epidemic se lanza desde el Lesser Ghoul y no desde el caballero de la muerte. Forbidden Knowledge (rango 4): puede activarse aunque el objetivo de Dread Plague tenga una absorción de daño. Transfusion: ya potencia a los Lesser Ghouls invocados. Lord of the Dead: eliminado el retraso ocasional al lanzarse. Dark Simulacrum: se puede seguir en el Gestor de Recargas.', 'Army of the Dead: Epidemic Orders is now cast from the Lesser Ghoul, not the Death Knight. Forbidden Knowledge (rank 4): can activate when the Dread Plague target has a damage absorb. Transfusion: now empowers summoned Lesser Ghouls. Lord of the Dead: removed the occasional cast delay. Dark Simulacrum: can now be tracked in the Cooldown Manager.'],
       ],
     } },
     demonhunter: { es: 'Cazador de demonios', en: 'Demon Hunter', specs: {
       devourer: [
         ['2026-08-26', 'f', 'Soulburst (2 piezas): corregida la indicación en pantalla.', 'Soulburst (2-piece): display fixed.'],
-        [V, 'r', 'Collapsing Star: gana alcance extra tras empezar el lanzamiento; ya no entra en 5 s de reutilización si se cancela; frena el drenaje de Fury (cancelado y relanzado, equivale a ~1,5 lanzamientos completos). Soulforged Blades: crítico de Hungering Slash y Voidblade 15 % → 18 %. Voidpurge: reducción de Void Ray en Void Metamorphosis 2 s → 2,5 s. Muchos talentos cambian de sitio; The Hunt y Eradicate pasan al tramo medio.', 'Collapsing Star: gains extra range after the cast begins; no longer goes on a 5 s cooldown when cancelled; slows Fury drain (cancelled and recast, about 1.5 full casts). Soulforged Blades: Hungering Slash and Voidblade crit chance 15% → 18%. Voidpurge: Void Ray cooldown reduction in Void Metamorphosis 2 s → 2.5 s. Many talents moved; The Hunt and Eradicate moved to the middle gate.'],
-        [V, 'r', 'Void-Scarred — Demonic Intensity: Collapsing Star reinicia la recarga de The Hunt y The Hunt potenciada +30 %. Violent Transformation: ahora reinicia Soul Immolation, ya no reinicia The Hunt ni aumenta su daño (antes +25 %). Monster Rising: Intelecto fuera de forma demoníaca 15 % → 10 %; daño de Collapsing Star 15 % → 20 %.', 'Void-Scarred — Demonic Intensity: Collapsing Star resets The Hunt\'s cooldown and empowered The Hunt +30%. Violent Transformation: now resets Soul Immolation, no longer resets The Hunt or increases its damage (was +25%). Monster Rising: Intellect out of demon form 15% → 10%; Collapsing Star damage 15% → 20%.'],
+        [V, 'r', 'Collapsing Star: gana alcance extra tras empezar el lanzamiento; Collapsing Star: ya no entra en 5 s de reutilización si se cancela; Collapsing Star: frena el drenaje de Fury (cancelado y relanzado, equivale a ~1,5 lanzamientos completos). Soulforged Blades: crítico de Hungering Slash y Voidblade 15 % → 18 %. Voidpurge: reducción de Void Ray en Void Metamorphosis 2 s → 2,5 s. Muchos talentos cambian de sitio; The Hunt y Eradicate pasan al tramo medio.', 'Collapsing Star: gains extra range after the cast begins; Collapsing Star: no longer goes on a 5 s cooldown when cancelled; Collapsing Star: slows Fury drain (cancelled and recast, about 1.5 full casts). Soulforged Blades: Hungering Slash and Voidblade crit chance 15% → 18%. Voidpurge: Void Ray cooldown reduction in Void Metamorphosis 2 s → 2.5 s. Many talents moved; The Hunt and Eradicate moved to the middle gate.'],
+        [V, 'r', 'Void-Scarred — Demonic Intensity: Collapsing Star reinicia la recarga de The Hunt y The Hunt potenciada +30 %. Violent Transformation: ahora reinicia Soul Immolation, ya no reinicia The Hunt ni aumenta su daño (antes +25 %). Monster Rising: Intelecto fuera de forma demoníaca 15 % → 10 %; Monster Rising: daño de Collapsing Star 15 % → 20 %.', 'Void-Scarred — Demonic Intensity: Collapsing Star resets The Hunt\'s cooldown and empowered The Hunt +30%. Violent Transformation: now resets Soul Immolation, no longer resets The Hunt or increases its damage (was +25%). Monster Rising: Intellect out of demon form 15% → 10%; Monster Rising: Collapsing Star damage 15% → 20%.'],
         ['2026-10-06', 'b', 'Consume/Devour +8 %; Reap/Cull +8 %; Eradicate (objetivo principal) +8 %; Collapsing Star (objetivo principal) +8 %; The Hunt (daño inicial) +10 %; Voidblade +10 %.', 'Consume/Devour +8%; Reap/Cull +8%; Eradicate primary target +8%; Collapsing Star primary target +8%; The Hunt initial +10%; Voidblade +10%.'],
         ['2026-09-22', 'b', 'Collapsing Star (objetivo principal) +25 %; Consume/Devour +8 %.', 'Collapsing Star primary target +25%; Consume/Devour +8%.'],
-        ['2026-08-18', 'r', 'Daño de habilidades +14 %; Reap/Cull/Eradicate −12 %; Eradicate en área 85 % → 90 %. Venomous Abyss (4 piezas): fragmentos de alma 8 → 2; daño de Reap 20 % → 10 %.', 'All ability damage +14%; Reap/Cull/Eradicate −12%; Eradicate AoE 85% → 90%. Venomous Abyss 4-piece: soul fragments 8 → 2; Reap damage 20% → 10%.'],
+        ['2026-08-18', 'r', 'Daño de habilidades +14 %; Reap/Cull/Eradicate −12 %; Eradicate en área 85 % → 90 %. Venomous Abyss (4 piezas): fragmentos de alma 8 → 2; Venomous Abyss (4 piezas): daño de Reap 20 % → 10 %.', 'All ability damage +14%; Reap/Cull/Eradicate −12%; Eradicate AoE 85% → 90%. Venomous Abyss 4-piece: soul fragments 8 → 2; Venomous Abyss 4-piece: Reap damage 20% → 10%.'],
       ],
       havoc: [
         ['2026-09-22', 'b', 'Aldrachi Reaver — Art of the Glaive: golpes potenciados 15 % (antes 10 %) y 30 % (antes 20 %); Reaver\'s Glaive +25 %; Reaver\'s Mark 7 % (antes 6 %); Broken Spirit: probabilidad de fragmentar 20 % (antes 15 %).', 'Aldrachi Reaver — Art of the Glaive: enhanced strikes 15% (was 10%) and 30% (was 20%); Reaver\'s Glaive +25%; Reaver\'s Mark 7% (was 6%); Broken Spirit shatter chance 20% (was 15%).'],
@@ -54,7 +54,7 @@ const ClassChanges = (() => {
       ],
       vengeance: [
         ['2026-09-22', 'b', 'Aldrachi Reaver — Art of the Glaive: golpes potenciados 15 % y 30 %; Reaver\'s Glaive +25 %; Reaver\'s Mark 8 % (antes 7 %).', 'Aldrachi Reaver — Art of the Glaive: enhanced strikes 15% and 30%; Reaver\'s Glaive +25%; Reaver\'s Mark 8% (was 7%).'],
-        ['2026-09-01', 'b', 'Demonic Wards 15 % (antes 12 %); Void Reaver: Frailty 6 % (antes 5 %); curación de Fel Devastation +25 %.', 'Demonic Wards 15% (was 12%); Void Reaver Frailty 6% (was 5%); Fel Devastation healing +25%.'],
+        ['2026-09-01', 'b', 'Demonic Wards 15 % (antes 12 %); Void Reaver: Frailty 6 % (antes 5 %); Fel Devastation: curación +25 %.', 'Demonic Wards 15% (was 12%); Void Reaver Frailty 6% (was 5%); Fel Devastation: healing +25%.'],
         ['2026-08-25', 'b', 'Maestría: Fel Blood, efectividad +24 %.', 'Mastery: Fel Blood effectiveness +24%.'],
       ],
       general: [
@@ -63,18 +63,18 @@ const ClassChanges = (() => {
     } },
     druid: { es: 'Druida', en: 'Druid', specs: {
       balance: [
-        ['2026-09-04', 'r', 'Twin Moons: el alcance ahora escala con el radio de combate del objetivo; añadido seguimiento de Stellar Amplification.', 'Twin Moons: range now scales with target combat reach; Stellar Amplification tracking added.'],
+        ['2026-09-04', 'r', 'Twin Moons: el alcance ahora escala con el radio de combate del objetivo; Stellar Amplification: se añade su seguimiento.', 'Twin Moons: range now scales with target combat reach; Stellar Amplification: its tracking is added.'],
         ['2026-09-01', 'b', 'Daño de habilidades +4 %; Shred +10 % (clase).', 'All ability damage +4%; Shred +10% (class).'],
       ],
       feral: [
         ['2026-10-01', 'f', 'Rampant Ferocity: corregido el efecto que saltaba mal contra un solo objetivo.', 'Rampant Ferocity: fixed incorrect triggering on a single target.'],
         ['2026-09-22', 'b', 'Wildstalker — Bursting Growth +15 %; Patient Custodian: daño de sangrado 10 % (antes 8 %).', 'Wildstalker — Bursting Growth +15%; Patient Custodian bleed damage 10% (was 8%).'],
         ['2026-09-02', 'r', 'Unseen Predator (rango 1): prefiere objetivos que no sean inmunes ni reciban menos del 5 % de daño físico.', 'Unseen Predator (rank 1): prefers targets that are not immune or taking less than 5% physical damage.'],
-        ['2026-09-01', 'b', 'Daño de habilidades +5 %; auto-ataque +10 %; Ferocious Bite +10 %; Shred +10 %.', 'All ability damage +5%; auto-attack +10%; Ferocious Bite +10%; Shred +10%.'],
+        ['2026-09-01', 'b', 'Daño de habilidades +5 %; daño del auto-ataque +10 %; Ferocious Bite +10 %; Shred +10 %.', 'All ability damage +5%; auto-attack damage +10%; Ferocious Bite +10%; Shred +10%.'],
       ],
       guardian: [
         ['2026-10-14', 'f', 'Corregidos el coste de maná de Rebirth (forma de oso), el lanzamiento de Heart of the Wild (forma de oso) y la armadura de Persistence.', 'Fixed Rebirth (Bear Form) mana cost, Heart of the Wild (Bear Form) casting and Persistence armor.'],
-        ['2026-09-09', 'f', 'Wild Guardian: aumentaba por error el daño de Thrash y Mangle; ahora solo lo hace con el rango 3 elegido.', 'Wild Guardian: it was incorrectly increasing Thrash and Mangle damage; it now only does so with Rank 3 selected.'],
+        ['2026-09-09', 'f', 'Wild Guardian: aumentaba por error el daño de Thrash y Mangle; Wild Guardian: ahora solo lo hace con el rango 3 elegido.', 'Wild Guardian: it was incorrectly increasing Thrash and Mangle damage; Wild Guardian: it now only does so with Rank 3 selected.'],
       ],
       restoration: [
         ['2026-08-31', 'f', 'Grove Guardians prioriza los objetivos de Swiftmend/Wild Growth; Everbloom cura a 5 objetivos y no a 6.', 'Grove Guardians now prioritize Swiftmend/Wild Growth targets; Everbloom heals 5 targets instead of 6.'],
@@ -108,9 +108,9 @@ const ClassChanges = (() => {
     } },
     hunter: { es: 'Cazador', en: 'Hunter', specs: {
       beastmastery: [
-        ['2026-09-01', 'b', 'Todo el daño +7 %; corregido Wild Thrash.', 'All damage +7%; Wild Thrash fixed.'],
+        ['2026-09-01', 'b', 'Todo el daño +7 %; Wild Thrash: corregido un error.', 'All damage +7%; Wild Thrash: a bug is fixed.'],
         ['2026-08-25', 'b', 'Wild Thrash: bonus contra 3+ objetivos 300 % (antes 200 %); Beast Cleave: daño de la mascota 70 % (antes 55 %).', 'Wild Thrash: bonus vs. 3+ targets 300% (was 200%); Beast Cleave pet damage 70% (was 55%).'],
-        ['2026-08-18', 'b', 'Venomous Abyss (4 piezas): efectividad de Beast Cleave de Cobra Shot 20 % → 30 % por acumulación; daño extra de Cobra Shot 15 % → 20 % por acumulación.', 'Venomous Abyss 4-piece: Cobra Shot Beast Cleave effectiveness 20% → 30% per stack; Cobra Shot bonus damage 15% → 20% per stack.'],
+        ['2026-08-18', 'b', 'Venomous Abyss (4 piezas): efectividad de Beast Cleave de Cobra Shot 20 % → 30 % por acumulación; Venomous Abyss (4 piezas): daño extra de Cobra Shot 15 % → 20 % por acumulación.', 'Venomous Abyss 4-piece: Cobra Shot Beast Cleave effectiveness 20% → 30% per stack; Venomous Abyss 4-piece: Cobra Shot bonus damage 15% → 20% per stack.'],
         ['2026-08-17', 'f', 'Wildspeaker: los Kill Commands de Dire Beast ya se benefician de Killer Instinct, Alpha Predator, Specialized Arsenal y Savagery.', 'Wildspeaker: Dire Beast Kill Commands now benefit from Killer Instinct, Alpha Predator, Specialized Arsenal and Savagery.'],
       ],
       marksmanship: [
@@ -124,7 +124,7 @@ const ClassChanges = (() => {
         ['2026-09-10', 'f', 'Wildfire Bomb: el daño inicial ya no falla bajo control de masas. Strike as One: Raptor Swipe se beneficia de Tip of the Spear.', 'Wildfire Bomb: initial damage no longer fails under crowd control. Strike as One: Raptor Swipe now benefits from Tip of the Spear.'],
         [V, 'f', 'Strike as One: el daño extra de Raptor Swipe (rango 3) funciona con Aspect of the Eagle y su alcance ya no es mayor del previsto.', 'Strike as One: Raptor Swipe (rank 3) bonus damage now works with Aspect of the Eagle and its range is no longer longer than intended.'],
         ['2026-10-01', 'b', 'Wildfire Bomb: daño periódico +20 % (variante sin talento).', 'Wildfire Bomb periodic damage +20% (untalented variant).'],
-        ['2026-09-22', 'r', 'Wildfire Bomb +20 %; bonus del objetivo principal 50 % (antes 80 %).', 'Wildfire Bomb +20%; primary target bonus 50% (was 80%).'],
+        ['2026-09-22', 'r', 'Wildfire Bomb +20 %; bonus de daño al objetivo principal 50 % (antes 80 %).', 'Wildfire Bomb +20%; bonus damage to the primary target 50% (was 80%).'],
         ['2026-09-01', 'b', 'Todo el daño +7 %.', 'All damage +7%.'],
         ['2026-08-25', 'b', 'Todo el daño +4 %.', 'All damage +4%.'],
       ],
@@ -144,7 +144,7 @@ const ClassChanges = (() => {
       ],
       frost: [
         [V, 'f', 'Splitting Ice: el modificador se aplica a Frostbolt y el radio del segundo objetivo es el de otros hechizos; corregidas interacciones de Shatter/Fingers of Frost, Thermal Void y Crystalline Refraction. Frostfire: Frostfire Empowerment se aplica al segundo objetivo de Splitting Ice.', 'Splitting Ice: modifier now applies to Frostbolt and the second-target radius matches other spells; fixed Shatter/Fingers of Frost, Thermal Void and Crystalline Refraction interactions. Frostfire: Frostfire Empowerment applies to the second target from Splitting Ice.'],
-        ['2026-09-22', 'b', 'Frozen Orb +15 %; Comet Storm +50 %; Frostbite Shatter +10 %; cometa de Glacial Assault +50 %.', 'Frozen Orb +15%; Comet Storm +50%; Frostbite Shatter +10%; Glacial Assault comet +50%.'],
+        ['2026-09-22', 'b', 'Frozen Orb +15 %; Comet Storm +50 %; Frostbite Shatter +10 %; Glacial Assault: daño del cometa +50 %.', 'Frozen Orb +15%; Comet Storm +50%; Frostbite Shatter +10%; Glacial Assault: comet damage +50%.'],
         ['2026-09-01', 'b', 'Daño de habilidades +6 %.', 'All ability damage +6%.'],
         ['2026-08-25', 'b', 'Ice Barrier absorbe el 35 % de la vida máxima (antes 30 %); Blizzard +10 %; Frostbite Shatter +10 %; Frostfire: Meteor (Isothermic Core) +25 %.', 'Ice Barrier absorbs 35% of max health (was 30%); Blizzard +10%; Frostbite Shatter +10%; Frostfire Meteor (Isothermic Core) +25%.'],
       ],
@@ -155,7 +155,7 @@ const ClassChanges = (() => {
     monk: { es: 'Monje', en: 'Monk', specs: {
       brewmaster: [
         ['2026-10-06', 'b', 'Quick Sip purifica el 8 % del Stagger por cada 3 s (antes 5 %); Pretense of Instability: esquiva 10 % durante 8 s (antes 5 s).', 'Quick Sip purifies 8% of Stagger per 3 s (was 5%); Pretense of Instability: 10% dodge for 8 s (was 5 s).'],
-        ['2026-08-25', 'b', 'Todo el daño +3 %; absorción de Celestial Brew y Celestial Infusion +20 %.', 'All damage +3%; Celestial Brew and Celestial Infusion absorb +20%.'],
+        ['2026-08-25', 'b', 'Todo el daño +3 %; Celestial Brew y Celestial Infusion: absorción +20 %.', 'All damage +3%; Celestial Brew and Celestial Infusion: absorb +20%.'],
       ],
       mistweaver: [
         ['2026-08-31', 'f', 'Soothing Mist: ya no cancela por error otra aura.', 'Soothing Mist: no longer rarely cancels the wrong aura.'],
@@ -188,7 +188,7 @@ const ClassChanges = (() => {
       ],
       retribution: [
         ['2026-09-22', 'b', 'Templar — Hammer of Light +50 %; Empyrean Hammer +12 %.', 'Templar — Hammer of Light +50%; Empyrean Hammer +12%.'],
-        ['2026-08-25', 'b', 'Divine Arbiter (4 piezas): objetivo principal +150 %; secundarios +75 %.', 'Divine Arbiter 4-piece: main target +150%; secondary targets +75%.'],
+        ['2026-08-25', 'b', 'Divine Arbiter (4 piezas): daño al objetivo principal +150 %; Divine Arbiter (4 piezas): daño a los objetivos secundarios +75 %.', 'Divine Arbiter 4-piece: damage to the main target +150%; Divine Arbiter 4-piece: damage to secondary targets +75%.'],
         ['2026-08-19', 'f', 'Radiant Glory: Avenging Wrath, tras Wake of Ashes, ya se aplica aunque estés silenciado.', 'Radiant Glory: Avenging Wrath after Wake of Ashes is now applied even while silenced.'],
         ['2026-08-18', 'b', 'Daño de habilidades +6 %.', 'All ability damage +6%.'],
       ],
@@ -223,7 +223,7 @@ const ClassChanges = (() => {
         ['2026-08-18', 'b', 'Todo el daño +4 %.', 'All damage +4%.'],
       ],
       outlaw: [
-        [V, 'n', 'Deft Maneuvers: ya no suma 30 de energía al coste de Blade Flurry; ahora suma 5 por objetivo golpeado, hasta 30.', 'Deft Maneuvers: no longer adds 30 Energy to Blade Flurry\'s cost; it now adds 5 per target hit, up to 30.'],
+        [V, 'n', 'Deft Maneuvers: ya no suma 30 de energía al coste de Blade Flurry; Deft Maneuvers: ahora suma 5 de energía por objetivo golpeado, hasta 30.', 'Deft Maneuvers: no longer adds 30 Energy to Blade Flurry\'s cost; Deft Maneuvers: it now adds 5 Energy per target hit, up to 30.'],
       ],
       subtlety: [
         [V, 'b', 'Daño de todas las habilidades +14 %; corregidos los modificadores de daño de Sombra que se aplicaban mal.', 'All ability damage +14%; fixed Shadow damage modifiers that applied incorrectly.'],
@@ -233,7 +233,7 @@ const ClassChanges = (() => {
       ],
       general: [
         ['2026-09-10', 'f', 'Las dos versiones de Thistle Tea se pueden seguir en el Gestor de Recargas.', 'Both versions of Thistle Tea can now be tracked in the Cooldown Manager.'],
-        ['2026-08-27', 'f', 'Deathstalker: Deathstalker\'s Mark ya no se elimina en objetivos no atacables; en su lugar se concede Darkest Night.', 'Deathstalker: Deathstalker\'s Mark is no longer removed on unattackable targets; Darkest Night is granted instead.'],
+        ['2026-08-27', 'f', 'Deathstalker: Deathstalker\'s Mark ya no se elimina en objetivos no atacables; Deathstalker: en su lugar se concede Darkest Night.', 'Deathstalker: Deathstalker\'s Mark is no longer removed on unattackable targets; Deathstalker: Darkest Night is granted instead.'],
       ],
     } },
     shaman: { es: 'Chamán', en: 'Shaman', specs: {
@@ -267,11 +267,11 @@ const ClassChanges = (() => {
         ['2026-08-18', 'f', 'Withering Bolt tiene en cuenta Wither. Hellcaller — Blackened Soul funciona con el lanzamiento sobre el ratón.', 'Withering Bolt now accounts for Wither. Hellcaller — Blackened Soul works with mouse-over casting.'],
         ['2026-08-13', 'f', 'Seed of Corruption: consume Shard Instability al lanzarse.', 'Seed of Corruption: consumes Shard Instability on cast.'],
         ['2026-08-25', 'b', 'Unstable Affliction +15 %; Hellcaller — Blackened Soul +20 % y Wither +10 %; Wrath of Nathreza +35 %; Shadow of Nathreza +25 %; Agony +20 %; Corruption +15 %.', 'Unstable Affliction +15%; Hellcaller — Blackened Soul +20% and Wither +10%; Wrath of Nathreza +35%; Shadow of Nathreza +25%; Agony +20%; Corruption +15%.'],
-        ['2026-08-20', 'f', 'Hellcaller — Blackened Soul: ya no se activa con el daño periódico de Unstable Affliction. Malefic Grasp: ahora le afecta Withering Bolt. Withering Bolt: tiene en cuenta Wither en el daño de Shadowbolt Volley. Wither: cuenta para el aumento de daño de Darkglare Eye Beam. Venomous Abyss (4 piezas): Unstable Affliction concede una acumulación de Wither.', 'Hellcaller — Blackened Soul: no longer triggers from Unstable Affliction periodic damage. Malefic Grasp: is now affected by Withering Bolt. Withering Bolt: now accounts for Wither in Shadowbolt Volley damage. Wither: now counts toward the Darkglare Eye Beam damage increase. Venomous Abyss 4-piece: Unstable Affliction now grants a stack of Wither.'],
+        ['2026-08-20', 'f', 'Hellcaller — Blackened Soul: ya no se activa con el daño periódico de Unstable Affliction. Malefic Grasp: ahora le afecta Withering Bolt. Withering Bolt: tiene en cuenta Wither en el daño de la salva de Shadow Bolt. Wither: cuenta para el aumento de daño de Darkglare Eye Beam. Venomous Abyss (4 piezas): Unstable Affliction concede una acumulación de Wither.', 'Hellcaller — Blackened Soul: no longer triggers from Unstable Affliction periodic damage. Malefic Grasp: is now affected by Withering Bolt. Withering Bolt: now accounts for Wither in Shadowbolt Volley damage. Wither: now counts toward the Darkglare Eye Beam damage increase. Venomous Abyss 4-piece: Unstable Affliction now grants a stack of Wither.'],
       ],
       demonology: [
         ['2026-08-14', 'f', 'Soul Harvester: Shadow Bolt y Hand of Gul\'dan ya no se desactivan en el Gestor de Recargas.', 'Soul Harvester: Shadow Bolt and Hand of Gul\'dan are no longer disabled in the Cooldown Manager.'],
-        ['2026-08-25', 'b', 'Shadow Bolt +35 %; Demonbolt +30 %; Wild Imp +20 %; Summon Felguard +20 %; demonios de Dominion of Argus +20 %; Call Dreadstalkers +30 %.', 'Shadow Bolt +35%; Demonbolt +30%; Wild Imp +20%; Summon Felguard +20%; Dominion of Argus demons +20%; Call Dreadstalkers +30%.'],
+        ['2026-08-25', 'b', 'Shadow Bolt +35 %; Demonbolt +30 %; Wild Imp +20 %; Summon Felguard +20 %; daño de los demonios de Dominion of Argus +20 %; Call Dreadstalkers +30 %.', 'Shadow Bolt +35%; Demonbolt +30%; Wild Imp +20%; Summon Felguard +20%; damage of the Dominion of Argus demons +20%; Call Dreadstalkers +30%.'],
         ['2026-08-18', 'r', 'Burning Cleave: de cono a círculo. Venomous Abyss (2 piezas): Implode de Wild Imp 250 % → 350 % al objetivo principal y 225 % → 315 % al resto.', 'Burning Cleave: cone → circle. Venomous Abyss 2-piece: Wild Imp Implode 250% → 350% main target and 225% → 315% other targets.'],
       ],
       destruction: [
@@ -279,7 +279,7 @@ const ClassChanges = (() => {
         ['2026-08-17', 'f', 'Shadowburn: el tooltip muestra la duración correcta.', 'Shadowburn: tooltip now shows the correct duration.'],
         ['2026-09-02', 'f', 'Font of Venomous Rage: el canal podía cancelarse al instante si se ponía en cola justo después de Cataclysm.', 'Font of Venomous Rage: the channel could be immediately canceled if spell-queued right after Cataclysm.'],
         ['2026-08-25', 'b', 'Rain of Fire +30 %.', 'Rain of Fire +30%.'],
-        ['2026-08-18', 'f', 'Conflagration of Chaos: crítico garantizado de Conflagrate/Shadowburn; debuff de Shadowburn tras dañar al objetivo de Havoc.', 'Conflagration of Chaos: guaranteed Conflagrate/Shadowburn crit; Shadowburn debuff after Havoc target damage.'],
+        ['2026-08-18', 'f', 'Conflagration of Chaos: crítico garantizado de Conflagrate/Shadowburn; Conflagration of Chaos: aplica el debuff de Shadowburn tras dañar al objetivo de Havoc.', 'Conflagration of Chaos: guaranteed Conflagrate/Shadowburn crit; Conflagration of Chaos: applies the Shadowburn debuff after damaging the Havoc target.'],
       ],
       general: [
         ['2026-08-14', 'f', 'Soul Leech: las mascotas ya no lo aprenden de forma continua.', 'Soul Leech: pets no longer continually learn it.'],
@@ -292,7 +292,7 @@ const ClassChanges = (() => {
       ],
       fury: [
         ['2026-09-22', 'b', 'Mountain Thane — Lightning Strike +50 %; Ground Current +50 %.', 'Mountain Thane — Lightning Strike +50%; Ground Current +50%.'],
-        ['2026-08-18', 'r', 'Todo el daño +6 %. Venomous Abyss (4 piezas): Bloodthirst +10 %; crítico de Recklessness por Bloodthirst 5 % → 3 %; tope 10 % → 6 %.', 'All damage +6%. Venomous Abyss 4-piece: Bloodthirst +10%; Recklessness crit per Bloodthirst 5% → 3%; cap 10% → 6%.'],
+        ['2026-08-18', 'r', 'Todo el daño +6 %. Venomous Abyss (4 piezas): Bloodthirst +10 %; Venomous Abyss (4 piezas): crítico de Recklessness por cada Bloodthirst 5 % → 3 %; Venomous Abyss (4 piezas): tope del crítico acumulado de Recklessness 10 % → 6 %.', 'All damage +6%. Venomous Abyss 4-piece: Bloodthirst +10%; Venomous Abyss 4-piece: Recklessness crit per Bloodthirst 5% → 3%; Venomous Abyss 4-piece: cap on Recklessness stacked crit 10% → 6%.'],
       ],
       protection: [
         ['2026-08-18', 'f', 'Mountain Thane — Crashing Thunder: el daño extra de Thunder Clap ya no se desactiva a veces.', 'Mountain Thane — Crashing Thunder: the bonus Thunder Clap damage is no longer sometimes disabled.'],

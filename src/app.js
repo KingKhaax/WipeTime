@@ -1464,14 +1464,19 @@ const VIEWS = {
   },
 
   async utility(f) {
-    const u = await utilityData(f);
+    const [u] = await Promise.all([utilityData(f), fightData(f)]); // fightData rellena la especialización de cada jugador (icono de spec)
+    S.lastUtil = [];
     const section = (title, events, removedTitle) => {
       const byPlayer = new Map();
       const byAura = new Map();
+      const perPlayerAura = new Map(); // jugador -> aura -> veces (para el tooltip de su barra)
       for (const e of events) {
         byPlayer.set(e.sourceID, (byPlayer.get(e.sourceID) || 0) + 1);
         const k = e.extraAbilityGameID ?? e.abilityGameID;
         byAura.set(k, (byAura.get(k) || 0) + 1);
+        if (!perPlayerAura.has(e.sourceID)) perPlayerAura.set(e.sourceID, new Map());
+        const pm = perPlayerAura.get(e.sourceID);
+        pm.set(k, (pm.get(k) || 0) + 1);
       }
       const rows = [...byPlayer.entries()].filter(([id]) => isPlayer(id))
         .map(([id, n]) => ({ ...playerInfo(id), total: n })).sort((a, b) => b.total - a.total);
@@ -1479,9 +1484,12 @@ const VIEWS = {
       const max = Math.max(1, ...rows.map((r) => r.total));
       return `<div class="card"><h2>${title} <span class="muted">${events.length}</span></h2>
         <h3>${t('byPlayer')}</h3>
-        ${rows.length ? rows.map((r) => `<div class="mini click" data-action="player" data-id="${r.id}">
-          <span class="dot" style="background:${classColor(r.cls)}"></span><span class="name">${esc(r.name)}</span>
-          <span class="mbar"><span style="width:${(r.total / max) * 100}%;background:${classColor(r.cls)}"></span></span><b>${r.total}</b></div>`).join('') : `<div class="empty sm">${t('noData')}</div>`}
+        ${rows.length ? rows.map((r) => {
+          const idx = S.lastUtil.push({ name: r.name, segs: [{ color: classColor(r.cls) }], abil: [...(perPlayerAura.get(r.id) || new Map()).entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => ({ name: ability(id).name, total: n, icon: ability(id).icon })) }) - 1;
+          return `<div class="mini click" data-action="player" data-id="${r.id}" data-ut="${idx}">
+          ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="22" height="22" alt="" style="--cc:${classColor(r.cls)}">` : `<img class="spec-ic-sm" src="${classIconUrl(r.cls)}" width="22" height="22" alt="" style="--cc:${classColor(r.cls)}">`}<span class="name" style="color:${classColor(r.cls)}">${esc(r.name)}</span>
+          <span class="mbar"><span style="width:${(r.total / max) * 100}%;background:${classColor(r.cls)}"></span></span><b>${num(r.total, 0)}</b></div>`;
+        }).join('') : `<div class="empty sm">${t('noData')}</div>`}
         <h3>${removedTitle}</h3>
         ${auras.length ? auras.map(([id, n]) => `<div class="mini" data-spell="${id}">${iconImg(ability(id).icon, 20)}<span class="name">${esc(ability(id).name)}</span><span class="grow"></span><b>${n}</b></div>`).join('') : `<div class="empty sm">${t('noData')}</div>`}
       </div>`;
@@ -2266,8 +2274,8 @@ document.addEventListener('change', (ev) => {
   };
   const hide = () => { if (tip) tip.hidden = true; };
   document.addEventListener('mouseover', (ev) => {
-    const row = ev.target.closest?.('.ranked .row[data-ri], .tk-src[data-si]');
-    const r = row && (row.dataset.si != null ? S.lastTakenSrc?.[Number(row.dataset.si)] : S.lastRanked?.[Number(row.dataset.ri)]);
+    const row = ev.target.closest?.('.ranked .row[data-ri], .tk-src[data-si], .mini[data-ut]');
+    const r = row && (row.dataset.ut != null ? S.lastUtil?.[Number(row.dataset.ut)] : row.dataset.si != null ? S.lastTakenSrc?.[Number(row.dataset.si)] : S.lastRanked?.[Number(row.dataset.ri)]);
     if (!r || !r.abil?.length) return hide();
     if (!tip) { tip = document.createElement('div'); tip.className = 'bartip surface-dark'; document.body.appendChild(tip); }
     const sum = r.abil.reduce((x, a) => x + a.total, 0) || 1;
@@ -2287,7 +2295,7 @@ document.addEventListener('change', (ev) => {
     tip.style.left = x + 'px';
     tip.style.top = y + 'px';
   });
-  document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('.ranked, .tk-src')) hide(); });
+  document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('.ranked, .tk-src, .mini[data-ut]')) hide(); });
   document.addEventListener('scroll', hide, true);
 })();
 
