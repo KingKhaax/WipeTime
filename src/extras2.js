@@ -84,8 +84,7 @@ const Extras2 = (() => {
     });
   }
 
-  async function viewPrepot(f) {
-    const raw = S.fight;
+  async function viewPrepot(f, raw = S.fight) {
     const { rows, guids } = await prepotData(raw);
     if (!guids.size && !rows.some((r) => r.stones.length)) return `<div class="empty">${LL('No se detectó ninguna poción ni piedra de salud en este intento.', 'No potion or healthstone was detected in this pull.')}</div>`;
     const order = { tank: 0, healer: 1, dps: 2 };
@@ -106,8 +105,7 @@ const Extras2 = (() => {
       <p class="foot">${LL('Tiempos respecto al inicio del pull: un valor negativo es antes de pullear. Si Warcraft Logs no guarda el lanzamiento pero el buff estaba activo al empezar, se cuenta como 0:00 (*).', 'Times relative to pull start: negative means before the pull. If Warcraft Logs has no cast event but the buff was active at the start, it counts as 0:00 (*).')}</p>`;
   }
 
-  async function viewOverview(f) {
-    const raw = S.fight;
+  async function viewOverview(f, raw = S.fight) {
     const w = fw(raw);
     const [d, deaths, roles] = await Promise.all([fightData(w), Extras.deathTimes(w).catch(() => []), Extras.rolesData(w).catch(() => null)]);
     const dur = fightDur(w) / 1000;
@@ -146,6 +144,31 @@ const Extras2 = (() => {
     else if (mode === 'raid') body = headerHTML(f, LL('Buffos y debuffs de banda por clase', 'Raid buffs and debuffs by class')) + await Extras.raidBuffsView(f);
     else if (mode === 'overview') body = headerHTML(f, LL('Resumen del intento', 'Fight overview')) + await viewOverview(f);
     else body = await origBuffs(f);
+    // alcance: este intento, todos los intentos del jefe o todos los kills del log; cada intento va en su propio bloque que se carga al abrirlo
+    const scope = S.buffsScope || 'this';
+    const hasBoss = !!S.fight?.encounterID && !S.fight?.keystoneLevel;
+    const scopeFights = scope === 'boss' && hasBoss
+      ? S.fights.filter((x) => x.encounterID === S.fight.encounterID && x.difficulty === S.fight.difficulty && !x.keystoneLevel)
+      : scope === 'log' ? S.fights.filter((x) => x.encounterID && x.kill && !x.keystoneLevel) : [];
+    const sc = (k, label) => `<button class="chip ${scope === k ? 'on' : ''}" data-action="buffs-scope" data-s="${k}">${label}</button>`;
+    const scopeBar = `<div class="metricbar"><span class="muted">${LL('Alcance', 'Scope')}</span>${sc('this', LL('Este intento', 'This pull'))}${hasBoss ? sc('boss', LL('Todos los intentos del jefe', 'All tries of this boss')) : ''}${sc('log', LL('Todos los kills del log', 'All kills in the log'))}</div>`;
+    if (scopeFights.length && mode !== 'player') {
+      const sorted = [...scopeFights].sort((a, b) => a.startTime - b.startTime);
+      let top = '';
+      if (mode === 'pi') {
+        const lists = [];
+        for (let i = 0; i < sorted.length; i += 3) lists.push(...await Promise.all(sorted.slice(i, i + 3).map((x) => piData(fw(x)).catch(() => []))));
+        const byTarget = new Map();
+        let n = 0;
+        for (const l of lists) for (const p of l) { n++; byTarget.set(p.target, (byTarget.get(p.target) || 0) + 1); }
+        const chips = [...byTarget.entries()].sort((a, b) => b[1] - a[1]).map(([id, c]) => { const p = playerInfo(id); return `<span class="chip on ${isMe(p.name) ? 'me' : ''}" style="--cc:${classColor(p.cls)}"><span class="sq"></span>${esc(p.name)} <b>×${c}</b></span>`; }).join('');
+        top = `<p class="muted bx-sum"><b>${n}</b> ${LL('Infusiones de poder en', 'Power Infusions in')} ${sorted.length} ${LL('intentos', 'pulls')}</p><div class="chips">${chips}</div>`;
+      }
+      const blocks = sorted.map((x, i) => `<details class="bx-try" data-bx="${x.id}" data-bm="${mode}" ${i === 0 ? 'open' : ''}><summary><span>${esc(x.name)} · ${esc(fightLabel(x))}</span><small class="muted">${new Date(S.report.startTime + x.startTime).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })}</small></summary><div class="bx-body">${i === 0 ? loadingHTML() : ''}</div></details>`).join('');
+      S.post = async (seq) => { if (seq === S.seq) bxLoad(document.querySelector('.bx-try[open]')); };
+      const head = headerHTML(f, LL('Buffos del conjunto de intentos', 'Buffs across pulls'), LL(`${sorted.length} intentos`, `${sorted.length} pulls`));
+      return head + bar + scopeBar + top + `<div class="bx-list">${blocks}</div>`;
+    }
     // la barra va siempre justo debajo de la cabecera (el primer bloque .hdr completo), igual en todos los modos
     if (body.startsWith('<div class="hdr"')) {
       let depth = 0;
@@ -153,10 +176,10 @@ const Extras2 = (() => {
       let m;
       while ((m = re.exec(body))) {
         depth += m[0] === '</div>' ? -1 : 1;
-        if (depth === 0) { const end = m.index + 6; return body.slice(0, end) + bar + body.slice(end); }
+        if (depth === 0) { const end = m.index + 6; return body.slice(0, end) + bar + scopeBar + body.slice(end); }
       }
     }
-    return bar + body;
+    return bar + scopeBar + body;
   };
 
   // ============================================================ MÍTICA+: pulls en la barra lateral
@@ -217,9 +240,33 @@ const Extras2 = (() => {
     }, 0);
     const b = ev.target.closest('[data-action="buffs-mode"]');
     if (b) { S.buffsMode = b.dataset.m; render(); return; }
+    const bs = ev.target.closest('[data-action="buffs-scope"]');
+    if (bs) { S.buffsScope = bs.dataset.s; render(); return; }
     const mp = ev.target.closest('[data-action="mp-player"]');
     if (mp) { S.mpPlayer = Number(mp.dataset.id); render(); }
   });
+
+  // carga (una vez) el contenido de un intento dentro del alcance «varios intentos»
+  async function bxLoad(det) {
+    if (!det || det.dataset.done) return;
+    det.dataset.done = '1';
+    const box = det.querySelector('.bx-body');
+    const raw = S.fights.find((x) => x.id === Number(det.dataset.bx));
+    if (!raw) return;
+    const w = fw(raw);
+    const seq = S.seq;
+    try {
+      let body;
+      const m = det.dataset.bm;
+      if (m === 'pi') body = await origPi(w);
+      else if (m === 'prepot') body = await viewPrepot(w, raw);
+      else if (m === 'raid') body = await Extras.raidBuffsView(w);
+      else body = await viewOverview(w, raw);
+      if (seq !== S.seq) return;
+      box.innerHTML = body.startsWith('<div class="hdr"') ? (() => { let d = 0; const re = /<div\b|<\/div>/g; let x; while ((x = re.exec(body))) { d += x[0] === '</div>' ? -1 : 1; if (d === 0) return body.slice(x.index + 6); } return body; })() : body;
+    } catch (e) { box.innerHTML = `<div class="empty">${esc(LL('No se pudo cargar este intento.', 'Could not load this pull.'))}</div>`; det.dataset.done = ''; }
+  }
+  document.addEventListener('toggle', (ev) => { if (ev.target.classList?.contains('bx-try') && ev.target.open) bxLoad(ev.target); }, true);
 
   // ============================================================ MÍTICA+: compararte con los mejores de tu llave
   const origMplus = VIEWS.mplus;
