@@ -334,9 +334,21 @@ const Extras2 = (() => {
     return { x, dur, deaths, per, heal, taken: d.taken.filter((e) => isPlayer(e.id, e)).reduce((s, e) => s + e.total, 0), dps: [...per.values()].reduce((s, e) => s + e.rate, 0) };
   }
 
+  const pickDefault = (f) => prevOther(f) || bestOther(f);
+  const pickOther = (f) => groupOf(f).find((x) => x.id === S.cmpPick && x.id !== f.id) || pickDefault(f);
+  document.addEventListener('change', (ev) => {
+    const s = ev.target.closest?.('select[data-action="cmp-pick"]');
+    if (!s) return;
+    S.cmpPick = Number(s.value); S.cmpMode = 'pick';
+    render();
+  });
+
   function cmpBarHTML() {
     const chip = (k, label) => `<button class="chip ${(S.cmpMode || 'best') === k ? 'on' : ''}" data-action="cmp-mode" data-m="${k}">${label}</button>`;
-    return `<div class="metricbar"><span class="muted">${LL('Comparar con', 'Compare with')}</span>${chip('best', LL('Tu mejor intento', 'Your best attempt'))}${chip('prev', LL('Intento anterior', 'Previous attempt'))}</div>`;
+    const others = groupOf(S.fight).filter((x) => x.id !== S.fight.id).sort((a, b) => a.startTime - b.startTime);
+    const pickOn = S.cmpMode === 'pick';
+    const sel = others.length ? `<select class="txt" data-action="cmp-pick" title="${esc(LL('Elige con qué intento comparar', 'Choose which attempt to compare with'))}">${others.map((x) => `<option value="${x.id}" ${x.id === (S.cmpPick ?? pickDefault(S.fight)?.id) ? 'selected' : ''}>${esc(fightLabel(x))} · ${clock(fightDur(x))}</option>`).join('')}</select>` : '';
+    return `<div class="metricbar"><span class="muted">${LL('Comparar con', 'Compare with')}</span>${chip('best', LL('Tu mejor intento', 'Your best attempt'))}${chip('prev', LL('Intento anterior', 'Previous attempt'))}${chip('pick', LL('Elegir intento', 'Pick an attempt'))}${pickOn ? sel : ''}</div>`;
   }
   document.addEventListener('click', (ev) => {
     const b = ev.target.closest?.('[data-action="cmp-mode"]');
@@ -347,8 +359,10 @@ const Extras2 = (() => {
 
   async function viewBestCmp(f) {
     const cur = S.fight;
+    const pickMode = S.cmpMode === 'pick';
     const prevMode = S.cmpMode === 'prev';
-    const best = prevMode ? prevOther(cur) : bestOther(cur);
+    const best = prevMode ? prevOther(cur) : pickMode ? pickOther(cur) : bestOther(cur);
+    const tag = prevMode ? LL('anterior', 'previous') : pickMode ? LL('elegido', 'chosen') : LL('tu mejor', 'your best');
     if (!best) return headerHTML(f, t('tabs.bestcmp')) + `${cmpBarHTML()}<div class="empty">${prevMode ? LL('Este es el primer intento de este jefe en el reporte: no hay uno anterior.', 'This is the first attempt at this boss in the report: there is no previous one.') : LL('Este es el único intento de este jefe en el reporte.', 'This is the only attempt at this boss in the report.')}</div>`;
     const [A, B] = await Promise.all([snapshot(cur), snapshot(best)]);
     const delta = (a, b, fmt, goodHigh = true) => {
@@ -358,7 +372,7 @@ const Extras2 = (() => {
     };
     const hp = (x) => (x.kill ? LL('Kill', 'Kill') : `${num(pctOf(x.fightPercentage ?? x.bossPercentage) ?? 0, 1)} %`);
     const rowT = (label, a, b, d) => `<div class="bc-row"><span>${label}</span><b>${a}</b><b>${b}</b><span>${d}</span></div>`;
-    const head = `<div class="bc-row th"><span></span><span>${esc(fightLabel(cur))}<small>${LL('actual', 'current')}</small></span><span>${esc(fightLabel(best))}<small>${prevMode ? LL('anterior', 'previous') : LL('tu mejor', 'your best')}</small></span><span>${LL('Diferencia', 'Difference')}</span></div>`;
+    const head = `<div class="bc-row th"><span></span><span>${esc(fightLabel(cur))}<small>${LL('actual', 'current')}</small></span><span>${esc(fightLabel(best))}<small>${tag}</small></span><span>${LL('Diferencia', 'Difference')}</span></div>`;
     const summary = head
       + rowT(LL('Resultado', 'Result'), hp(cur), hp(best), '')
       + rowT(LL('Duración', 'Duration'), clock(fightDur(cur)), clock(fightDur(best)), delta(A.dur, B.dur, (v) => clock(v * 1000), false))
@@ -399,7 +413,7 @@ const Extras2 = (() => {
         return `<div class="bc-row"><span class="ab" data-spell="${x.id}">${iconImg(ab.icon, 20)}${esc(ab.name)}</span><b>${x.a}</b><b>${x.b}</b>${delta(x.a, x.b, (v) => v)}</div>`;
       }).join('')}</div>`;
     }
-    return headerHTML(f, t('tabs.bestcmp'), prevMode ? LL(`Comparado con el intento anterior: <b>${esc(fightLabel(best))}</b>`, `Compared with the previous attempt: <b>${esc(fightLabel(best))}</b>`) : LL(`Comparado con tu mejor intento: <b>${esc(fightLabel(best))}</b>`, `Compared with your best attempt: <b>${esc(fightLabel(best))}</b>`))
+    return headerHTML(f, t('tabs.bestcmp'), prevMode ? LL(`Comparado con el intento anterior: <b>${esc(fightLabel(best))}</b>`, `Compared with the previous attempt: <b>${esc(fightLabel(best))}</b>`) : pickMode ? LL(`Comparado con el intento elegido: <b>${esc(fightLabel(best))}</b>`, `Compared with the chosen attempt: <b>${esc(fightLabel(best))}</b>`) : LL(`Comparado con tu mejor intento: <b>${esc(fightLabel(best))}</b>`, `Compared with your best attempt: <b>${esc(fightLabel(best))}</b>`))
       + cmpBarHTML() + `<div class="bc-table">${summary}</div>
         <h3 class="sec">${LL('DPS por jugador', 'DPS per player')}</h3><div class="bc-table">${players}</div>
         ${healRows ? `<h3 class="sec">${LL('HPS por sanador', 'HPS per healer')}</h3><div class="bc-table">${healRows}</div>` : ''}
@@ -593,6 +607,39 @@ const Extras2 = (() => {
     }
   }
 
+  // Quién se come más daño evitable: se mira el mejor intento de cada jefe (la kill, o el wipe más avanzado) y se suma por jugador
+  async function fillNightAvoid(seq) {
+    const box = document.getElementById('nightAvoid');
+    if (!box) return;
+    try {
+      const rows = nightData();
+      const per = new Map();
+      for (const g of rows) {
+        const raw = g.list.find((x) => x.kill) || g.best;
+        if (!raw) continue;
+        const fwin = { ...raw, fightStart: raw.startTime, fightEnd: raw.endTime, full: true, key: `${raw.id}:${raw.startTime}-${raw.endTime}`, rangeLabel: '' };
+        const list = await Extras.mechData(fwin);
+        const marks = Extras.avoidMarks(raw);
+        for (const a of list) {
+          if (!(marks[a.guid] != null ? !!marks[a.guid] : a.guess)) continue;
+          for (const tg of a.targets) {
+            let p = per.get(tg.id);
+            if (!p) per.set(tg.id, p = { id: tg.id, icon: tg.icon, v: 0, by: new Map() });
+            p.v += tg.total;
+            p.by.set(a.guid, (p.by.get(a.guid) || 0) + tg.total);
+          }
+        }
+        if (seq !== S.seq || !document.getElementById('nightAvoid')) return;
+      }
+      const top = [...per.values()].sort((a, b) => b.v - a.v).slice(0, 8);
+      if (seq !== S.seq || !document.getElementById('nightAvoid')) return;
+      box.innerHTML = topCard(LL('Daño evitable de la noche', 'Avoidable damage of the night'), LL('Quién se comió más mecánicas evitables (mejor intento de cada jefe)', 'Who took the most avoidable mechanics (best attempt of each boss)'), top, (v) => plain(v));
+    } catch (e) {
+      console.warn('nightAvoid', e);
+      if (seq === S.seq && document.getElementById('nightAvoid')) box.innerHTML = '';
+    }
+  }
+
   async function viewNight(f) {
     const r = S.report;
     const rows = nightData();
@@ -614,10 +661,11 @@ const Extras2 = (() => {
         <div class="nc-bar"><i style="width:${g.kills ? 100 : 100 - p}%"></i></div>
         <div class="nc-m"><span>${g.list.length} ${g.list.length === 1 ? LL('intento', 'pull') : LL('intentos', 'pulls')}${wipes ? ` · ${wipes} wipes` : ''}</span><span>${LL('Tiempo', 'Time')}: ${clock(g.time)}</span><button class="mini-btn" data-action="fight" data-id="${g.best.id}">${g.kills ? LL('Ver', 'View') : LL('Ver mejor try', 'View best try')} ${esc(fightLabel(g.best))}</button></div></div>`;
     }).join('');
-    S.post = async (seq) => { window._nightText = nightText(rows, r); fillNightTops(seq); fillChivato(seq); };
+    S.post = async (seq) => { window._nightText = nightText(rows, r); fillNightTops(seq); fillChivato(seq); fillNightAvoid(seq); };
     return headerHTML(f, t('tabs.night'), `${esc(r.title)} · ${new Date(r.startTime).toLocaleDateString(locale())}`)
       + `<div class="ov-tiles">${tiles}</div>
       <div class="night-tops" id="nightTops"><div class="loading"><span class="spinner"></span>${LL('Calculando los rankings de la noche…', 'Computing the night rankings…')}</div></div>
+      <div class="night-tops" id="nightAvoid"><div class="loading"><span class="spinner"></span>${LL('Calculando el daño evitable de la noche…', 'Computing the avoidable damage of the night…')}</div></div>
       <div id="nightChivato"><div class="loading"><span class="spinner"></span>${LL('Contando pociones y piedras de salud…', 'Counting health potions and healthstones…')}</div></div>
       <div class="night-grid">${cards}</div>
       <div class="set-actions"><button class="btn" data-action="night-copy">${LL('Copiar informe para Discord', 'Copy report for Discord')}</button><button class="btn" data-action="night-png">${LL('Guardar como imagen', 'Save as image')}</button></div>`;

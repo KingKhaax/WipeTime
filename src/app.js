@@ -875,6 +875,8 @@ async function render() {
     const html = S.player ? await viewPlayer(f, S.player) : await VIEWS[S.tab](f);
     if (seq !== S.seq) return;
     $('#view').innerHTML = html;
+    const animKey = `${S.code}:${raw.id}:${S.tab}:${S.player || ''}`;
+    if (S._animKey !== animKey) { S._animKey = animKey; enterAnim($('#view')); }
     afterRender();
     const post = S.post;
     S.post = null;
@@ -884,6 +886,13 @@ async function render() {
     if (seq !== S.seq) return;
     $('#view').innerHTML = errorHTML(friendlyError(e));
   }
+}
+
+// Los paneles entran con un fundido escalonado al cambiar de pestaña o de intento (no en los refrescos automáticos)
+function enterAnim(root) {
+  if (!root || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  [...root.children].slice(0, 14).forEach((el, i) => { el.style.setProperty('--i', i); el.classList.add('enter'); });
+  setTimeout(() => root.querySelectorAll(':scope > .enter').forEach((el) => el.classList.remove('enter')), 1100);
 }
 
 function afterRender() {
@@ -989,7 +998,7 @@ function rankedList(rows, { parse, parseIlvl, slots, slotsIlvl, clickable = !S.v
     const me = isMe(r.name);
     const pets = Math.min(r.pets || 0, r.total);
     const segs = pets > 0 ? [[r.total - pets, color], [pets, PET_TEAL]] : [[r.total, color]];
-    const bar = segs.map(([v, c]) => `<span class="seg" style="flex:${v} 1 0;background:${c}"></span>`).join('');
+    const bar = segs.map(([v, c]) => `<span class="seg" style="flex:${v} 1 0;background:${c};--c:${c}"></span>`).join('');
     return `<div class="row ${me ? 'me' : ''} ${clickable ? 'click' : ''}" data-ri="${i}" ${clickable ? `data-action="player" data-id="${r.id}"` : ''}>
       ${hasParse ? `<span class="c-parse">${pill(parse, slots, 'pill-slot', r)}</span>` : ''}
       <div class="r-name">

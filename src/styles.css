@@ -2115,6 +2115,32 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .char-wrap .cc-class { margin: 2px 0 0; font-size: 14px; line-height: 1.25; }
 .char-wrap .cc-act { z-index: 2; top: 10px; right: 10px; }
 
+
+/* ---------- Entrada animada, barras con brillo, tarjetas de jugador y línea de tiempo ---------- */
+.enter { animation: viewIn .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.bar-in .seg { border-radius: 3px; background-image: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, .18)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 -2px 3px rgba(0, 0, 0, .22), 0 0 10px -3px var(--c, transparent); transition: filter .2s, box-shadow .2s; }
+.ranked .row:hover .bar-in .seg { filter: brightness(1.12) saturate(1.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), inset 0 -2px 3px rgba(0, 0, 0, .22), 0 0 16px -2px var(--c, transparent); }
+.pcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.pcard2 { position: relative; display: grid; grid-template-columns: 44px 1fr auto; grid-template-areas: "ic id m" "bar bar bar" "f f f"; gap: 6px 10px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); border-top: 3px solid var(--cc, var(--line-strong)); background: linear-gradient(160deg, color-mix(in srgb, var(--cc, #888) 9%, var(--panel)), var(--panel) 65%); cursor: pointer; transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .25s, border-color .25s; }
+.pcard2:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, .38), 0 0 22px -10px var(--cc, var(--accent)); border-color: color-mix(in srgb, var(--cc, #888) 55%, var(--line)); }
+.pcard2.me { outline: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); }
+.pcard2 .spec-ic { grid-area: ic; width: 44px; height: 44px; border-radius: 11px; border: 2px solid color-mix(in srgb, var(--cc, #888) 70%, #000); box-shadow: 0 0 14px -4px var(--cc, transparent); }
+.pc-id { grid-area: id; display: grid; min-width: 0; line-height: 1.25; } .pc-id b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pc-id small { color: var(--muted); display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.pc-m { grid-area: m; text-align: right; line-height: 1.1; } .pc-m b { font-size: 19px; color: #a8e060; font-variant-numeric: tabular-nums; } .pc-m small { display: block; color: var(--muted); font-size: 11px; }
+.pc-bar { grid-area: bar; height: 6px; border-radius: 4px; background: var(--track, #1a2848); overflow: hidden; } .pc-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--cc, #888) 70%, #000), var(--cc, #888)); box-shadow: 0 0 10px -2px var(--cc, transparent); }
+.pc-f { grid-area: f; display: flex; align-items: center; justify-content: space-between; } .pc-d { font-size: 12.5px; color: var(--dim); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); } .pc-d.has { color: #ff8a8a; border-color: rgba(255, 93, 93, .5); background: rgba(255, 93, 93, .08); }
+.tl-wrap { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 10px 14px 12px; margin-bottom: 8px; }
+.tl-row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; padding: 4px 0; } .tl-l { font-size: 12px; color: var(--muted); } .tl-l b { color: var(--text); margin-left: 4px; }
+.tl-track { position: relative; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--bg-deep, #060b17) 70%, transparent); border: 1px solid var(--line-soft, var(--line)); }
+.tl-track.ph, .tl-track.curve { height: 34px; overflow: hidden; } .tl-track.curve svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tl-ruler { height: 18px; background: none; border: 0; } .tl-ruler span { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: var(--dim); }
+.tl-ph { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 600; overflow: hidden; white-space: nowrap; border-right: 1px solid rgba(0, 0, 0, .35); }
+.tl-ph.p0 { background: color-mix(in srgb, #4f8cff 30%, transparent); } .tl-ph.p1 { background: color-mix(in srgb, #9b6bff 30%, transparent); } .tl-ph.p2 { background: color-mix(in srgb, #2fb7c0 30%, transparent); } .tl-ph.p3 { background: color-mix(in srgb, #e0a43a 30%, transparent); } .tl-ph.int { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .08) 0 6px, transparent 6px 12px); }
+.tl-m { position: absolute; top: 50%; transform: translate(-50%, -50%); } .tl-m.death { font-size: 17px; color: var(--cc, #ff6b6b); text-shadow: 0 0 8px var(--cc, #ff6b6b); cursor: default; line-height: 1; }
+.tl-none { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--dim); }
+@media (max-width: 900px) { .tl-row { grid-template-columns: 1fr; gap: 2px; } }
+
 /* ---------- Armería: icono de especialización, modelo recortado y parses personales ---------- */
 .arm-spec { display: inline-flex; align-items: center; }
 .arm-spec img { border-radius: 8px; border: 1px solid var(--line-strong); box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }

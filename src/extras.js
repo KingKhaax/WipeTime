@@ -230,6 +230,79 @@ const Extras = (() => {
     return raidBuffsHTML(sd, new Set(list.map((p) => p.type)));
   }
 
+  // ---- Tarjetas de jugador: spec, rol, DPS/HPS, parse y muertes de un vistazo
+  async function playerCards(f, list) {
+    const [fd, rk, dts] = await Promise.all([fightData(f), rankings(f).catch(() => ({ dps: new Map(), hps: new Map() })), deathTimes(f).catch(() => [])]);
+    const dur = Math.max(1, fightDur(f) / 1000);
+    const dmg = new Map(fd.dmg.map((e) => [e.id, e.total])), heal = new Map(fd.heal.map((e) => [e.id, e.total]));
+    const deaths = new Map();
+    for (const d of dts) deaths.set(d.targetID, (deaths.get(d.targetID) || 0) + 1);
+    const isH = (p) => p.role === 'healer';
+    const rate = (p) => ((isH(p) ? heal.get(p.id) : dmg.get(p.id)) || 0) / dur;
+    const maxH = Math.max(1, ...list.filter(isH).map(rate)), maxD = Math.max(1, ...list.filter((p) => !isH(p)).map(rate));
+    const cards = list.map((p) => {
+      const color = classColor(p.type), r = rate(p), m = isH(p) ? maxH : maxD;
+      const pv = (isH(p) ? rk.hps : rk.dps).get(p.name);
+      const dn = deaths.get(p.id) || 0;
+      const icon = p.icon && /-/.test(p.icon) ? specIconUrl(esc(p.icon)) : classIconUrl(p.type);
+      return `<div class="pcard2 ${isMe(p.name) ? 'me' : ''}" data-action="player" data-id="${p.id}" style="--cc:${color}" title="${esc(LL('Clic para ver al jugador', 'Click to see the player'))}">
+        <img class="spec-ic" src="${icon}" alt=""><div class="pc-id"><b style="color:${color}">${esc(p.name)}</b><small>${roleIcon(p.role)} ${esc(className(p.type))}</small></div>
+        <div class="pc-m"><b>${plain(r)}</b><small>${isH(p) ? 'HPS' : 'DPS'}</small></div>
+        <div class="pc-bar"><i style="width:${Math.max(3, (r / m) * 100)}%"></i></div>
+        <div class="pc-f">${typeof pv === 'number' ? parsePill(pv) : '<span class="muted">–</span>'}<span class="pc-d ${dn ? 'has' : ''}" title="${esc(LL('Muertes', 'Deaths'))}">☠ ${dn}</span></div></div>`;
+    }).join('');
+    return `<h3 class="sec">${LL('Tarjetas de jugador', 'Player cards')}</h3><div class="pcards">${cards}</div>`;
+  }
+
+  // ---- Línea de tiempo del intento: fases, daño recibido, muertes, Héroe/Bloodlust y defensivos de banda sobre una sola escala
+  const LUST = [[2825, 'Bloodlust'], [32182, 'Heroism'], [80353, 'Time Warp'], [264667, 'Primal Rage'], [390386, 'Fury of the Aspects'], [466904, "Harrier's Cry"], [160452, 'Netherwinds']];
+  function lustData(f) {
+    return cached(`lust:${f.key}`, async () => {
+      const aliases = LUST.map(([id], i) => `l${i}:events(fightIDs:$f,dataType:Buffs,abilityID:${id},startTime:$s,endTime:$e,limit:60){data}`).join(' ');
+      const d = await gql(`query($code:String!,$f:[Int],$s:Float,$e:Float){reportData{report(code:$code){${aliases}}}}`, { code: S.code, f: ids(f), s: f.startTime, e: f.endTime });
+      const out = [];
+      LUST.forEach(([id], i) => {
+        const ev = (d.reportData.report['l' + i]?.data || []).filter((e) => e.type === 'applybuff').sort((a, b) => a.timestamp - b.timestamp);
+        if (ev[0]) out.push({ id, t: ev[0].timestamp, source: ev[0].sourceID });
+      });
+      return out;
+    });
+  }
+  async function fillTimeline(f, seq) {
+    const box = document.getElementById('fightTimeline');
+    if (!box) return;
+    try {
+      const total = Math.max(1, dur(f));
+      const [dts, cds, tkn, lust] = await Promise.all([deathTimes(f).catch(() => []), cooldownData(f).catch(() => []), graphData(f, 'DamageTaken').catch(() => null), lustData(f).catch(() => [])]);
+      if (seq !== S.seq || !document.getElementById('fightTimeline')) return;
+      const pos = (t) => Math.max(0, Math.min(100, ((t - f.startTime) / total) * 100));
+      const tick = total > 600000 ? 120000 : total > 240000 ? 60000 : 30000;
+      const ruler = [];
+      for (let ms = 0; ms <= total; ms += tick) ruler.push(`<span style="left:${(ms / total) * 100}%">${clock(ms)}</span>`);
+      const segs = (typeof phaseSegments === 'function' ? phaseSegments(f) : []).filter((s) => !f.dungeonPulls?.length);
+      const phases = segs.length > 1 ? segs.map((s, i) => `<span class="tl-ph ${s.intermission ? 'int' : ''} p${i % 4}" style="left:${pos(s.start)}%;width:${Math.max(0.5, pos(s.end) - pos(s.start))}%" title="${esc(s.name)} · ${clock(s.start - f.startTime)}–${clock(s.end - f.startTime)}">${esc(s.name)}</span>`).join('') : `<span class="tl-ph p0" style="left:0;width:100%">${esc(f.name || '')}</span>`;
+      let curve = '';
+      if (tkn?.pts?.length) {
+        const sm = smooth(tkn.pts, 2), mx = Math.max(...sm, 1);
+        const pts = sm.map((v, i) => `${(((tkn.start - f.startTime + i * tkn.step) / total) * 100).toFixed(2)},${(100 - (v / mx) * 100).toFixed(1)}`);
+        curve = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 ${pts.join(' ')} 100,100" fill="rgba(255,107,107,.28)"/><polyline points="${pts.join(' ')}" fill="none" stroke="#ff6b6b" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg>`;
+      }
+      const dm = dts.map((d) => { const p = playerInfo(d.targetID); return `<span class="tl-m death" style="left:${pos(d.timestamp)}%;--cc:${classColor(p.cls)}" title="${esc(p.name)} · ${clock(d.timestamp - f.startTime)}">☠</span>`; }).join('');
+      const lm = lust.map((l) => { const ab = ability(l.id), who = l.source ? playerInfo(l.source).name : ''; return `<span class="cdm tl-m" style="left:${pos(l.t)}%" data-spell="${l.id}" data-spell-extra="${esc(who)} · ${clockPrecise(l.t - f.startTime)}">${iconImg(ab.icon, 22)}</span>`; }).join('');
+      const raid = cds.filter((e) => DEF_BY_ID.get(e.abilityGameID)?.kind === 'raid');
+      const cm = raid.map((e) => { const ab = ability(e.abilityGameID), p = playerInfo(e.sourceID); return `<span class="cdm tl-m" style="left:${pos(e.timestamp)}%;--cc:${classColor(p.cls)}" data-spell="${e.abilityGameID}" data-spell-extra="${esc(p.name)} · ${clockPrecise(e.timestamp - f.startTime)}">${iconImg(ab.icon, 20)}</span>`; }).join('');
+      const row = (label, inner, cls = '') => `<div class="tl-row"><span class="tl-l">${label}</span><div class="tl-track ${cls}">${inner}</div></div>`;
+      box.innerHTML = `<div class="tl-wrap"><div class="tl-row tl-rl"><span class="tl-l"></span><div class="tl-track tl-ruler">${ruler.join('')}</div></div>`
+        + row(LL('Fases', 'Phases'), phases, 'ph') + (curve ? row(LL('Daño recibido', 'Damage taken'), curve, 'curve') : '')
+        + row(LL('Muertes', 'Deaths') + ` <b>${dts.length}</b>`, dm || `<span class="tl-none">${LL('Sin muertes', 'No deaths')}</span>`)
+        + row(LL('Héroe / Bloodlust', 'Heroism / Bloodlust'), lm || `<span class="tl-none">${LL('No se detectó', 'Not detected')}</span>`)
+        + row(LL('Defensivos de banda', 'Raid cooldowns') + (raid.length ? ` <b>${raid.length}</b>` : ''), cm || `<span class="tl-none">${LL('Ninguno', 'None')}</span>`) + '</div>';
+    } catch (e) {
+      console.warn('timeline', e);
+      if (seq === S.seq && document.getElementById('fightTimeline')) box.innerHTML = errorHTML(friendlyError(e));
+    }
+  }
+
   async function viewSummary(f) {
     const sd = await summaryData(f);
     const { players, itemLevel } = sd.roles;
@@ -284,9 +357,13 @@ const Extras = (() => {
     const bossTime = dur(f);
     const buffsHtml = cov(sd.buffs, sd.buffTime, 1, '');
     const debuffsHtml = cov(sd.debuffs, bossTime, 1, 'bad');
+    const cardsHtml = await playerCards(f, list).catch((e) => { console.warn('cards', e); return ''; });
+    S.post = async (seq) => fillTimeline(f, seq);
     return headerHTML(f, t('tabs.summary'), sub)
       + `<div class="chips">${compo}</div>
       ${alertsHTML(alerts, list.length)}
+      ${cardsHtml}
+      <h3 class="sec">${LL('Línea de tiempo del intento', 'Fight timeline')}</h3><div id="fightTimeline"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>
       <h3 class="sec">${LL('Jugadores, equipo y consumibles', 'Players, gear and consumables')}</h3>
       <div class="sum-table"><div class="sum-row th"><span>${LL('Jugador', 'Player')}</span><span></span><span>ilvl</span><span>${LL('Encantamientos', 'Enchants')}</span><span>${LL('Consumibles al pull', 'Consumables at pull')}</span><span>${LL('Estadísticas', 'Stats')}</span></div>${rows}</div>
       <p class="foot">${LL('Los consumibles se detectan por el nombre de las auras activas al empezar el pull (frasco, comida y runa) o usadas durante la pelea (poción); si algo no sale, puede ser una aura con otro nombre. Pasa el ratón por una etiqueta verde para ver qué detectó.', 'Consumables are detected from the names of auras active at pull (flask, food and rune) or used during the fight (potion); a miss may just be an aura with a different name. Hover a green tag to see what was detected.')}</p>
