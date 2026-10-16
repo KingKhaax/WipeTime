@@ -643,7 +643,7 @@ const Extras2 = (() => {
     try {
       const d = await nightTopsData();
       if (seq !== S.seq || !document.getElementById('nightTops')) return;
-      box.innerHTML = topCard(LL('Quién ha muerto más', 'Who died the most'), LL('Solo las 2 primeras muertes de cada intento', 'Only the first 2 deaths of each pull'), d.died, (v) => `${v} ${v === 1 ? LL('muerte', 'death') : LL('muertes', 'deaths')}`)
+      box.innerHTML = topCard(LL('Top 5 muertes de la noche', 'Top 5 deaths of the night'), LL('Solo las 2 primeras muertes de cada intento', 'Only the first 2 deaths of each pull'), d.died, (v) => `${v} ${v === 1 ? LL('muerte', 'death') : LL('muertes', 'deaths')}`)
         + topCard(LL('Top 5 DPS de la noche', 'Top 5 DPS of the night'), LL(`Daño medio por segundo en ${d.pulls} intentos`, `Average damage per second over ${d.pulls} pulls`), d.dps, (v) => plain(v))
         + topCard(LL('Top 3 sanadores de la noche', 'Top 3 healers of the night'), LL('Sanación media por segundo', 'Average healing per second'), d.heal, (v) => plain(v))
         + topCard(LL('Top 5 cortes de la noche', 'Top 5 interrupts of the night'), LL('Hechizos enemigos interrumpidos en todos los intentos', 'Enemy spells interrupted across every pull'), d.ints, (v) => `${v} ${v === 1 ? LL('corte', 'interrupt') : LL('cortes', 'interrupts')}`)
