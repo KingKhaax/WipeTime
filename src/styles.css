@@ -2278,3 +2278,22 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .arm-info > span.ai-ach b { color: #ffd100; text-shadow: 0 0 12px rgba(255, 209, 0, .35); }
 .arm-info > span.ai-lvl b { color: var(--text); }
 .arm-info small { letter-spacing: .02em; }
+
+/* ---------- Armería: objetos como tarjetas uniformes (icono grande con marco de calidad, nivel en píldora, encantamientos y gemas en líneas) ---------- */
+.arm-col { display: grid; grid-auto-rows: 1fr; gap: 8px; }
+.arm-it { align-items: center; gap: 12px; min-height: 60px; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--q, var(--line)) 35%, var(--line)); border-left-width: 1px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--q, var(--panel-2)) 13%, var(--panel-2)) 0%, var(--panel-2) 55%); }
+.arm-it.empty { opacity: .5; background: transparent; border: 1px dashed var(--line); }
+.arm-it .arm-ic { width: 44px; height: 44px; border-radius: 11px; border: 2px solid var(--q, var(--line)); box-shadow: 0 0 12px -3px var(--q, transparent), inset 0 0 0 1px #0009; }
+.arm-it .arm-ic img { border-radius: 8px; }
+.arm-it.empty .arm-ic { border-style: dashed; box-shadow: none; background: transparent; }
+.arm-it .arm-tx { flex: 1; gap: 2px; justify-content: center; }
+.arm-it .arm-tx b { font-size: 14px; font-weight: 700; letter-spacing: .005em; }
+.arm-it .arm-tx small { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; }
+.arm-it .arm-tx small span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arm-it .arm-tx small em { flex: none; margin: 0; padding: 0 7px; border-radius: 999px; font-size: 11.5px; line-height: 1.55; color: var(--q, var(--text)); background: color-mix(in srgb, var(--q, #fff) 16%, transparent); border: 1px solid color-mix(in srgb, var(--q, #fff) 40%, transparent); }
+.arm-it .arm-tx i { display: block; position: relative; padding-left: 12px; font-size: 11.5px; line-height: 1.35; }
+.arm-it .arm-tx i::before { content: ''; position: absolute; left: 1px; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .85; }
+.arm-weapons { gap: 8px 8px; }
+.arm-it .arm-tx b, .arm-it .arm-tx i { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: clip; }
+.arm-it .arm-tx i { display: -webkit-box; }

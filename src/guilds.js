@@ -122,7 +122,7 @@ const Guilds = (() => {
       ...it.gems.map((g) => `<i class="gem">${esc(cleanLine(g.name || g.stat || ''))}</i>`),
     ].join('');
     return `<div class="arm-it" style="--q:${col}" data-itip="${Cards.itemTipKey(it)}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
-      <span class="arm-tx"><b title="${esc(it.name)}">${esc(it.name)}</b><small><em>${esc(it.ilvl || '')}</em> ${esc(slotLabel)}${it.set ? ` · ${esc(it.set)}` : ''}</small>${sub}</span></div>`;
+      <span class="arm-tx"><b title="${esc(it.name)}">${esc(it.name)}</b><small><em>${esc(it.ilvl || '')}</em><span>${esc(slotLabel)}${it.set ? ` · ${esc(it.set)}` : ''}</span></small>${sub}</span></div>`;
   }
 
   function statsHTML(s) {
