@@ -24,6 +24,23 @@ const GuildCmp = (() => {
     return st.zones;
   }
 
+  // Un mismo pull aparece en cada log donde alguien lo subió: dos pulls distintos nunca se solapan en el tiempo,
+  // así que un pull que empieza antes de que acabe el anterior es el mismo.
+  function dedupe(list) {
+    const out = [];
+    let end = -1;
+    for (const x of list) {
+      if (out.length && x.t < end - 1000) {
+        if (x.kill) out[out.length - 1].kill = true;
+        end = Math.max(end, x.t + (x.dur || 0));
+        continue;
+      }
+      out.push({ ...x });
+      end = x.t + (x.dur || 0);
+    }
+    return out;
+  }
+
   // ---- datos de una guild: todos los pulls de jefe de la banda y dificultad elegidas
   async function loadGuild(g) {
     const key = `${keyOf(g)}:${st.zone}:${st.diff}`;
@@ -45,7 +62,7 @@ const GuildCmp = (() => {
         }
         if (!r?.has_more_pages) break;
       }
-      for (const l of per.values()) l.sort((a, b) => a.t - b.t);
+      for (const [e, l] of per) per.set(e, dedupe(l.sort((a, b) => a.t - b.t)));
       st.done.set(key, per);
       return per;
     })();
@@ -119,33 +136,119 @@ const GuildCmp = (() => {
     return `<div class="pf-fbar gc-ctl">${dd}<span class="chips">${diffs}</span></div>`;
   }
 
-  function tableHTML() {
+  // Datos de la comparación (para la tabla y para la imagen)
+  function compareData() {
     const zone = (st.zones || []).find((z) => z.id === st.zone);
     const [a, b] = st.sel;
-    if (!zone) return '';
-    if (st.err) return `<div class="error"><p>${esc(st.err)}</p></div>`;
     const mA = st.done.get(`${keyOf(a)}:${st.zone}:${st.diff}`), mB = st.done.get(`${keyOf(b)}:${st.zone}:${st.diff}`);
-    if (!mA || !mB) return `<div class="loading"><span class="spinner"></span>${LL('Cargando logs…', 'Loading logs…')} ${esc(st.loading)}</div>`;
-    const cell = (s, i) => (s ? `<div class="gc-c" style="--gc:${NAME_COL[i]}"><b class="gc-n">${num(s.n, 0)}</b><span class="gc-l">${s.killed ? LL('trys hasta la kill', 'tries to kill') : LL('trys, sin kill', 'tries, no kill')}</span>
-      <small>${s.killed ? `${LL('Kill', 'Kill')}: ${esc(fmtDate(s.killAt))} · ` : ''}${LL('Tiempo', 'Time')}: ${esc(fmtTime(s.time))}</small>${s.best != null ? `<small>${LL('Mejor wipe', 'Best wipe')}: ${esc(pctTxt(s.best))}</small>` : ''}</div>`
-      : `<div class="gc-c none" style="--gc:${NAME_COL[i]}"><b class="gc-n">—</b><span class="gc-l">${LL('sin pulls', 'no pulls')}</span></div>`);
+    if (!zone || !mA || !mB) return null;
     let totA = 0, totB = 0, both = 0;
     const rows = zone.encounters.filter((e) => e.name).map((e) => {
       const sA = summary(mA.get(e.id)), sB = summary(mB.get(e.id));
-      let diff = '<span class="muted">—</span>';
-      if (sA?.killed && sB?.killed) {
-        both++; totA += sA.n; totB += sB.n;
-        const d = sA.n - sB.n;
-        diff = d === 0 ? `<b>${LL('Igual', 'Same')}</b>` : `<b style="color:${NAME_COL[d < 0 ? 0 : 1]}">${esc(d < 0 ? a.name : b.name)}</b><small>${LL(`${num(Math.abs(d), 0)} trys menos`, `${num(Math.abs(d), 0)} fewer tries`)}</small>`;
-      } else if (sA?.killed || sB?.killed) diff = `<small>${LL('Solo la mató', 'Only killed by')} <b style="color:${NAME_COL[sA?.killed ? 0 : 1]}">${esc(sA?.killed ? a.name : b.name)}</b></small>`;
-      const open = st.open.has(e.id);
-      return `<div class="gc-row ${open ? 'open' : ''}" data-gc="row" data-e="${e.id}">
-        <div class="gc-boss"><span class="pf-bic"><img src="${ASSETS}/bosses/${e.id}-icon.jpg" width="28" height="28" loading="lazy" alt=""></span><span>${esc(e.name)}</span></div>
-        ${cell(sA, 0)}${cell(sB, 1)}<div class="gc-d">${diff}</div></div>${open ? detailHTML(sA, sB) : ''}`;
+      let diff = null;
+      if (sA?.killed && sB?.killed) { both++; totA += sA.n; totB += sB.n; diff = { d: sA.n - sB.n }; }
+      return { e, sA, sB, diff };
+    });
+    return { zone, a, b, rows, both, totA, totB };
+  }
+
+  const cellTxt = (s) => (s ? `${s.killed ? `${fmtDate(s.killAt)} · ` : ''}${fmtTime(s.time)}${s.best != null ? ` · ${LL('mejor wipe', 'best wipe')} ${pctTxt(s.best)}` : ''}` : '');
+  const diffTxt = (r, a, b) => {
+    if (r.diff) return r.diff.d === 0 ? { t: LL('Igual', 'Same'), c: null } : { t: `${r.diff.d < 0 ? a.name : b.name} −${num(Math.abs(r.diff.d), 0)}`, c: NAME_COL[r.diff.d < 0 ? 0 : 1] };
+    if (r.sA?.killed || r.sB?.killed) return { t: LL('Solo ', 'Only ') + (r.sA?.killed ? a.name : b.name), c: NAME_COL[r.sA?.killed ? 0 : 1] };
+    return { t: '—', c: null };
+  };
+
+  function tableHTML() {
+    if (st.err) return `<div class="error"><p>${esc(st.err)}</p></div>`;
+    const cd = compareData();
+    if (!cd) return `<div class="loading"><span class="spinner"></span>${LL('Cargando logs…', 'Loading logs…')} ${esc(st.loading)}</div>`;
+    const { a, b, rows, both, totA, totB } = cd;
+    const stealth = [a, b].filter((g) => g.stealth);
+    const warn = stealth.length ? `<div class="gc-warn">🔒 ${LL(`${stealth.map((g) => g.name).join(' y ')}: tiene el modo sigilo de Warcraft Logs activado, así que sus reports no son públicos para aplicaciones externas y no se pueden contar sus trys.`, `${stealth.map((g) => g.name).join(' and ')}: has Warcraft Logs stealth mode on, so its reports are not public to external apps and its tries cannot be counted.`)}</div>` : '';
+    const cell = (s, i, g) => (s ? `<div class="gc-c" style="--gc:${NAME_COL[i]}"><span class="gc-top"><b class="gc-n">${num(s.n, 0)}</b><span class="gc-l">${s.killed ? LL('trys', 'tries') : LL('trys, sin kill', 'tries, no kill')}</span></span><small>${esc(cellTxt(s))}</small></div>`
+      : `<div class="gc-c none" style="--gc:${NAME_COL[i]}"><span class="gc-top"><b class="gc-n">—</b></span><small>${g.stealth ? '🔒 ' + LL('sigilo', 'stealth') : LL('sin pulls', 'no pulls')}</small></div>`);
+    const body = rows.map((r) => {
+      const d = diffTxt(r, a, b);
+      const open = st.open.has(r.e.id);
+      return `<div class="gc-row ${open ? 'open' : ''}" data-gc="row" data-e="${r.e.id}">
+        <div class="gc-boss"><span class="pf-bic"><img src="${ASSETS}/bosses/${r.e.id}-icon.jpg" width="24" height="24" loading="lazy" alt=""></span><span>${esc(r.e.name)}</span></div>
+        ${cell(r.sA, 0, a)}${cell(r.sB, 1, b)}<div class="gc-d"${d.c ? ` style="color:${d.c}"` : ''}>${esc(d.t)}</div></div>${open ? detailHTML(r.sA, r.sB) : ''}`;
     }).join('');
-    const total = both ? `<div class="gc-sum">${LL('En los jefes que mataron las dos', 'On the bosses both killed')} (${both}): <b style="color:${NAME_COL[0]}">${esc(a.name)}</b> ${num(totA, 0)} ${LL('trys', 'tries')} · <b style="color:${NAME_COL[1]}">${esc(b.name)}</b> ${num(totB, 0)} ${LL('trys', 'tries')}</div>` : '';
-    return `${total}<div class="gc-head"><span>${LL('Jefe', 'Boss')}</span><span style="color:${NAME_COL[0]}">${esc(a.name)}</span><span style="color:${NAME_COL[1]}">${esc(b.name)}</span><span>${LL('Diferencia', 'Difference')}</span></div><div class="gc-tbl">${rows}</div>
-      <p class="foot">${LL('Un try es un pull al jefe en los logs públicos de Warcraft Logs; se cuentan hasta la primera kill (incluida). Pulsa un jefe para ver cada try.', 'A try is a pull on the boss in the public Warcraft Logs; they are counted up to the first kill (included). Click a boss to see every try.')}</p>`;
+    const total = both ? `<div class="gc-sum">${LL(`En los ${both} jefes que mataron las dos`, `On the ${both} bosses both killed`)}: <b style="color:${NAME_COL[0]}">${esc(a.name)}</b> ${num(totA, 0)} ${LL('trys', 'tries')} · <b style="color:${NAME_COL[1]}">${esc(b.name)}</b> ${num(totB, 0)} ${LL('trys', 'tries')}</div>` : '';
+    return `${warn}<div class="gc-tools"><button type="button" class="btn ghost sm" data-gc="copy">${LL('Copiar imagen', 'Copy image')}</button><button type="button" class="btn ghost sm" data-gc="save">${LL('Guardar PNG', 'Save PNG')}</button></div>${total}
+      <div class="gc-head"><span>${LL('Jefe', 'Boss')}</span><span style="color:${NAME_COL[0]}">${esc(a.name)}</span><span style="color:${NAME_COL[1]}">${esc(b.name)}</span><span>${LL('Diferencia', 'Difference')}</span></div><div class="gc-tbl">${body}</div>
+      <p class="foot">${LL('Un try es un pull al jefe en los logs públicos de Warcraft Logs (un pull subido en varios logs cuenta una vez); se cuentan hasta la primera kill (incluida). Pulsa un jefe para ver cada try.', 'A try is a pull on the boss in the public Warcraft Logs (a pull uploaded in several logs counts once); they are counted up to the first kill (included). Click a boss to see every try.')}</p>`;
+  }
+
+  // ---- Imagen PNG de la tabla (copiar al portapapeles o guardar)
+  async function exportImage(mode) {
+    const cd = compareData();
+    if (!cd) return;
+    const { zone, a, b, rows, both, totA, totB } = cd;
+    const font = 'Segoe UI, system-ui, sans-serif';
+    const W = 920, pad = 16, headH = 58, th = 26, rowH = 40;
+    const cx = [pad, 250, 480, 710]; // columnas: jefe, A, B, diferencia
+    const H = headH + th + rows.length * rowH + 30;
+    const scale = 2;
+    const draw = (withIcons) => new Promise((resolve) => {
+      const cv = document.createElement('canvas');
+      cv.width = W * scale; cv.height = H * scale;
+      const g = cv.getContext('2d');
+      g.scale(scale, scale);
+      g.textBaseline = 'middle';
+      g.fillStyle = '#0f1013'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#e8e8ec'; g.font = `700 17px ${font}`; g.textAlign = 'left';
+      g.fillText(`${zone.name} · ${diffName(st.diff)}`, pad, 20);
+      g.font = `700 15px ${font}`;
+      let x = pad;
+      g.fillStyle = NAME_COL[0]; g.fillText(a.name, x, 44); x += g.measureText(a.name).width;
+      g.fillStyle = '#6b6b74'; g.fillText('  VS  ', x, 44); x += g.measureText('  VS  ').width;
+      g.fillStyle = NAME_COL[1]; g.fillText(b.name, x, 44);
+      if (both) { g.textAlign = 'right'; g.fillStyle = '#9a9aa3'; g.font = `12.5px ${font}`; g.fillText(`${LL('Trys en los jefes que mataron las dos', 'Tries on the bosses both killed')}: ${a.name} ${num(totA, 0)} · ${b.name} ${num(totB, 0)}`, W - pad, 44); g.textAlign = 'left'; }
+      // cabecera
+      g.fillStyle = '#17191f'; g.fillRect(0, headH, W, th);
+      g.fillStyle = '#9aa3b2'; g.font = `600 12px ${font}`;
+      g.fillText(LL('Jefe', 'Boss'), cx[0], headH + th / 2);
+      g.fillText(a.name, cx[1], headH + th / 2); g.fillText(b.name, cx[2], headH + th / 2); g.fillText(LL('Diferencia', 'Difference'), cx[3], headH + th / 2);
+      const imgs = rows.map((r) => (withIcons ? new Promise((ok) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = `${ASSETS}/bosses/${r.e.id}-icon.jpg`; }) : Promise.resolve(null)));
+      Promise.all(imgs).then((ims) => {
+        rows.forEach((r, i) => {
+          const y = headH + th + i * rowH, cy = y + rowH / 2;
+          g.fillStyle = i % 2 ? '#13151a' : '#0f1013'; g.fillRect(0, y, W, rowH);
+          g.strokeStyle = '#2a2a30'; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+          if (ims[i]) g.drawImage(ims[i], cx[0], y + 8, 24, 24);
+          g.fillStyle = '#8fb7ff'; g.font = `600 13px ${font}`; g.textAlign = 'left';
+          g.fillText(r.e.name, cx[0] + (ims[i] ? 32 : 0), cy, cx[1] - cx[0] - 40);
+          [[r.sA, 1, 0, a], [r.sB, 2, 1, b]].forEach(([sm, ci, k, gg]) => {
+            if (!sm) { g.fillStyle = '#6b6b74'; g.font = `700 18px ${font}`; g.fillText('—', cx[ci], cy - 6); g.font = `11px ${font}`; g.fillText(gg.stealth ? LL('sigilo', 'stealth') : LL('sin pulls', 'no pulls'), cx[ci], cy + 11); return; }
+            g.fillStyle = NAME_COL[k]; g.font = `700 19px ${font}`; g.fillText(num(sm.n, 0), cx[ci], cy - 6);
+            const nw = g.measureText(num(sm.n, 0)).width;
+            g.fillStyle = '#c9c9d1'; g.font = `12px ${font}`; g.fillText(sm.killed ? LL('trys', 'tries') : LL('trys, sin kill', 'tries, no kill'), cx[ci] + nw + 6, cy - 5);
+            g.fillStyle = '#9a9aa3'; g.font = `11px ${font}`; g.fillText(cellTxt(sm), cx[ci], cy + 11, 222);
+          });
+          const d = diffTxt(r, a, b);
+          g.fillStyle = d.c || '#9a9aa3'; g.font = `600 12.5px ${font}`; g.fillText(d.t, cx[3], cy, W - cx[3] - pad);
+        });
+        g.fillStyle = '#5d6572'; g.font = `11px ${font}`; g.textAlign = 'right'; g.fillText('WipeTime', W - pad, H - 12);
+        try { cv.toBlob((bl) => resolve(bl), 'image/png'); } catch { resolve(null); }
+      });
+    });
+    let blob = await draw(true);
+    if (!blob) blob = await draw(false);
+    if (!blob) return toast(LL('No se pudo crear la imagen', 'Could not create the image'));
+    if (mode === 'save') {
+      const el = document.createElement('a');
+      el.href = URL.createObjectURL(blob);
+      el.download = `WipeTime - ${a.name} vs ${b.name} - ${zone.name}.png`.replace(/[\\/:*?"<>|]/g, '-');
+      el.click();
+      setTimeout(() => URL.revokeObjectURL(el.href), 4000);
+      return toast(LL('Imagen guardada', 'Image saved'));
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      toast(LL('Imagen copiada: ya puedes pegarla', 'Image copied: you can paste it now'));
+    } catch { toast(LL('No se pudo copiar; usa Guardar PNG', 'Could not copy; use Save PNG')); }
   }
 
   // Detalle try a try de cada guild (barra = vida que le quedaba al jefe)
@@ -194,12 +297,14 @@ const GuildCmp = (() => {
   }
 
   function select(i, g) {
+    g = { ...g };
     st.sel[i] = g;
     st.res[i] = null;
     st.msg[i] = '';
     st.open.clear();
     repaint();
-    refresh();
+    gql(`query($n:String!,$s:String!,$r:String!){guildData{guild(name:$n,serverSlug:$s,serverRegion:$r){stealthMode}}}`, { n: g.name, s: g.realmSlug, r: g.region.toUpperCase() })
+      .then((d) => { g.stealth = !!d.guildData?.guild?.stealthMode; }).catch(() => {}).finally(() => { refresh(); });
   }
 
   document.addEventListener('submit', (ev) => {
@@ -220,6 +325,7 @@ const GuildCmp = (() => {
     else if (a === 'zone-toggle') { const l = el.nextElementSibling; document.querySelectorAll('.abdd-list:not([hidden])').forEach((x) => { if (x !== l) x.hidden = true; }); l.hidden = !l.hidden; }
     else if (a === 'zone') { st.zone = Number(el.dataset.v); st.open.clear(); repaint(); refresh(); }
     else if (a === 'diff') { st.diff = Number(el.dataset.v); st.open.clear(); repaint(); refresh(); }
+    else if (a === 'copy' || a === 'save') exportImage(a);
     else if (a === 'row') { const id = Number(el.dataset.e); if (st.open.has(id)) st.open.delete(id); else st.open.add(id); repaint(); }
   });
 
