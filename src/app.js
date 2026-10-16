@@ -1767,7 +1767,7 @@ function renderWelcome() {
           <button class="btn ghost cmp-cta" data-cmp="open"><img class="wi" src="icons/spell_holy_crusade.jpg" width="18" height="18" alt=""> ${t('cmpOpen')}</button>
         </div>
         <div class="exp-card" id="expCard">
-          <img class="exp-img" id="expImg" src="${img}" alt="${esc(exp.name)}">
+          <img class="exp-img" id="expImg" data-fallback="${img}" style="visibility:hidden" alt="${esc(exp.name)}">
           <div class="exp-info">
             <small>${t('expLabel')}</small>
             <b>${esc(exp.name)}</b>
@@ -1820,7 +1820,11 @@ async function setupPatchArt() {
     img.classList.add('art');
     $('#expCard')?.classList.add('has-art');
     if (hint) hint.textContent = '';
-  } else if (hint) hint.textContent = t('patchDropHint');
+  } else {
+    img.src = img.dataset.fallback;
+    if (hint) hint.textContent = t('patchDropHint');
+  }
+  img.style.visibility = '';
 }
 
 function readImageFile(file) {
