@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'web-dist');
@@ -13,6 +14,14 @@ const proxy = JSON.parse(fs.readFileSync(path.join(root, 'build', 'proxy.json'),
 const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
 const specKeys = [...mainJs.matchAll(/'([A-Za-z]+-[A-Za-z]+)': \[/g)].map((m) => m[1]);
 if (specKeys.length < 30) throw new Error('No se encontraron las especializaciones en main.js');
+
+// esbuild se instala aparte en CI (carpeta .esb) para no descargar todo el árbol de dependencias de la app
+function loadEsbuild() {
+  for (const base of [root, path.join(root, '.esb')]) {
+    try { return createRequire(path.join(base, 'noop.js'))('esbuild'); } catch { /* siguiente sitio */ }
+  }
+  return null;
+}
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(root, 'src'), out, { recursive: true });
@@ -49,4 +58,33 @@ for (const f of fs.readdirSync(out)) {
   if (/wc(icon|map|media):\/\//.test(fs.readFileSync(path.join(out, f), 'utf8'))) bad.push(f);
 }
 if (bad.length) throw new Error('Quedan protocolos de Electron sin sustituir en: ' + bad.join(', '));
+// ---- Optimización de la carga: un solo paquete de scripts minificado, un solo CSS minificado, fuentes precargadas y conexiones tempranas.
+// Sin esbuild instalado la web se publica igual, solo que sin minificar (npm i --no-save esbuild).
+const esbuild = loadEsbuild();
+if (!esbuild) console.log('esbuild no está instalado: la web se publica sin minificar');
+if (esbuild) {
+  const indexPath = path.join(out, 'index.html');
+  let html = fs.readFileSync(indexPath, 'utf8');
+  const keepSync = new Set(['web-api.js', 'boot.js']); // web-api y boot (tema) siguen cargándose antes de pintar
+  const tags = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
+  const bundleFiles = tags.filter((f) => !keepSync.has(f));
+  if (!bundleFiles.length) throw new Error('No hay scripts que empaquetar');
+  // todos los scripts son «use strict» y comparten el ámbito global (const/let de nivel superior): se concatenan en ese mismo orden
+  const strict = (s) => /^\s*(['"])use strict\1/.test(s);
+  const sources = bundleFiles.map((f) => { const s = fs.readFileSync(path.join(out, f), 'utf8'); if (!strict(s)) throw new Error(f + ' no es use strict'); return s.replace(/^\s*(['"])use strict\1;?/, ''); });
+  const bundle = esbuild.transformSync("'use strict';\n" + sources.join(';\n'), { minify: true, target: 'es2020', legalComments: 'none' }).code;
+  fs.writeFileSync(path.join(out, 'app.bundle.js'), bundle);
+  const css = ['fonts.css', 'styles.css'].map((f) => fs.readFileSync(path.join(out, f), 'utf8')).join('\n');
+  fs.writeFileSync(path.join(out, 'app.css'), esbuild.transformSync(css, { loader: 'css', minify: true, legalComments: 'none' }).code);
+  const v = pkg.version;
+  for (const f of bundleFiles) html = html.replace(new RegExp('\\s*<script src="' + f.replace('.', '\\.') + '"></script>'), '');
+  html = html.replace('<link rel="stylesheet" href="fonts.css">', '').replace('<link rel="stylesheet" href="styles.css">', '<link rel="stylesheet" href="app.css?v=' + v + '">')
+    .replace('<script src="web-api.js"></script>', '<script src="web-api.js?v=' + v + '"></script>').replace('<script src="boot.js"></script>', '<script src="boot.js?v=' + v + '"></script>\n  <script defer src="app.bundle.js?v=' + v + '"></script>');
+  const hints = ['<link rel="preconnect" href="' + proxy + '" crossorigin>', '<link rel="preconnect" href="https://wow.zamimg.com" crossorigin>',
+    ...['400', '600', '700'].map((w) => '<link rel="preload" href="fonts/noto-sans-latin-' + w + '-normal.woff2" as="font" type="font/woff2" crossorigin>')].join('\n  ');
+  html = html.replace('<title>', hints + '\n  <title>');
+  fs.writeFileSync(indexPath, html);
+  const before = bundleFiles.reduce((s, f) => s + fs.statSync(path.join(out, f)).size, 0) + fs.statSync(path.join(out, 'styles.css')).size + fs.statSync(path.join(out, 'fonts.css')).size;
+  console.log(`optimizada: ${bundleFiles.length} scripts → app.bundle.js (${(bundle.length / 1024).toFixed(0)} KB), CSS → app.css; ${(before / 1024).toFixed(0)} KB → ${((bundle.length + fs.statSync(path.join(out, 'app.css')).size) / 1024).toFixed(0)} KB`);
+}
 console.log(`web-dist listo: v${pkg.version}, proxy ${proxy}, ${specKeys.length} specs, ${left} sustituciones`);
