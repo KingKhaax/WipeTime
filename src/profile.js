@@ -4,11 +4,10 @@
 // puntuación de Mítica+, equipo y modelo del personaje. Todo se pide en el momento, sin caché.
 const Profile = (() => {
   const REGIONS = ['eu', 'us', 'kr', 'tw'];
-  const PATCH_OF_ZONE = { 46: '12.0.0', 50: '12.0.7', 53: '12.1' };
   const METRICS = [['dps', 'DPS'], ['hps', 'HPS'], ['bossdps', null]];
   const SLOT_ORDER = ['HEAD', 'NECK', 'SHOULDER', 'BACK', 'CHEST', 'SHIRT', 'TABARD', 'WRIST', 'HANDS', 'WAIST', 'LEGS', 'FEET', 'FINGER_1', 'FINGER_2', 'TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
   const QCOLOR = { POOR: '#9d9d9d', COMMON: '#ffffff', UNCOMMON: '#1eff00', RARE: '#0070dd', EPIC: '#a335ee', LEGENDARY: '#ff8000', ARTIFACT: '#e6cc80', HEIRLOOM: '#00ccff' };
-  const st = { q: null, zones: null, zone: null, diff: 5, metric: 'dps', arm: null, rio: null, wcl: null, wclErr: '', armErr: '', busy: false, at: 0, timer: null };
+  const st = { q: null, zones: null, zone: null, diff: 5, partition: -1, metric: 'dps', arm: null, rio: null, wcl: null, wclErr: '', armErr: '', busy: false, at: 0, timer: null };
 
   const regionName = (r) => ({ eu: LL('Europa', 'Europe'), us: LL('América', 'America'), kr: LL('Corea', 'Korea'), tw: LL('Taiwán', 'Taiwan') }[r] || r.toUpperCase());
   const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
@@ -32,9 +31,12 @@ const Profile = (() => {
   // ------------------------------------------------------------ datos
   async function zonesList() {
     if (st.zones) return st.zones;
-    const d = await gql(`{worldData{expansion(id:${S.expansion?.id ?? 7}){zones{id name difficulties{id name} encounters{id name}}}}}`);
-    const bad = /ptr|complete|dummy|mythic\+|beta/i;
-    st.zones = (d.worldData?.expansion?.zones || []).filter((z) => z.encounters?.length >= 1 && !bad.test(z.name)).sort((a, b) => a.id - b.id);
+    // Bandas de todas las expansiones (no solo la actual), de la más antigua a la más nueva
+    const d = await gql(`{worldData{expansions{id name zones{id name difficulties{id name} partitions{id name compactName default} encounters{id name}}}}}`);
+    const bad = /ptr|complete|dummy|mythic\+|beta|torghast|delves|challenge|mage tower|season|dungeons/i;
+    st.zones = (d.worldData?.expansions || []).flatMap((ex) => (ex.zones || []).map((z) => ({ ...z, expId: ex.id, expName: ex.name })))
+      .filter((z) => z.encounters?.length >= 1 && !bad.test(z.name) && z.difficulties?.some((x) => [1, 2, 3, 4, 5].includes(x.id)))
+      .sort((a, b) => a.expId - b.expId || a.id - b.id);
     if (!st.zones.some((z) => z.id === st.zone)) st.zone = st.zones[st.zones.length - 1]?.id;
     return st.zones;
   }
@@ -42,12 +44,12 @@ const Profile = (() => {
   // Todos los logs del personaje en un jefe (como el desplegable de Warcraft Logs), con caché por parche/dificultad/métrica
   st.encLogs = {};
   const encPending = new Set();
-  const encKey = (id) => `${st.zone}:${st.diff}:${st.metric}:${id}`;
+  const encKey = (id) => `${st.zone}:${st.diff}:${st.partition}:${st.metric}:${id}`;
   async function fetchEncLogs(id) {
     const q = st.q, key = encKey(id);
     try {
       const metric = METRICS.some(([m]) => m === st.metric) ? st.metric : 'dps';
-      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){encounterRankings(encounterID:${Number(id)},difficulty:${Number(st.diff)},metric:${metric})}}}`, undefined, true);
+      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){encounterRankings(encounterID:${Number(id)},difficulty:${Number(st.diff)},metric:${metric},partition:${Number(st.partition)})}}}`, undefined, true);
       const ranks = d.characterData?.character?.encounterRankings?.ranks || [];
       st.encLogs[key] = ranks.filter((r) => r.report?.code).sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
     } catch (e) { st.encLogs[key] = { error: friendlyError(e) }; }
@@ -77,7 +79,7 @@ const Profile = (() => {
       if (!zone) { st.wcl = null; return; }
       if (!zone.difficulties?.some((x) => x.id === st.diff)) st.diff = (zone.difficulties || []).map((x) => x.id).filter((i) => [3, 4, 5].includes(i)).pop() || zone.difficulties?.[0]?.id || 5;
       const metric = METRICS.some(([m]) => m === st.metric) ? st.metric : 'dps';
-      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){name classID level faction{name} guildRank hidden zoneRankings(zoneID:${Number(zone.id)},difficulty:${Number(st.diff)},metric:${metric})}}}`, undefined, true);
+      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){name classID level faction{name} guildRank hidden zoneRankings(zoneID:${Number(zone.id)},difficulty:${Number(st.diff)},metric:${metric},partition:${Number(st.partition)})}}}`, undefined, true);
       st.wcl = d.characterData?.character || null;
       if (!st.wcl) st.wclErr = LL('Warcraft Logs no tiene a este personaje (o no tiene logs públicos).', 'Warcraft Logs does not have this character (or it has no public logs).');
     } catch (e) { st.wcl = null; st.wclErr = friendlyError(e); }
@@ -274,14 +276,19 @@ const Profile = (() => {
         <small class="muted">${LL('Consultado', 'Fetched')}: ${esc(ago(st.at))}</small></div></div>`;
   }
 
+  const partName = (id) => { const p = (((st.zones || []).find((z) => z.id === st.zone) || {}).partitions || []).find((x) => x.id === id); return p ? (p.compactName || p.name) : ''; };
   function controlsHTML() {
     const zones = st.zones || [];
     const zone = zones.find((z) => z.id === st.zone);
-    const opts = zones.map((z) => `<option value="${z.id}" ${z.id === st.zone ? 'selected' : ''}>${esc(PATCH_OF_ZONE[z.id] ? `${PATCH_OF_ZONE[z.id]} · ${z.name}` : z.name)}</option>`).join('');
-    const diffs = (zone?.difficulties || []).filter((d) => [1, 3, 4, 5].includes(d.id)).map((d) => `<button type="button" class="chip ${st.diff === d.id ? 'on' : ''}" data-pf="diff" data-v="${d.id}">${esc(diffName(d.id) || d.name)}</button>`).join('');
+    const exps = [...new Map(zones.map((z) => [z.expId, z.expName])).entries()].sort((a, b) => b[0] - a[0]);
+    const opts = exps.map(([id, name]) => `<optgroup label="${esc(name)}">${[...zones].filter((z) => z.expId === id).sort((a, b) => b.id - a.id).map((z) => `<option value="${z.id}" ${z.id === st.zone ? 'selected' : ''}>${esc(z.name)}</option>`).join('')}</optgroup>`).join('');
+    const diffs = (zone?.difficulties || []).filter((d) => [1, 2, 3, 4, 5].includes(d.id)).map((d) => `<button type="button" class="chip ${st.diff === d.id ? 'on' : ''}" data-pf="diff" data-v="${d.id}">${esc(diffName(d.id) || d.name)}</button>`).join('');
     const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l || LL('Daño a jefe', 'Boss Damage')}</button>`).join('');
-    return `<div class="pf-ctl"><label>${LL('Parche', 'Patch')}<select data-pf-zone>${opts}</select></label>
-      <span class="chips">${diffs}</span><span class="sep"></span><span class="chips">${mets}</span></div>`;
+    // Botones de parche dentro de la season (como en Warcraft Logs): Todo + uno por cada parche de la banda
+    const parts = (zone?.partitions || []).filter((p) => p.name !== 'default');
+    const ptabs = parts.length > 1 ? `<div class="pf-ptabs"><button type="button" class="pf-ptab ${st.partition === -1 ? 'on' : ''}" data-pf="part" data-v="-1">${LL('Todo', 'All')}</button>${parts.map((p) => `<button type="button" class="pf-ptab ${st.partition === p.id ? 'on' : ''}" data-pf="part" data-v="${p.id}" title="${esc(p.name)}">${esc(p.compactName || p.name)}</button>`).join('')}</div>` : '';
+    return `<div class="pf-ctl"><label>${LL('Season', 'Season')}<select data-pf-zone>${opts}</select></label>
+      <span class="chips">${diffs}</span><span class="sep"></span><span class="chips">${mets}</span></div>${ptabs}`;
   }
 
   function tableHTML() {
@@ -320,7 +327,7 @@ const Profile = (() => {
       <div class="pf-sum2-l"><small>${LL('Mejor media', 'Best Perf. Avg')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
       <div class="pf-sum2-r"><span>${LL('Media mediana', 'Median Perf. Avg')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
         <span>${LL('Kills registradas', 'Kills Logged')}: <b>${kills}</b></span></div>
-      <div class="pf-sum2-b">${LL('Puntos All Star', 'All Star Points')}: <b class="pf-as">${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}${PATCH_OF_ZONE[st.zone] ? ` <span class="muted">(${esc(PATCH_OF_ZONE[st.zone])})</span>` : ''}${asSpec}</div></div>
+      <div class="pf-sum2-b">${LL('Puntos All Star', 'All Star Points')}: <b class="pf-as">${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}${partName(as?.partition) ? ` <span class="muted">(${esc(partName(as.partition))})</span>` : ''}${asSpec}</div></div>
       <div class="pf-tbl-w"><table class="pf-table"><thead><tr><th rowspan="2">${LL('Jefe', 'Boss')}</th><th rowspan="2">${LL('Mejor %', 'Best %')}</th><th rowspan="2">${LL(`${unit} máximo`, `Highest ${unit}`)}</th><th rowspan="2">Kills</th><th rowspan="2">${LL('Más rápida', 'Fastest')}</th><th rowspan="2">${LL('Med.', 'Med')}</th><th colspan="4">All Stars</th></tr>
         <tr><th>${LL('Puntos', 'Points')}</th><th>${LL('Mundo', 'World')}</th><th>${esc(regionName(st.q.region))}</th><th>${LL('Reino', 'Realm')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
@@ -410,12 +417,15 @@ const Profile = (() => {
     else if (a === 'log') loadReport(`https://www.warcraftlogs.com/reports/${el.dataset.code}${el.dataset.fight ? `#fight=${el.dataset.fight}` : ''}`);
     else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»'))); }
     else if (a === 'home') goHome();
+    else if (a === 'part') { st.partition = Number(el.dataset.v); st.openEnc = null; st.wcl = null; repaint(); fetchWcl().then(repaint); }
     else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; repaint(); fetchWcl().then(repaint); }
     else if (a === 'metric') { st.metric = el.dataset.v; st.wcl = null; repaint(); fetchWcl().then(repaint); }
   });
   document.addEventListener('change', (ev) => {
     if ((!S.profileOpen && !(S.guildOpen && st.embed)) || !ev.target.matches?.('[data-pf-zone]')) return;
     st.zone = Number(ev.target.value);
+    st.partition = -1;
+    st.openEnc = null;
     st.wcl = null;
     repaint();
     fetchWcl().then(repaint);

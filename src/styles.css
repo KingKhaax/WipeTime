@@ -2124,3 +2124,10 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .mdl-crop img { z-index: 1; }
 .arm-sec { margin-top: 18px; }
 .pf-embed { margin-top: 6px; }
+
+/* ---------- Parches dentro de una season: botones tipo pestaña, como en Warcraft Logs ---------- */
+.pf-ptabs { display: flex; flex-wrap: wrap; gap: 0; margin: 2px 0 10px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; background: var(--bg-deep); }
+.pf-ptab { padding: 7px 14px; border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; transition: background .2s, color .2s; }
+.pf-ptab:last-child { border-right: 0; }
+.pf-ptab:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.pf-ptab.on { color: #fff; font-weight: 700; background: color-mix(in srgb, var(--accent) 38%, var(--panel)); box-shadow: inset 0 -2px 0 var(--accent); }
