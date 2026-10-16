@@ -2267,3 +2267,14 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .gc-ctl, .gc-warn, .gc-tools, .gc-sum, .gc-head, .gc-tbl, #gcBody > .foot { margin-left: auto; margin-right: auto; }
 .gc-ctl { justify-content: center; }
 .mini .spec-ic-sm { flex: none; border-radius: 6px; }
+
+/* ---------- Armería: cabecera con colores (nivel de objeto según la calidad del equipo, logros dorados) ---------- */
+.arm-info { gap: 12px; }
+.arm-info > span { position: relative; padding: 9px 16px 8px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in srgb, var(--panel-2) 80%, #fff 3%), var(--panel)); overflow: hidden; }
+.arm-info > span::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--ic, var(--line-strong)); opacity: .9; }
+.arm-info > span.ai-ilvl { --ic: #fff; border-color: color-mix(in srgb, var(--ic) 45%, var(--line)); background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--ic) 22%, transparent), transparent 70%), linear-gradient(180deg, var(--panel-2), var(--panel)); }
+.arm-info > span.ai-ilvl b { font-size: 24px; line-height: 1.15; color: var(--ic); text-shadow: 0 0 14px color-mix(in srgb, var(--ic) 55%, transparent), 0 1px 0 #0008; }
+.arm-info > span.ai-ach { --ic: #ffd100; }
+.arm-info > span.ai-ach b { color: #ffd100; text-shadow: 0 0 12px rgba(255, 209, 0, .35); }
+.arm-info > span.ai-lvl b { color: var(--text); }
+.arm-info small { letter-spacing: .02em; }

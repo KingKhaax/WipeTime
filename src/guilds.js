@@ -160,12 +160,16 @@ const Guilds = (() => {
     const d = a.data;
     const bySlot = new Map(d.items.map((i) => [i.slot, i]));
     const col = (slots) => slots.map((sl) => slotHTML(bySlot, sl)).join('');
+    // El nivel de objeto toma el color de la calidad más baja que lleves puesta (todo épico = morado; una pieza rara = azul; una poco común = verde)
+    const QORDER = ['POOR', 'COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY', 'ARTIFACT', 'HEIRLOOM'];
+    const worstQ = d.items.filter((i) => !['SHIRT', 'TABARD'].includes(i.slot)).reduce((w, i) => (QORDER.indexOf(i.quality) < QORDER.indexOf(w) ? i.quality : w), 'HEIRLOOM');
+    const ilc = QCOLOR[d.items.length ? worstQ : 'COMMON'] || '#fff';
     const info = [
-      `<span><small>${LL('Nivel de objeto', 'Item level')}</small><b>${d.ilvlExact ? esc(num(d.ilvlExact, 2)) : esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
+      `<span class="ai-ilvl" style="--ic:${ilc}"><small>${LL('Nivel de objeto', 'Item level')}</small><b>${d.ilvlExact ? esc(num(d.ilvlExact, 2)) : esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
       d.ilvlAvg && d.ilvlAvg !== d.ilvlEquipped ? `<span><small>${LL('Media (inventario)', 'Average (bags)')}</small><b>${esc(d.ilvlAvg)}</b></span>` : '',
       specInfoHTML(d),
-      `<span><small>${LL('Nivel', 'Level')}</small><b>${esc(d.level)}</b></span>`,
-      d.achievements ? `<span><small>${LL('Logros', 'Achievements')}</small><b>${num(d.achievements, 0)}</b></span>` : '',
+      `<span class="ai-lvl"><small>${LL('Nivel', 'Level')}</small><b>${esc(d.level)}</b></span>`,
+      d.achievements ? `<span class="ai-ach"><small>${LL('Logros', 'Achievements')}</small><b>${num(d.achievements, 0)}</b></span>` : '',
     ].join('');
     // parses personales y logs por jefe: la misma tabla que la ficha de personaje
     Profile.embed({ name: c.name, realmSlug: c.realmSlug, realmName: c.realmName, region: a.region || c.region || st.status?.region });

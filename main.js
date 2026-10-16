@@ -1073,7 +1073,7 @@ async function armory(realmSlug, name, lang, region = bnetRegion()) {
     render: md?.assets?.find((a) => a.key === 'main-raw')?.value || md?.assets?.find((a) => a.key === 'main')?.value || md?.assets?.find((a) => a.key === 'inset')?.value || '',
     avatar: md?.assets?.find((a) => a.key === 'avatar')?.value || '', lastLogin: sum.last_login_timestamp || 0, gender: sum.gender?.type || '', faction: sum.faction?.type || '',
     guildRealm: sum.guild?.realm?.slug || '', guildRealmName: sum.guild?.realm?.name || '', realmSlug: sum.realm?.slug || realmSlug, region,
-    items, ilvlExact: Math.round(ilvlExact * 100) / 100, stats, at: Date.now(),
+    items, ilvlExact: Math.floor(ilvlExact * 100 + 1e-9) / 100, stats, at: Date.now(),
   };
 }
 
