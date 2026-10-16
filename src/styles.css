@@ -160,9 +160,11 @@ img.ai { border-radius: 4px; vertical-align: middle; flex: none; background: #00
 .rep-sub { color: var(--muted); font-size: 12px; padding: 2px 6px 12px; }
 .enc { margin-top: 14px; }
 .enc-h {
-  display: flex; justify-content: space-between; gap: 8px; padding: 0 6px 6px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2px 8px; padding: 0 6px 6px;
   font-weight: 600; font-size: 13px; cursor: default; list-style: none;
 }
+.enc-n { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; white-space: nowrap; min-width: 0; }
+.enc-ic { border-radius: 6px; flex: none; box-shadow: 0 0 0 1px var(--line); }
 .enc-d { color: var(--muted); font-weight: 400; font-size: 12px; white-space: nowrap; }
 details.enc > summary { cursor: pointer; }
 details.enc > summary::-webkit-details-marker { display: none; }
@@ -1867,6 +1869,26 @@ button.dbf-row:hover { background: var(--hover); }
 .wl-muted { color: var(--muted); }
 .wl-guild { font-weight: 600; }
 .wl-tabs { margin: 22px 0 4px; }
+/* Todas las kills: jugadores por jefe, como la tabla de Warcraft Logs */
+.wl-mx { width: max-content; min-width: 100%; }
+.wl-mx .wl-row { column-gap: 0; padding: 0; }
+.wl-mx .wl-row > span { padding: 7px 8px; border-left: 1px solid var(--line); }
+.wl-mx .wl-row > span:first-child { border-left: 0; }
+.wl-mx .wl-row.th { align-items: stretch; }
+.wl-mx .wl-row.th > span { white-space: normal; text-transform: none; letter-spacing: 0; font-size: 12.5px; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px; text-align: center; line-height: 1.2; }
+.wl-mx .wl-row.th > .wl-l { align-items: flex-start; justify-content: center; font-size: 12px; text-transform: uppercase; color: var(--muted); }
+.wl-bh { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+.wl-bh img { border-radius: 6px; flex: none; box-shadow: 0 0 0 1px var(--line); }
+.wl-bh b { font-weight: 600; white-space: nowrap; }
+.wl-bt { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.wl-mx .wl-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.wl-mx .wl-cell img { border-radius: 4px; flex: none; }
+.wl-mx .wl-nm { text-align: left; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wl-gsum { display: inline-grid; grid-template-columns: auto auto; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); font-variant-numeric: tabular-nums; }
+.wl-gsum > span { padding: 7px 14px; border-top: 1px solid var(--line); }
+.wl-gsum > span:nth-child(-n+2) { border-top: 0; }
+.wl-gsum > span:nth-child(odd) { font-weight: 700; border-right: 1px solid var(--line); background: var(--panel-2); }
+.wl-gsum > span:nth-child(even) { text-align: right; }
 
 /* Ventanas estrechas: la cabecera se encoge (botones solo con icono) y el contenido hace scroll por su cuenta */
 .topbar { min-width: 0; }

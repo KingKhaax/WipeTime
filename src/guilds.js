@@ -155,7 +155,6 @@ const Guilds = (() => {
       <button type="button" class="btn ghost sm" data-gd="armory-refresh" data-key="${esc(a.key)}">↻ ${LL('Actualizar', 'Refresh')}</button>
       ${c.guild ? `<button type="button" class="btn ghost sm" data-gd="pick-char" data-guild="${esc(c.guild.name)}" data-realm="${esc(c.guild.realmSlug)}" data-realmname="${esc(c.guild.realmName)}" data-region="${esc(c.region || '')}">${LL('Abrir guild', 'Open guild')}</button>` : ''}
       <button type="button" class="btn ghost sm" data-gd="ext" data-u="https://www.raidbots.com/simbot/droptimizer">Droptimizer ↗</button>
-      <button type="button" class="btn ghost sm" data-gd="ext" data-u="https://kingkhaax.github.io/NinjaLoot/">NinjaLoot ↗</button>
       <button type="button" class="btn ghost sm" data-gd="armory-close">${LL('Cerrar', 'Close')}</button></div>`;
     if (a.status === 'loading') return `<div class="arm">${head}<div class="loading"><span class="spinner"></span>${t('loading')}</div></div>`;
     if (a.status === 'err') return `<div class="arm">${head}<div class="error"><p>${esc(friendly(a.err))}</p></div></div>`;

@@ -6,7 +6,7 @@
   Object.assign(STRINGS.en.tabs, { rankings: 'Rankings' });
 
   const TANK_SPECS = new Set(['Blood', 'Vengeance', 'Guardian', 'Brewmaster', 'Protection']);
-  const rk = { scope: 'sel', sort: 'parse-desc', cls: '', metric: 'dmg', view: 'wcl', tab: 'dmg' };
+  const rk = { bracket: 'overall', scope: 'sel', sort: 'parse-desc', cls: '', metric: 'dmg', view: 'wcl', tab: 'dmg' };
   const roleOf = (spec) => (HEALER_SPECS.has(spec) ? 'healer' : TANK_SPECS.has(spec) ? 'tank' : 'dps');
   const ROLE_NAME = { tank: ['Tanque', 'Tank'], healer: ['Sanador', 'Healer'], dps: ['DPS', 'DPS'] };
 
@@ -281,9 +281,76 @@
       + `<p class="foot">${LL('Posiciones y porcentajes tal como los calcula Warcraft Logs para este kill; «~» indica posición aproximada. Para varios intentos, wipes o filtros por clase usa la vista avanzada.', 'Positions and percentages as Warcraft Logs computes them for this kill; “~” means an approximate position. For several pulls, wipes or class filters use the advanced view.')}</p>`;
   }
 
+  // ---------------------------------------------------------------- todas las kills (Todo el log o pulls combinados de varios jefes)
+  // Una kill por jefe (la última) y una columna por jefe con el icono, el nombre y la duración; cada celda lleva el parse y la especialización.
+  function killsOf(f) {
+    const ids = f.ids || [f.id];
+    const byBoss = new Map();
+    for (const x of ids.map((id) => S.fights.find((y) => y.id === id)).filter((y) => y?.kill && y.encounterID).sort((a, b) => a.startTime - b.startTime)) byBoss.set(`${x.encounterID}:${x.difficulty}`, x);
+    const list = [...byBoss.values()].sort((a, b) => a.startTime - b.startTime);
+    return { list, canMatrix: list.length > 1 };
+  }
+
+  async function viewAllKills(f) {
+    const { list, canMatrix } = killsOf(f);
+    if (!canMatrix) return null;
+    const tab = ['dmg', 'heal', 'boss'].includes(rk.tab) ? rk.tab : 'dmg';
+    const useBracket = rk.bracket === 'bracket';
+    const datas = [];
+    for (let i = 0; i < list.length; i += 4) datas.push(...await Promise.all(list.slice(i, i + 4).map((x) => rankFull(rawFight(x)))));
+    const unitKey = tab === 'heal' ? 'hps' : tab === 'boss' ? 'bd' : 'dps';
+    const avgOf = (arr) => (arr.length ? Math.floor(arr.reduce((s, v) => s + v, 0) / arr.length) : null);
+    const execAvg = avgOf(datas.map((d) => d.dps?.execution?.rankPercent).filter((v) => typeof v === 'number'));
+    const speedAvg = avgOf(datas.map((d) => d.dps?.speed?.rankPercent).filter((v) => typeof v === 'number'));
+    const ROLE_ORDER = tab === 'heal' ? ['healers', 'tanks', 'dps'] : ['dps', 'tanks', 'healers'];
+    const ROLE_TITLE = { dps: LL('Dañadores', 'Damage dealers'), tanks: LL('Tanques', 'Tanks'), healers: LL('Sanadores', 'Healers') };
+    const ROLE_KEY = { dps: 'dps', tanks: 'tank', healers: 'healer' };
+    const players = { dps: new Map(), tanks: new Map(), healers: new Map() };
+    datas.forEach((d, bi) => {
+      const roles = (d[unitKey] || d.dps)?.roles || {};
+      for (const role of Object.keys(players)) {
+        for (const c of roles[role]?.characters || []) {
+          if (!players[role].has(c.name)) players[role].set(c.name, { name: c.name, cls: c.class, cells: {} });
+          const v = useBracket ? c.bracketPercent : c.rankPercent;
+          players[role].get(c.name).cells[bi] = { p: typeof v === 'number' ? Math.floor(v) : null, spec: c.spec, cls: c.class };
+        }
+      }
+    });
+    const chip = (attr, v, label, on) => `<button class="chip ${on ? 'on' : ''}" data-rk="${attr}" data-v="${esc(v)}">${label}</button>`;
+    const n = list.length;
+    const cols = `190px 62px repeat(${n}, minmax(150px, 1fr))`;
+    const head = `<div class="wl-row th"><span class="wl-l">${LL('Nombre', 'Name')}</span><span>Avg</span>${list.map((x) => `<span title="${esc(x.name)}"><span class="wl-bh"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${x.encounterID}-icon.jpg" width="26" height="26" alt=""><b>${esc(x.name)}</b></span><span class="wl-bt">${clock(x.endTime - x.startTime)}</span></span>`).join('')}</div>`;
+    const blocks = ROLE_ORDER.map((role) => {
+      const rows = [...players[role].values()].map((p) => {
+        const ps = Object.values(p.cells).map((c) => c.p).filter((v) => v != null);
+        return { ...p, avg: avgOf(ps) };
+      }).sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1) || a.name.localeCompare(b.name, locale()));
+      if (!rows.length) return '';
+      const body = rows.map((p) => {
+        const color = classColor(p.cls);
+        return `<div class="wl-row ${isMe(p.name) ? 'me' : ''}"><span class="wl-nm" style="color:${color}">${esc(p.name)}</span><span class="wl-c">${pctCell(p.avg)}</span>${list.map((x, i) => {
+          const c = p.cells[i];
+          return `<span>${c ? `<span class="wl-cell">${pctCell(c.p)}<img src="${specIconUrl(c.spec ? `${c.cls}-${c.spec}` : c.cls)}" width="18" height="18" alt="" title="${esc(c.spec || '')}"></span>` : '<span class="wl-muted">-</span>'}</span>`;
+        }).join('')}</div>`;
+      }).join('');
+      return `<h4 class="wl-sec">${Extras.roleIcon(ROLE_KEY[role])}<span>${ROLE_TITLE[role]}</span><small>${rows.length}</small></h4><div class="wl-wrap"><div class="wl-table wl-mx" style="--wl-cols:${cols}">${head}${body}</div></div>`;
+    }).join('');
+    const bar = `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), true)}${chip('view', 'adv', LL('Vista avanzada (varios intentos, filtros)', 'Advanced view (several pulls, filters)'), false)}</div>`;
+    const tabs = `<div class="metricbar wl-tabs"><span class="muted">${LL('Clasificación de jugadores', 'Player rankings')}</span>${chip('tab', 'dmg', LL('Daño', 'Damage'), tab === 'dmg')}${chip('tab', 'heal', LL('Sanación', 'Healing'), tab === 'heal')}${chip('tab', 'boss', LL('Daño al jefe', 'Boss damage'), tab === 'boss')}<span class="grow"></span>${chip('bracket', 'overall', LL('General', 'Overall'), !useBracket)}${chip('bracket', 'bracket', LL('Por nivel de objeto', 'By bracket'), useBracket)}</div>`;
+    const gsum = `<div class="wl-gsum"><span>${LL('Ejecución', 'Execution')}</span><span>${execAvg != null ? pctCell(execAvg) : '<span class="wl-muted">0</span>'}</span><span>${LL('Velocidad', 'Speed')}</span><span>${speedAvg != null ? pctCell(speedAvg) : '<span class="wl-muted">0</span>'}</span></div>`;
+    return headerHTML(f, t('tabs.rankings'), LL(`<b>${n}</b> jefes · todas las kills · datos de Warcraft Logs`, `<b>${n}</b> bosses · all kills · data from Warcraft Logs`)) + bar
+      + `<h3 class="wl-sec">${LL('Ranking de la hermandad', 'Guild rankings')}</h3>${gsum}`
+      + tabs + blocks
+      + `<p class="foot">${LL('Una kill por jefe (la última del log). El parse es el de Warcraft Logs; Avg es la media de los jefes en los que participó. Para ver varios intentos o filtrar por clase usa la vista avanzada.', 'One kill per boss (the latest in the log). Parse is from Warcraft Logs; Avg is the mean over the bosses played. For several pulls or class filters use the advanced view.')}</p>`;
+  }
+
   const METRICS = [['dmg', 'Daño', 'Damage'], ['heal', 'Sanación', 'Healing'], ['boss', 'Daño al jefe', 'Boss damage']];
 
   async function viewRankings(f) {
+    if (rk.view !== 'adv' && f.combined) {
+      const html = await viewAllKills(f);
+      if (html) return html;
+    }
     const canWcl = !f.combined && !!S.fight?.kill && !!S.fight?.encounterID && f.full !== false && rk.scope === 'sel';
     if (rk.view !== 'adv' && canWcl) {
       const html = await viewWcl(f);
@@ -309,7 +376,7 @@
     const classes = [...new Set(rows.map((r) => r.cls))].sort((a, b) => className(a).localeCompare(className(b), locale()));
     const chip = (attr, v, label, on, extra = '') => `<button class="chip ${on ? 'on' : ''}" data-rk="${attr}" data-v="${esc(v)}" ${extra}>${label}</button>`;
     const sorts = [['parse-desc', LL('Parse ↓ mejor a peor', 'Parse ↓ best to worst')], ['parse-asc', LL('Parse ↑ peor a mejor', 'Parse ↑ worst to best')], ['pilvl-desc', LL('Parse ilvl ↓', 'Parse ilvl ↓')], ['pilvl-asc', LL('Parse ilvl ↑', 'Parse ilvl ↑')], ['rate-desc', LL('Por segundo ↓', 'Per second ↓')], ['rate-asc', LL('Por segundo ↑', 'Per second ↑')], ['ilvl-desc', LL('Nivel de objeto ↓', 'Item level ↓')], ['ilvl-asc', LL('Nivel de objeto ↑', 'Item level ↑')], ['name', 'A–Z']];
-    const viewBar = canWcl ? `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), false)}${chip('view', 'adv', LL('Vista avanzada', 'Advanced view'), true)}</div>` : '';
+    const viewBar = canWcl || killsOf(f).canMatrix ? `<div class="metricbar"><span class="muted">${LL('Vista', 'View')}</span>${chip('view', 'wcl', LL('Formato Warcraft Logs', 'Warcraft Logs format'), false)}${chip('view', 'adv', LL('Vista avanzada', 'Advanced view'), true)}</div>` : '';
     const bar = viewBar + `<div class="metricbar"><span class="muted">${LL('Clasificación por', 'Rank by')}</span>${METRICS.map(([k, es, en]) => chip('metric', k, LL(es, en), rk.metric === k)).join('')}
       <span class="sep"></span><span class="muted">${LL('Alcance', 'Scope')}</span>
       ${chip('scope', 'sel', f.combined ? LL(`Pulls combinados (${list.length})`, `Combined pulls (${list.length})`) : LL('Este intento', 'This pull'), rk.scope === 'sel')}

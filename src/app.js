@@ -814,7 +814,7 @@ function renderSidebar() {
   for (const fights of groups.values()) {
     const f0 = fights[0];
     const kills = fights.filter((f) => f.kill).length;
-    html += `<div class="enc"><div class="enc-h"><span>${esc(f0.name)}</span><span class="enc-d">${esc(diffName(f0.difficulty))} · ${fights.length}${kills ? ' · ✓' : ''} <button class="mini-btn" data-action="combine-group" data-key="${esc(f0.groupKey)}" title="${esc(LL('Combinar todos los trys de este jefe', 'Combine every try of this boss'))}">${LL('Todos los trys', 'All tries')}</button></span></div>
+    html += `<div class="enc"><div class="enc-h"><span class="enc-n"><img class="enc-ic" src="https://assets.rpglogs.com/img/warcraft/bosses/${f0.encounterID}-icon.jpg" width="22" height="22" alt="" loading="lazy" onerror="this.remove()">${esc(f0.name)}</span><span class="enc-d">${esc(diffName(f0.difficulty))} · ${fights.length}${kills ? ' · ✓' : ''} <button class="mini-btn" data-action="combine-group" data-key="${esc(f0.groupKey)}" title="${esc(LL('Combinar todos los trys de este jefe', 'Combine every try of this boss'))}">${LL('Todos los trys', 'All tries')}</button></span></div>
       ${fights.map(fightBtn).join('')}</div>`;
   }
   if (trash.length) {

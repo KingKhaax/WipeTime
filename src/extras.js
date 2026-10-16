@@ -303,13 +303,6 @@ const Extras = (() => {
     }
   }
 
-  document.addEventListener('click', (ev) => {
-    if (!ev.target.closest?.('[data-action="open-nl"]')) return;
-    const names = [...sumPlayers.values()].map((p) => p.name);
-    const url = `https://kingkhaax.github.io/NinjaLoot/#players=${names.map(encodeURIComponent).join(',')}`;
-    try { window.api.openExternal(url); } catch { window.open(url, '_blank', 'noopener'); }
-  });
-
   async function viewSummary(f) {
     const sd = await summaryData(f);
     const { players, itemLevel } = sd.roles;
@@ -371,7 +364,7 @@ const Extras = (() => {
       ${alertsHTML(alerts, list.length)}
       ${cardsHtml}
       <h3 class="sec">${LL('Línea de tiempo del intento', 'Fight timeline')}</h3><div id="fightTimeline"><div class="loading"><span class="spinner"></span>${t('loading')}</div></div>
-      <h3 class="sec">${LL('Jugadores, equipo y consumibles', 'Players, gear and consumables')} <button type="button" class="mini-btn" data-action="open-nl" title="${esc(LL('Abre NinjaLoot mostrando solo a los jugadores de este log', 'Opens NinjaLoot showing only the players of this log'))}">${LL('Abrir en NinjaLoot con estos asistentes', 'Open in NinjaLoot with these attendees')}</button></h3>
+      <h3 class="sec">${LL('Jugadores, equipo y consumibles', 'Players, gear and consumables')}</h3>
       <div class="sum-table"><div class="sum-row th"><span>${LL('Jugador', 'Player')}</span><span></span><span>ilvl</span><span>${LL('Encantamientos', 'Enchants')}</span><span>${LL('Consumibles al pull', 'Consumables at pull')}</span><span>${LL('Estadísticas', 'Stats')}</span></div>${rows}</div>
       <p class="foot">${LL('Los consumibles se detectan por el nombre de las auras activas al empezar el pull (frasco, comida y runa) o usadas durante la pelea (poción); si algo no sale, puede ser una aura con otro nombre. Pasa el ratón por una etiqueta verde para ver qué detectó.', 'Consumables are detected from the names of auras active at pull (flask, food and rune) or used during the fight (potion); a miss may just be an aura with a different name. Hover a green tag to see what was detected.')}</p>
       <div class="cov-grid"><div><h3 class="sec">${LL('Cobertura de buffos de la banda', 'Raid buff coverage')}</h3>${buffsHtml || `<div class="empty">${t('noData')}</div>`}</div>
