@@ -30,8 +30,10 @@ const GuildCmp = (() => {
     const out = [];
     let end = -1;
     for (const x of list) {
-      if (out.length && x.t < end - 1000) {
-        if (x.kill) out[out.length - 1].kill = true;
+      const pv = out[out.length - 1];
+      // mismo pull: se solapa con el anterior, o empieza casi a la vez con la misma vida y la misma duración (relojes de logs distintos)
+      if (pv && (x.t < end - 1000 || (x.t - pv.t < 60000 && Math.abs((x.pct ?? -1) - (pv.pct ?? -2)) < 0.02 && Math.abs((x.dur || 0) - (pv.dur || 0)) < 4000))) {
+        if (x.kill) pv.kill = true;
         end = Math.max(end, x.t + (x.dur || 0));
         continue;
       }
