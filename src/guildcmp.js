@@ -6,7 +6,7 @@ const GuildCmp = (() => {
   const ASSETS = 'https://assets.rpglogs.com/img/warcraft';
   const MAX_PAGES = 16;
   const emptyQ = () => ({ name: '', realm: '', region: 'eu' });
-  const st = { q: [emptyQ(), emptyQ()], sel: [null, null], res: [null, null], msg: ['', ''], zones: null, zone: null, diff: 5, cache: new Map(), done: new Map(), loading: '', err: '', open: new Set() };
+  const st = { q: [emptyQ(), emptyQ()], sel: [null, null], res: [null, null], msg: ['', ''], zones: null, zone: null, diff: 5, cache: new Map(), done: new Map(), meta: new Map(), loading: '', err: '', open: new Set() };
 
   const keyOf = (g) => `${g.region}/${g.realmSlug}/${String(g.name).toLowerCase()}`;
   const repaint = () => { if (S.guildOpen && typeof Guilds !== 'undefined') Guilds.render(); };
@@ -49,12 +49,14 @@ const GuildCmp = (() => {
     if (st.cache.has(key)) return st.cache.get(key);
     const p = (async () => {
       const per = new Map();
+      let nReports = 0;
       for (let page = 1; page <= MAX_PAGES; page++) {
         st.loading = `${g.name} · ${LL('página', 'page')} ${page}`;
         repaint();
         const d = await gql(`query($n:String!,$s:String!,$r:String!,$z:Int,$d:Int,$p:Int){reportData{reports(guildName:$n,guildServerSlug:$s,guildServerRegion:$r,zoneID:$z,limit:50,page:$p){has_more_pages data{code startTime fights(difficulty:$d){encounterID kill fightPercentage startTime endTime}}}}}`,
           { n: g.name, s: g.realmSlug, r: g.region.toUpperCase(), z: st.zone, d: st.diff, p: page });
         const r = d.reportData?.reports;
+        nReports += (r?.data || []).length;
         for (const rep of r?.data || []) {
           for (const f of rep.fights || []) {
             if (!f.encounterID) continue;
@@ -65,6 +67,7 @@ const GuildCmp = (() => {
         if (!r?.has_more_pages) break;
       }
       for (const [e, l] of per) per.set(e, dedupe(l.sort((a, b) => a.t - b.t)));
+      st.meta.set(key, nReports);
       st.done.set(key, per);
       return per;
     })();
@@ -138,6 +141,9 @@ const GuildCmp = (() => {
     return `<div class="pf-fbar gc-ctl">${dd}<span class="chips">${diffs}</span></div>`;
   }
 
+  // Warcraft Logs no entrega por su API los reports privados u ocultos (muchas guilds de progreso los tienen así): sin reports no hay trys que contar
+  const noLogs = (g) => st.meta.get(`${keyOf(g)}:${st.zone}:${st.diff}`) === 0;
+
   // Datos de la comparación (para la tabla y para la imagen)
   function compareData() {
     const zone = (st.zones || []).find((z) => z.id === st.zone);
@@ -166,10 +172,10 @@ const GuildCmp = (() => {
     const cd = compareData();
     if (!cd) return `<div class="loading"><span class="spinner"></span>${LL('Cargando logs…', 'Loading logs…')} ${esc(st.loading)}</div>`;
     const { a, b, rows, both, totA, totB } = cd;
-    const stealth = [a, b].filter((g) => g.stealth);
-    const warn = stealth.length ? `<div class="gc-warn">🔒 ${LL(`${stealth.map((g) => g.name).join(' y ')}: tiene el modo sigilo de Warcraft Logs activado, así que sus reports no son públicos para aplicaciones externas y no se pueden contar sus trys.`, `${stealth.map((g) => g.name).join(' and ')}: has Warcraft Logs stealth mode on, so its reports are not public to external apps and its tries cannot be counted.`)}</div>` : '';
+    const hidden = [a, b].filter(noLogs);
+    const warn = hidden.length ? `<div class="gc-warn">ⓘ ${LL(`${hidden.map((g) => g.name).join(' y ')}: Warcraft Logs no entrega ningún report público de ${hidden.length > 1 ? 'estas guilds' : 'esta guild'} para esta banda y dificultad (sus logs son privados u ocultos, o no están asociados a la guild), así que no se pueden contar sus trys aquí. Los verás solo en la web de Warcraft Logs.`, `${hidden.map((g) => g.name).join(' and ')}: Warcraft Logs returns no public report for ${hidden.length > 1 ? 'these guilds' : 'this guild'} for this raid and difficulty (its logs are private or hidden, or not linked to the guild), so its tries cannot be counted here. You can only see them on the Warcraft Logs website.`)}</div>` : '';
     const cell = (s, i, g) => (s ? `<div class="gc-c" style="--gc:${NAME_COL[i]}"><span class="gc-top"><b class="gc-n">${num(s.n, 0)}</b><span class="gc-l">${s.killed ? LL('trys', 'tries') : LL('trys, sin kill', 'tries, no kill')}</span></span><small>${esc(cellTxt(s))}</small></div>`
-      : `<div class="gc-c none" style="--gc:${NAME_COL[i]}"><span class="gc-top"><b class="gc-n">—</b></span><small>${g.stealth ? '🔒 ' + LL('sigilo', 'stealth') : LL('sin pulls', 'no pulls')}</small></div>`);
+      : `<div class="gc-c none" style="--gc:${NAME_COL[i]}"><span class="gc-top"><b class="gc-n">—</b></span><small>${noLogs(g) ? LL('sin logs públicos', 'no public logs') : LL('sin pulls', 'no pulls')}</small></div>`);
     const body = rows.map((r) => {
       const d = diffTxt(r, a, b);
       const open = st.open.has(r.e.id);
@@ -223,7 +229,7 @@ const GuildCmp = (() => {
           g.fillStyle = '#8fb7ff'; g.font = `600 13px ${font}`; g.textAlign = 'left';
           g.fillText(r.e.name, cx[0] + (ims[i] ? 32 : 0), cy, cx[1] - cx[0] - 40);
           [[r.sA, 1, 0, a], [r.sB, 2, 1, b]].forEach(([sm, ci, k, gg]) => {
-            if (!sm) { g.fillStyle = '#6b6b74'; g.font = `700 18px ${font}`; g.fillText('—', cx[ci], cy - 6); g.font = `11px ${font}`; g.fillText(gg.stealth ? LL('sigilo', 'stealth') : LL('sin pulls', 'no pulls'), cx[ci], cy + 11); return; }
+            if (!sm) { g.fillStyle = '#6b6b74'; g.font = `700 18px ${font}`; g.fillText('—', cx[ci], cy - 6); g.font = `11px ${font}`; g.fillText(noLogs(gg) ? LL('sin logs públicos', 'no public logs') : LL('sin pulls', 'no pulls'), cx[ci], cy + 11); return; }
             g.fillStyle = NAME_COL[k]; g.font = `700 19px ${font}`; g.fillText(num(sm.n, 0), cx[ci], cy - 6);
             const nw = g.measureText(num(sm.n, 0)).width;
             g.fillStyle = '#c9c9d1'; g.font = `12px ${font}`; g.fillText(sm.killed ? LL('trys', 'tries') : LL('trys, sin kill', 'tries, no kill'), cx[ci] + nw + 6, cy - 5);
@@ -305,8 +311,7 @@ const GuildCmp = (() => {
     st.msg[i] = '';
     st.open.clear();
     repaint();
-    gql(`query($n:String!,$s:String!,$r:String!){guildData{guild(name:$n,serverSlug:$s,serverRegion:$r){stealthMode}}}`, { n: g.name, s: g.realmSlug, r: g.region.toUpperCase() })
-      .then((d) => { g.stealth = !!d.guildData?.guild?.stealthMode; }).catch(() => {}).finally(() => { refresh(); });
+    refresh();
   }
 
   document.addEventListener('submit', (ev) => {
