@@ -104,13 +104,7 @@ const Guilds = (() => {
   // La mano izquierda solo sale si el personaje lleva algo (con un arma a dos manos no hay hueco)
   const slotHTML = (bySlot, sl) => { const it = bySlot.get(sl); return !it && sl === 'OFF_HAND' ? '' : itemHTML(it, it?.slotName || sl); };
   // Especialización de Blizzard (id) -> icono incluido en src/specs
-  const SPEC_KEY = { 250: 'deathknight-blood', 251: 'deathknight-frost', 252: 'deathknight-unholy', 577: 'demonhunter-havoc', 581: 'demonhunter-vengeance', 1480: 'demonhunter-devourer',
-    102: 'druid-balance', 103: 'druid-feral', 104: 'druid-guardian', 105: 'druid-restoration', 1467: 'evoker-devastation', 1468: 'evoker-preservation', 1473: 'evoker-augmentation',
-    253: 'hunter-beastmastery', 254: 'hunter-marksmanship', 255: 'hunter-survival', 62: 'mage-arcane', 63: 'mage-fire', 64: 'mage-frost',
-    268: 'monk-brewmaster', 269: 'monk-windwalker', 270: 'monk-mistweaver', 65: 'paladin-holy', 66: 'paladin-protection', 70: 'paladin-retribution',
-    256: 'priest-discipline', 257: 'priest-holy', 258: 'priest-shadow', 259: 'rogue-assassination', 260: 'rogue-outlaw', 261: 'rogue-subtlety',
-    262: 'shaman-elemental', 263: 'shaman-enhancement', 264: 'shaman-restoration', 265: 'warlock-affliction', 266: 'warlock-demonology', 267: 'warlock-destruction',
-    71: 'warrior-arms', 72: 'warrior-fury', 73: 'warrior-protection' };
+  const SPEC_KEY = Cards.SPEC_KEY;
   const specInfoHTML = (d) => {
     const k = SPEC_KEY[d.specId];
     if (!k) return d.spec ? `<span><small>${LL('Especialización', 'Spec')}</small><b>${esc(d.spec)}</b></span>` : '';

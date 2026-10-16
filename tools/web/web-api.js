@@ -121,7 +121,7 @@
     const base = `/profile/wow/character/${encodeURIComponent(String(realmSlug).toLowerCase())}/${encodeURIComponent(String(name).toLowerCase())}`;
     const [p, md] = await Promise.all([bnetApi(`${base}?namespace=${ns}&locale=${loc}`, region), bnetApi(`${base}/character-media?namespace=${ns}`, region).catch(() => null)]);
     return {
-      name: p.name, level: p.level, race: p.race?.name, cls: p.character_class?.name, classId: p.character_class?.id, faction: p.faction?.type,
+      name: p.name, level: p.level, race: p.race?.name, cls: p.character_class?.name, classId: p.character_class?.id, specId: p.active_spec?.id || 0, faction: p.faction?.type,
       guild: p.guild ? { name: p.guild.name, realmSlug: p.guild.realm.slug, realmName: p.guild.realm.name, faction: p.guild.faction?.type } : null,
       realmSlug: p.realm?.slug || realmSlug, realmName: p.realm?.name || realmSlug, region,
       avatar: md?.assets?.find((x) => x.key === 'avatar')?.value || md?.assets?.[0]?.value || '',

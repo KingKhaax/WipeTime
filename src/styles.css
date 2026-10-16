@@ -2137,3 +2137,17 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .pf-dd .abdd-btn { min-height: 34px; background: var(--bg-deep); font-weight: 600; font-size: 13px; }
 .pf-dd .abdd-list { min-width: 220px; z-index: 45; }
 .pf-ddi { flex: none; border-radius: 4px; object-fit: cover; }
+
+/* ---------- Tarjetas de personaje compactas: se ajustan a su texto, una línea por dato, sin tapar el nombre ---------- */
+.cc-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+.cc-grid > .arm { flex: 1 1 100%; min-width: 0; }
+.char-wrap { flex: 0 1 auto; min-width: 240px; max-width: 460px; }
+.char-wrap .cc { width: 100%; box-sizing: border-box; padding: 10px 48px 10px 12px; gap: 12px; }
+.char-wrap .cc-pic { --sz: 64px; border-radius: 12px; }
+.char-wrap .cc > .cc-txt { gap: 1px; }
+.char-wrap .cc-name { font-size: 19px; overflow-wrap: anywhere; white-space: normal; }
+.char-wrap .cc-guild, .char-wrap .cc-class { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.char-wrap .cc-guild { display: block; }
+.char-wrap .cc-class > span { overflow: hidden; text-overflow: ellipsis; }
+.cc-spec { flex: none; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--cc, #3a4a6e) 70%, #000); }
+.char-wrap .cc-act { flex-direction: column; top: 50%; right: 9px; transform: translateY(-50%); }

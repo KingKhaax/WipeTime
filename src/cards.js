@@ -4,6 +4,14 @@
 // y logos de guild (escudo con sus colores). Los datos vienen de la API pública de Blizzard.
 const Cards = (() => {
   const CLASS_KEY = { 1: 'Warrior', 2: 'Paladin', 3: 'Hunter', 4: 'Rogue', 5: 'Priest', 6: 'DeathKnight', 7: 'Shaman', 8: 'Mage', 9: 'Warlock', 10: 'Monk', 11: 'Druid', 12: 'DemonHunter', 13: 'Evoker' };
+  // Especialización de Blizzard (id) -> icono incluido en src/specs
+  const SPEC_KEY = { 250: 'deathknight-blood', 251: 'deathknight-frost', 252: 'deathknight-unholy', 577: 'demonhunter-havoc', 581: 'demonhunter-vengeance', 1480: 'demonhunter-devourer',
+    102: 'druid-balance', 103: 'druid-feral', 104: 'druid-guardian', 105: 'druid-restoration', 1467: 'evoker-devastation', 1468: 'evoker-preservation', 1473: 'evoker-augmentation',
+    253: 'hunter-beastmastery', 254: 'hunter-marksmanship', 255: 'hunter-survival', 62: 'mage-arcane', 63: 'mage-fire', 64: 'mage-frost',
+    268: 'monk-brewmaster', 269: 'monk-windwalker', 270: 'monk-mistweaver', 65: 'paladin-holy', 66: 'paladin-protection', 70: 'paladin-retribution',
+    256: 'priest-discipline', 257: 'priest-holy', 258: 'priest-shadow', 259: 'rogue-assassination', 260: 'rogue-outlaw', 261: 'rogue-subtlety',
+    262: 'shaman-elemental', 263: 'shaman-enhancement', 264: 'shaman-restoration', 265: 'warlock-affliction', 266: 'warlock-demonology', 267: 'warlock-destruction',
+    71: 'warrior-arms', 72: 'warrior-fury', 73: 'warrior-protection' };
   const FACTION = { HORDE: '#ff4a4a', ALLIANCE: '#4a8dff' };
   const media = (u) => `wcmedia://m/${encodeURIComponent(u)}`;
   const charCache = new Map();
@@ -31,13 +39,18 @@ const Cards = (() => {
   const portraitHTML = (c, size = 72) => `<span class="cc-pic" style="--sz:${size}px">${c.avatar ? `<img src="${media(c.avatar)}" alt="">` : ''}<b class="cc-lvl">${esc(c.level ?? '')}</b></span>`;
 
   // Tarjeta como la de Warcraft Logs: Nombre / Guild - Reino (Región) / Raza Clase
+  // Tarjeta compacta: nombre / guild · reino (región) / icono de spec + raza · clase (cada una en una sola línea)
   function charCardHTML(c, { onClick = '' } = {}) {
     const cls = CLASS_KEY[c.classId] || '';
     const color = classColor(cls);
-    return `<div class="cc ${onClick ? 'click' : ''}" style="--cc:${color}" ${onClick}>${portraitHTML(c)}
-      <div class="cc-txt"><div class="cc-name">${esc(c.name)}</div>
-        <div class="cc-guild">${c.guild ? `<span style="color:${FACTION[c.guild.faction] || FACTION[c.faction] || 'var(--muted)'}">${esc(c.guild.name)}</span> - ` : ''}<span class="muted">${esc(c.realmName || c.realmSlug)} (${esc(String(c.region || '').toUpperCase())})</span></div>
-        <div class="cc-class" style="color:${color}">${esc([c.race, c.cls].filter(Boolean).join(' '))}</div></div></div>`;
+    const sk = SPEC_KEY[c.specId];
+    const specImg = sk ? `<img class="cc-spec" src="${specIconUrl(sk)}" width="20" height="20" alt="" style="--cc:${color}">` : '';
+    const kind = [c.race, c.cls].filter(Boolean).join(' · ');
+    const realm = `${c.realmName || c.realmSlug} (${String(c.region || '').toUpperCase()})`;
+    return `<div class="cc ${onClick ? 'click' : ''}" style="--cc:${color}" ${onClick}>${portraitHTML(c, 64)}
+      <div class="cc-txt"><div class="cc-name" title="${esc(c.name)}">${esc(c.name)}</div>
+        <div class="cc-guild" title="${esc((c.guild ? c.guild.name + ' · ' : '') + realm)}">${c.guild ? `<span style="color:${FACTION[c.guild.faction] || FACTION[c.faction] || 'var(--muted)'}">${esc(c.guild.name)}</span> · ` : ''}<span class="muted">${esc(realm)}</span></div>
+        <div class="cc-class" style="color:${color}" title="${esc(kind)}">${specImg}<span>${esc(kind)}</span></div></div></div>`;
   }
 
   // Escudo de guild: fondo, borde y emblema teñidos con los colores del escudo
@@ -113,5 +126,5 @@ const Cards = (() => {
     } catch { /* imagen sin acceso a sus píxeles: se deja como estaba */ }
   }, true);
 
-  return { char, crest, charCardHTML, crestHTML, portraitHTML, fillCrests, fillMe, slugOf, media, CLASS_KEY };
+  return { char, crest, charCardHTML, SPEC_KEY, crestHTML, portraitHTML, fillCrests, fillMe, slugOf, media, CLASS_KEY };
 })();
