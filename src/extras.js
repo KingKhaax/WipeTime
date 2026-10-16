@@ -594,22 +594,33 @@ const Extras = (() => {
       const path = sm.map((v, i) => `${(((tkn.start - f.startTime + i * tkn.step) / total) * 100).toFixed(2)},${(100 - (v / mx) * 100).toFixed(1)}`).join(' ');
       html += `<div class="cd-spike"><span class="muted">${LL('Daño recibido', 'Damage taken')}</span><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${path}" fill="none" stroke="#ff6b6b" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg></div>`;
     }
+    const KCOL = { raid: '#ffb454', ext: '#7fc4ff', self: '#a9b4c6' };
+    const KDESC = { raid: LL('Afectan a toda la banda', 'Affect the whole raid'), ext: LL('Sobre un aliado', 'Cast on an ally'), self: LL('Sobre uno mismo', 'On the caster') };
+    const guides = ruler.length ? [...Array(Math.floor(total / tick) + 1).keys()].map((i) => `<i class="cd-g" style="left:${((i * tick) / total) * 100}%"></i>`).join('') : '';
     for (const [kind, label] of kinds) {
+      const evs = events.filter((e) => DEF_BY_ID.get(e.abilityGameID)?.kind === kind).sort((a, b) => a.timestamp - b.timestamp);
+      if (!evs.length) continue;
+      // una sola línea por tipo: los iconos que caen muy juntos se apilan en un segundo nivel
+      const lastLeft = [];
+      const marks = evs.map((e) => {
+        const ab = ability(e.abilityGameID);
+        const p = playerInfo(e.sourceID);
+        const left = ((e.timestamp - f.startTime) / total) * 100;
+        let lv = lastLeft.findIndex((x) => left - x >= 2.4);
+        if (lv < 0) lv = lastLeft.length;
+        lastLeft[lv] = left;
+        const tg = defTarget(e);
+        return `<span class="cdm" style="left:${left}%;top:${5 + lv * 29}px;--cc:${classColor(p.cls)}" data-spell="${e.abilityGameID}" data-spell-extra="${esc(p.name)} → ${esc(tg.name)} · ${clockPrecise(e.timestamp - f.startTime)}">${iconImg(ab.icon, 24)}</span>`;
+      }).join('');
       const items = [...byAb.entries()].filter(([id]) => DEF_BY_ID.get(id)?.kind === kind).sort((a, b) => b[1].length - a[1].length);
-      if (!items.length) continue;
-      html += `<h3 class="sec">${label}</h3>`;
-      for (const [id, evs] of items) {
+      const chips = items.map(([id, list]) => {
         const ab = ability(id);
         const nm = ab.name.startsWith('#') ? DEF_BY_ID.get(id).name : ab.name;
-        const marks = evs.map((e) => {
-          const p = playerInfo(e.sourceID);
-          const left = ((e.timestamp - f.startTime) / total) * 100;
-          const tg = defTarget(e);
-          return `<span class="cdm" style="left:${left}%;--cc:${classColor(p.cls)}" data-spell="${id}" data-spell-extra="${esc(p.name)} → ${esc(tg.name)} · ${clockPrecise(e.timestamp - f.startTime)}">${iconImg(ab.icon, 22)}</span>`;
-        }).join('');
-        const who = [...new Set(evs.map((e) => playerInfo(e.sourceID).name))].slice(0, 4).join(', ');
-        html += `<div class="cd-row"><div class="cd-l" data-spell="${id}">${iconImg(ab.icon, 20)}<span>${esc(nm)} <b>×${evs.length}</b><small class="muted">${esc(who)}</small></span></div><div class="cd-t">${marks}</div></div>`;
-      }
+        const who = [...new Set(list.map((e) => playerInfo(e.sourceID).name))].slice(0, 4).join(', ');
+        return `<span class="cd-chip" data-spell="${id}">${iconImg(ab.icon, 20)}<span><b>${esc(nm)}</b> <em>×${list.length}</em><small>${esc(who)}</small></span></span>`;
+      }).join('');
+      html += `<section class="cd-kind" style="--k:${KCOL[kind]}"><div class="cd-kh"><b>${label}</b><span class="cd-n">${evs.length}</span><small>${KDESC[kind]}</small></div>
+        <div class="cd-lane" style="height:${lastLeft.length * 29 + 10}px">${guides}${marks}</div><div class="cd-legend">${chips}</div></section>`;
     }
     // registro exacto, ordenado por tiempo: cuándo, qué defensivo, quién lo lanzó y sobre quién
     const log = [...events].sort((a, b) => a.timestamp - b.timestamp).map((ev) => {

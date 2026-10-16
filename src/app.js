@@ -1495,12 +1495,11 @@ const VIEWS = {
         <h3>${t('byPlayer')}</h3>
         ${rows.length ? rows.map((r) => {
           const idx = S.lastUtil.push({ name: r.name, segs: [{ color: classColor(r.cls) }], abil: [...(perPlayerAura.get(r.id) || new Map()).entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => ({ name: ability(id).name, total: n, icon: ability(id).icon })) }) - 1;
-          return `<div class="mini click" data-action="player" data-id="${r.id}" data-ut="${idx}">
-          ${r.icon ? `<img class="spec-ic-sm" src="${specIconUrl(esc(r.icon))}" width="22" height="22" alt="" style="--cc:${classColor(r.cls)}">` : `<img class="spec-ic-sm" src="${classIconUrl(r.cls)}" width="22" height="22" alt="" style="--cc:${classColor(r.cls)}">`}<span class="name" style="color:${classColor(r.cls)}">${esc(r.name)}</span>
-          <span class="mbar"><span style="width:${(r.total / max) * 100}%;background:${classColor(r.cls)}"></span></span><b>${num(r.total, 0)}</b></div>`;
+          return `<div class="ut-row click" data-action="player" data-id="${r.id}" data-ut="${idx}" style="--c:${classColor(r.cls)}"><i class="ut-fill" style="width:${(r.total / max) * 100}%"></i>
+          <img class="spec-ic-sm" src="${r.icon ? specIconUrl(esc(r.icon)) : classIconUrl(r.cls)}" width="22" height="22" alt="" style="--cc:${classColor(r.cls)}"><span class="name">${esc(r.name)}</span><b>${num(r.total, 0)}</b></div>`;
         }).join('') : `<div class="empty sm">${t('noData')}</div>`}
         <h3>${removedTitle}</h3>
-        ${auras.length ? auras.map(([id, n]) => `<div class="mini" data-spell="${id}">${iconImg(ability(id).icon, 20)}<span class="name">${esc(ability(id).name)}</span><span class="grow"></span><b>${n}</b></div>`).join('') : `<div class="empty sm">${t('noData')}</div>`}
+        ${auras.length ? auras.map(([id, n]) => `<div class="ut-row" data-spell="${id}" style="--c:var(--accent, #4da3ff)"><i class="ut-fill" style="width:${(n / auras[0][1]) * 100}%"></i>${iconImg(ability(id).icon, 22)}<span class="name">${esc(ability(id).name)}</span><b>${n}</b></div>`).join('') : `<div class="empty sm">${t('noData')}</div>`}
       </div>`;
     };
     return headerHTML(f, t('utilTitle'))
