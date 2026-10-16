@@ -5,9 +5,17 @@
 const Profile = (() => {
   const REGIONS = ['eu', 'us', 'kr', 'tw'];
   const METRICS = [['dps', 'DPS'], ['hps', 'HPS'], ['bossdps', null]];
+  // Especializaciones de cada clase (nombres de Warcraft Logs, sin espacios) para el desplegable de specs
+  const CLASS_SPECS = { DeathKnight: ['Blood', 'Frost', 'Unholy'], DemonHunter: ['Havoc', 'Vengeance', 'Devourer'], Druid: ['Balance', 'Feral', 'Guardian', 'Restoration'],
+    Evoker: ['Devastation', 'Preservation', 'Augmentation'], Hunter: ['BeastMastery', 'Marksmanship', 'Survival'], Mage: ['Arcane', 'Fire', 'Frost'],
+    Monk: ['Brewmaster', 'Mistweaver', 'Windwalker'], Paladin: ['Holy', 'Protection', 'Retribution'], Priest: ['Discipline', 'Holy', 'Shadow'],
+    Rogue: ['Assassination', 'Outlaw', 'Subtlety'], Shaman: ['Elemental', 'Enhancement', 'Restoration'], Warlock: ['Affliction', 'Demonology', 'Destruction'], Warrior: ['Arms', 'Fury', 'Protection'] };
+  // Warcraft Logs numera las clases distinto que Blizzard (Monje = 5 en WCL, 10 en Blizzard)
+  const WCL_CLASS = { 1: 'DeathKnight', 2: 'Druid', 3: 'Hunter', 4: 'Mage', 5: 'Monk', 6: 'Paladin', 7: 'Priest', 8: 'Rogue', 9: 'Shaman', 10: 'Warlock', 11: 'Warrior', 12: 'DemonHunter', 13: 'Evoker' };
+  const ASSETS = 'https://assets.rpglogs.com/img/warcraft';
   const SLOT_ORDER = ['HEAD', 'NECK', 'SHOULDER', 'BACK', 'CHEST', 'SHIRT', 'TABARD', 'WRIST', 'HANDS', 'WAIST', 'LEGS', 'FEET', 'FINGER_1', 'FINGER_2', 'TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
   const QCOLOR = { POOR: '#9d9d9d', COMMON: '#ffffff', UNCOMMON: '#1eff00', RARE: '#0070dd', EPIC: '#a335ee', LEGENDARY: '#ff8000', ARTIFACT: '#e6cc80', HEIRLOOM: '#00ccff' };
-  const st = { q: null, zones: null, zone: null, diff: 5, partition: -1, metric: 'dps', arm: null, rio: null, wcl: null, wclErr: '', armErr: '', busy: false, at: 0, timer: null };
+  const st = { q: null, zones: null, zone: null, diff: 0, partition: -1, boss: 0, spec: '', metric: 'dps', arm: null, rio: null, wcl: null, wclErr: '', armErr: '', busy: false, at: 0, timer: null };
 
   const regionName = (r) => ({ eu: LL('Europa', 'Europe'), us: LL('América', 'America'), kr: LL('Corea', 'Korea'), tw: LL('Taiwán', 'Taiwan') }[r] || r.toUpperCase());
   const cleanLine = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
@@ -44,12 +52,14 @@ const Profile = (() => {
   // Todos los logs del personaje en un jefe (como el desplegable de Warcraft Logs), con caché por parche/dificultad/métrica
   st.encLogs = {};
   const encPending = new Set();
-  const encKey = (id) => `${st.zone}:${st.diff}:${st.partition}:${st.metric}:${id}`;
+  const effDiff = () => st.diff || st.wcl?.zoneRankings?.difficulty || 5;
+  const specArg = () => (st.spec ? `,specName:${JSON.stringify(st.spec)}` : '');
+  const encKey = (id) => `${st.zone}:${st.diff}:${st.partition}:${st.spec}:${st.metric}:${id}`;
   async function fetchEncLogs(id) {
     const q = st.q, key = encKey(id);
     try {
       const metric = METRICS.some(([m]) => m === st.metric) ? st.metric : 'dps';
-      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){encounterRankings(encounterID:${Number(id)},difficulty:${Number(st.diff)},metric:${metric},partition:${Number(st.partition)})}}}`, undefined, true);
+      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){encounterRankings(encounterID:${Number(id)},difficulty:${Number(effDiff())},metric:${metric},partition:${Number(st.partition)}${specArg()})}}}`, undefined, true);
       const ranks = d.characterData?.character?.encounterRankings?.ranks || [];
       st.encLogs[key] = ranks.filter((r) => r.report?.code).sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
     } catch (e) { st.encLogs[key] = { error: friendlyError(e) }; }
@@ -77,9 +87,9 @@ const Profile = (() => {
       const zones = await zonesList();
       const zone = zones.find((z) => z.id === st.zone) || zones[zones.length - 1];
       if (!zone) { st.wcl = null; return; }
-      if (!zone.difficulties?.some((x) => x.id === st.diff)) st.diff = (zone.difficulties || []).map((x) => x.id).filter((i) => [3, 4, 5].includes(i)).pop() || zone.difficulties?.[0]?.id || 5;
+      if (st.diff && !zone.difficulties?.some((x) => x.id === st.diff)) st.diff = 0;
       const metric = METRICS.some(([m]) => m === st.metric) ? st.metric : 'dps';
-      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){name classID level faction{name} guildRank hidden zoneRankings(zoneID:${Number(zone.id)},difficulty:${Number(st.diff)},metric:${metric},partition:${Number(st.partition)})}}}`, undefined, true);
+      const d = await gql(`{characterData{character(name:${JSON.stringify(q.name)},serverSlug:${JSON.stringify(q.slug)},serverRegion:${JSON.stringify(q.region.toUpperCase())}){name classID level faction{name} guildRank hidden zoneRankings(zoneID:${Number(zone.id)},${st.diff ? `difficulty:${Number(st.diff)},` : ''}metric:${metric},partition:${Number(st.partition)}${specArg()})}}}`, undefined, true);
       st.wcl = d.characterData?.character || null;
       if (!st.wcl) st.wclErr = LL('Warcraft Logs no tiene a este personaje (o no tiene logs públicos).', 'Warcraft Logs does not have this character (or it has no public logs).');
     } catch (e) { st.wcl = null; st.wclErr = friendlyError(e); }
@@ -201,7 +211,7 @@ const Profile = (() => {
     sidebar.hidden = true;
     st.q = { name: q.name, slug: q.slug, realm: q.realm || q.slug, region: REGIONS.includes(q.region) ? q.region : 'eu', locale: q.locale || '' };
     st.arm = null; st.rio = null; st.wcl = null; st.wclErr = ''; st.armErr = '';
-    st.embed = null; st.encLogs = {}; st.openEnc = null;
+    st.embed = null; st.encLogs = {}; st.openEnc = null; st.boss = 0; st.spec = '';
     const l = recent().filter((x) => !(x.slug === st.q.slug && x.name.toLowerCase() === st.q.name.toLowerCase() && x.region === st.q.region));
     l.unshift({ name: st.q.name, realm: st.q.realm, slug: st.q.slug, region: st.q.region, locale: st.q.locale });
     lsSet('prof:recent', JSON.stringify(l.slice(0, 8)));
@@ -221,7 +231,7 @@ const Profile = (() => {
       const as = [...(zr.allStars || [])].sort((a, b) => b.points - a.points)[0];
       const killed = (zr.rankings || []).filter((r) => r.totalKills > 0).length;
       const total = zone?.encounters?.length || (zr.rankings || []).length;
-      tiles.push(`<div class="pf-tile"><h4>${esc(zone?.name || '')} · ${esc(diffName(st.diff))}</h4>
+      tiles.push(`<div class="pf-tile"><h4>${esc(zone?.name || '')} · ${esc(diffName(effDiff()))}</h4>
         <div class="pf-tile-b"><span class="pf-prog">${killed}<small> / ${total}</small></span><span><small>All Stars</small><b>${as ? num(as.points, 0) : '—'}</b></span>
         <span><small>${LL('Mundo', 'World')}</small><b style="color:${rankColor(as?.rankPercent)}">${as ? `#${num0(as.rank)}` : '—'}</b></span>
         <span><small>${esc(regionName(st.q.region))}</small><b style="color:${rankColor(as?.rankPercent)}">${as ? `#${num0(as.regionRank)}` : '—'}</b></span>
@@ -276,19 +286,39 @@ const Profile = (() => {
         <small class="muted">${LL('Consultado', 'Fetched')}: ${esc(ago(st.at))}</small></div></div>`;
   }
 
+  // Desplegable propio (con iconos) igual que los de Warcraft Logs; items: [{ v, label, icon?, on? }]
+  const ddHTML = (key, cur, items) => `<div class="abdd pf-dd"><button type="button" class="abdd-btn" data-pf="dd-toggle">${cur.icon ? `<img class="pf-ddi" src="${cur.icon}" width="20" height="20" alt="">` : ''}<span class="abdd-t">${esc(cur.label)}</span><span class="abdd-car">▾</span></button>
+    <div class="abdd-list surface-dark" hidden>${items.map((it) => `<div class="abdd-i ${it.on ? 'on' : ''}" data-pf="dd-pick" data-dd="${key}" data-v="${esc(String(it.v))}">${it.icon ? `<img class="pf-ddi" src="${it.icon}" width="22" height="22" alt="" loading="lazy">` : ''}<span class="abdd-t">${esc(it.label)}</span></div>`).join('')}</div></div>`;
   const partName = (id) => { const p = (((st.zones || []).find((z) => z.id === st.zone) || {}).partitions || []).find((x) => x.id === id); return p ? (p.compactName || p.name) : ''; };
   function controlsHTML() {
     const zones = st.zones || [];
     const zone = zones.find((z) => z.id === st.zone);
+    if (!zone) return '';
     const exps = [...new Map(zones.map((z) => [z.expId, z.expName])).entries()].sort((a, b) => b[0] - a[0]);
-    const opts = exps.map(([id, name]) => `<optgroup label="${esc(name)}">${[...zones].filter((z) => z.expId === id).sort((a, b) => b.id - a.id).map((z) => `<option value="${z.id}" ${z.id === st.zone ? 'selected' : ''}>${esc(z.name)}</option>`).join('')}</optgroup>`).join('');
-    const diffs = (zone?.difficulties || []).filter((d) => [1, 2, 3, 4, 5].includes(d.id)).map((d) => `<button type="button" class="chip ${st.diff === d.id ? 'on' : ''}" data-pf="diff" data-v="${d.id}">${esc(diffName(d.id) || d.name)}</button>`).join('');
-    const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l || LL('Daño a jefe', 'Boss Damage')}</button>`).join('');
-    // Botones de parche dentro de la season (como en Warcraft Logs): Todo + uno por cada parche de la banda
-    const parts = (zone?.partitions || []).filter((p) => p.name !== 'default');
+    const expDD = ddHTML('exp', { label: zone.expName }, exps.map(([id, name]) => ({ v: id, label: name, on: id === zone.expId })));
+    const zoneDD = ddHTML('zone', { label: zone.name, icon: `${ASSETS}/zones/zone-${zone.id}.png` },
+      [...zones].filter((z) => z.expId === zone.expId).sort((a, b) => b.id - a.id).map((z) => ({ v: z.id, label: z.name, icon: `${ASSETS}/zones/zone-${z.id}.png`, on: z.id === zone.id })));
+    const mLabel = { dps: LL('Daño', 'Damage'), hps: LL('Sanación', 'Healing'), bossdps: LL('Daño a jefe', 'Boss Damage') };
+    const metDD = ddHTML('metric', { label: mLabel[st.metric] || mLabel.dps }, METRICS.map(([m]) => ({ v: m, label: mLabel[m], on: st.metric === m })));
+    const bosses = (zone.encounters || []).filter((e) => e.name);
+    const allBoss = LL('Todos los jefes', 'All Bosses');
+    const curBoss = bosses.find((e) => e.id === st.boss);
+    const bossDD = ddHTML('boss', curBoss ? { label: curBoss.name, icon: `${ASSETS}/bosses/${curBoss.id}-icon.jpg` } : { label: allBoss },
+      [{ v: 0, label: allBoss, on: !st.boss }, ...bosses.map((e) => ({ v: e.id, label: e.name, icon: `${ASSETS}/bosses/${e.id}-icon.jpg`, on: e.id === st.boss }))]);
+    const clsKey = WCL_CLASS[st.wcl?.classID] || '';
+    const specs = CLASS_SPECS[clsKey] || [];
+    const allSpec = LL('Todas las especializaciones', 'All Specs');
+    const specIc = (sp) => specIconUrl(`${clsKey}-${sp}`);
+    const specDD = ddHTML('spec', st.spec && clsKey ? { label: specName(st.spec), icon: specIc(st.spec) } : { label: allSpec },
+      [{ v: '', label: allSpec, on: !st.spec }, ...specs.map((sp) => ({ v: sp, label: specName(sp), icon: specIc(sp), on: sp === st.spec }))]);
+    const dIds = [5, 4, 3, 2, 1].filter((id) => (zone.difficulties || []).some((d) => d.id === id));
+    const dLabel = (id) => diffName(id) || (zone.difficulties.find((d) => d.id === id)?.name || '');
+    const highest = LL('Dificultad máxima', 'Highest Difficulty');
+    const diffDD = ddHTML('diff', { label: st.diff ? dLabel(st.diff) : highest }, [{ v: 0, label: highest, on: !st.diff }, ...dIds.map((id) => ({ v: id, label: dLabel(id), on: id === st.diff }))]);
+    // Botones de parche dentro de la season (como en Warcraft Logs): Todos + uno por cada parche de la banda
+    const parts = (zone.partitions || []).filter((p) => p.name !== 'default');
     const ptabs = parts.length > 1 ? `<div class="pf-ptabs"><button type="button" class="pf-ptab ${st.partition === -1 ? 'on' : ''}" data-pf="part" data-v="-1">${LL('Todos', 'All')}</button>${parts.map((p) => `<button type="button" class="pf-ptab ${st.partition === p.id ? 'on' : ''}" data-pf="part" data-v="${p.id}" title="${esc(p.name)}">${esc(p.compactName || p.name)}</button>`).join('')}</div>` : '';
-    return `<div class="pf-ctl"><label>${LL('Season', 'Season')}<select data-pf-zone>${opts}</select></label>
-      <span class="chips">${diffs}</span><span class="sep"></span><span class="chips">${mets}</span></div>${ptabs}`;
+    return `<div class="pf-fbar">${expDD}${zoneDD}</div><div class="pf-fbar">${metDD}${bossDD}${specDD}${diffDD}</div>${ptabs}`;
   }
 
   function tableHTML() {
@@ -304,11 +334,9 @@ const Profile = (() => {
     const unit = zr.metric === 'hps' ? 'HPS' : 'DPS';
     const pct = (v) => (v == null ? '-' : `<b style="color:${parseColor(v)}">${Math.floor(v)}</b>`);
     // Icono de la spec con la que se hizo el mejor parse (como en Warcraft Logs)
-    // Warcraft Logs numera las clases distinto que Blizzard (Monje = 5 en WCL, 10 en Blizzard)
-    const WCL_CLASS = { 1: 'DeathKnight', 2: 'Druid', 3: 'Hunter', 4: 'Mage', 5: 'Monk', 6: 'Paladin', 7: 'Priest', 8: 'Rogue', 9: 'Shaman', 10: 'Warlock', 11: 'Warrior', 12: 'DemonHunter', 13: 'Evoker' };
     const clsKey = WCL_CLASS[w.classID] || Cards.CLASS_KEY[st.arm?.classId] || '';
     const specImg = (r) => { const sp = r.bestSpec || r.spec; return clsKey && sp ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(sp).split(' ').join('')}`)}" width="20" height="20" alt="" title="${esc(sp)}">` : ''; };
-    const rows = zone.encounters.filter((e) => e.name).map((e) => { // sin nombre = jefe aún sin traducir en Warcraft Logs
+    const rows = zone.encounters.filter((e) => e.name && (!st.boss || e.id === st.boss)).map((e) => { // sin nombre = jefe aún sin traducir en Warcraft Logs
       const r = byEnc.get(e.id);
       const has = r && r.totalKills > 0;
       const a2 = r?.allStars;
@@ -323,7 +351,7 @@ const Profile = (() => {
     // Resumen con la misma disposición que Warcraft Logs: dificultad arriba, mejor media a la izquierda,
     // mediana y kills a la derecha, y los puntos All Star (con parche y spec) abajo en el centro
     const asSpec = as?.spec && clsKey ? `<img class="pf-spec" src="${specIconUrl(`${clsKey}-${String(as.spec).split(' ').join('')}`)}" width="20" height="20" alt="" title="${esc(as.spec)}">` : '';
-    return `<div class="pf-sum2"><div class="pf-sum2-t">${esc(diffName(st.diff) || '')}</div>
+    return `<div class="pf-sum2"><div class="pf-sum2-t">${esc(diffName(effDiff()) || '')}</div>
       <div class="pf-sum2-l"><small>${LL('Mejor media', 'Best Perf. Avg')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
       <div class="pf-sum2-r"><span>${LL('Media mediana', 'Median Perf. Avg')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
         <span>${LL('Kills registradas', 'Kills Logged')}: <b>${kills}</b></span></div>
@@ -417,6 +445,22 @@ const Profile = (() => {
     else if (a === 'log') loadReport(`https://www.warcraftlogs.com/reports/${el.dataset.code}${el.dataset.fight ? `#fight=${el.dataset.fight}` : ''}`);
     else if (a === 'copytal') { const txt = st.rio?.talents?.text; if (txt) navigator.clipboard.writeText(txt).then(() => toast(LL('Talentos copiados: pégalos en el juego con «Importar»', 'Talents copied: paste them in game with «Import»'))); }
     else if (a === 'home') goHome();
+    else if (a === 'dd-toggle') {
+      const list = el.nextElementSibling;
+      document.querySelectorAll('.abdd-list:not([hidden])').forEach((l) => { if (l !== list) l.hidden = true; });
+      list.hidden = !list.hidden;
+    }
+    else if (a === 'dd-pick') {
+      const k = el.dataset.dd, v = el.dataset.v;
+      const reload = () => { st.wcl = null; repaint(); fetchWcl().then(repaint); };
+      const zoneReset = () => { st.partition = -1; st.boss = 0; st.openEnc = null; };
+      if (k === 'exp') { const z = (st.zones || []).filter((x) => x.expId === Number(v)).sort((a, b) => b.id - a.id)[0]; if (z) { st.zone = z.id; zoneReset(); reload(); } }
+      else if (k === 'zone') { st.zone = Number(v); zoneReset(); reload(); }
+      else if (k === 'metric') { st.metric = v; reload(); }
+      else if (k === 'diff') { st.diff = Number(v); st.openEnc = null; reload(); }
+      else if (k === 'spec') { st.spec = v; st.openEnc = null; reload(); }
+      else if (k === 'boss') { st.boss = Number(v); st.openEnc = st.boss || null; repaint(); }
+    }
     else if (a === 'part') { st.partition = Number(el.dataset.v); st.openEnc = null; st.wcl = null; repaint(); fetchWcl().then(repaint); }
     else if (a === 'diff') { st.diff = Number(el.dataset.v); st.wcl = null; repaint(); fetchWcl().then(repaint); }
     else if (a === 'metric') { st.metric = el.dataset.v; st.wcl = null; repaint(); fetchWcl().then(repaint); }
@@ -438,7 +482,7 @@ const Profile = (() => {
     if (st.embed === key) return;
     st.embed = key;
     st.q = { name: c.name, slug: c.realmSlug, realm: c.realmName || c.realmSlug, region: REGIONS.includes(region) ? region : 'eu', locale: '' };
-    st.arm = null; st.rio = null; st.wcl = null; st.wclErr = ''; st.openEnc = null; st.encLogs = {};
+    st.arm = null; st.rio = null; st.wcl = null; st.wclErr = ''; st.openEnc = null; st.encLogs = {}; st.boss = 0; st.spec = '';
     fetchWcl().then(() => { if (st.embed === key) repaint(); });
   }
   const embedHTML = () => (st.embed ? `<div class="pf pf-embed"><div class="pf-tiles">${tilesHTML()}</div>${controlsHTML()}${tableHTML()}</div>` : '');
