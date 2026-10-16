@@ -81,7 +81,7 @@
     });
   }
 
-  const nf = (n) => Number(n).toLocaleString(locale());
+  const nf = (n) => num(Number(n), 0);
   // posición: puede venir como número o como «~1125» (aproximada)
   const fmtRank = (v) => {
     if (v == null || v === '-' || v === '') return '–';

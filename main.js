@@ -1013,6 +1013,8 @@ async function itemIcon(id, token, region = bnetRegion()) {
   return itemIconCache.get(id);
 }
 
+const tipColor = (c) => (c ? `rgb(${c.r},${c.g},${c.b})` : '');
+
 async function armory(realmSlug, name, lang, region = bnetRegion()) {
   if (!BNET_REGIONS.includes(region)) region = bnetRegion();
   const token = await bnetAppToken();
@@ -1029,7 +1031,28 @@ async function armory(realmSlug, name, lang, region = bnetRegion()) {
     enchant: (i.enchantments || []).map((e) => e.display_string).filter(Boolean),
     gems: (i.sockets || []).map((sk) => ({ name: sk.item?.name || '', stat: sk.display_string || '' })),
     set: i.set?.item_set?.name || '', armorType: i.item_subclass?.name || '',
+    // Todo lo necesario para el tooltip del objeto (tal como lo devuelve Blizzard para esa versión concreta: dificultad, nivel, estadísticas)
+    tip: {
+      level: i.level?.display_string || '', nameDesc: i.name_description ? { t: i.name_description.display_string, c: tipColor(i.name_description.color) } : null,
+      binding: i.binding?.name || '', unique: i.unique_equipped || '', invType: i.inventory_type?.name || '', subclass: i.is_subclass_hidden ? '' : (i.item_subclass?.name || ''),
+      weapon: i.weapon ? { dmg: i.weapon.damage?.display_string || '', speed: i.weapon.attack_speed?.display_string || '', dps: i.weapon.dps?.display_string || '' } : null,
+      armor: i.armor?.display?.display_string || '',
+      stats: (i.stats || []).map((x) => ({ t: x.display?.display_string || '', c: tipColor(x.display?.color), neg: !!x.is_negated })),
+      spells: (i.spells || []).map((x) => x.description || '').filter(Boolean),
+      enchants: (i.enchantments || []).map((e) => e.display_string).filter(Boolean),
+      sockets: (i.sockets || []).map((sk) => ({ type: sk.socket_type?.name || '', gem: sk.item?.name || '', stat: sk.display_string || '' })),
+      set: i.set ? { name: i.set.item_set?.name || '', items: (i.set.items || []).map((x) => ({ n: x.item?.name || '', eq: !!x.is_equipped })), effects: (i.set.effects || []).map((e) => ({ t: e.display_string || '', req: e.required_count || 0, on: !!e.is_active })) } : null,
+      durability: i.durability?.display_string || '', level_req: i.requirements?.level?.display_string || '', classes: i.requirements?.playable_classes?.display_string || '',
+      transmog: i.transmog?.display_string || '', flavor: i.description || '',
+      sell: i.sell_price?.display_strings ? { g: i.sell_price.display_strings.gold, s: i.sell_price.display_strings.silver, c: i.sell_price.display_strings.copper } : null,
+    },
   }));
+  // Nivel de objeto equipado con decimales: media de los 16 huecos (un arma a dos manos cuenta en los dos)
+  const lvl = (t) => items.find((x) => x.slot === t)?.ilvl || 0;
+  const mh = items.find((x) => x.slot === 'MAIN_HAND');
+  const twoH = mh && !items.some((x) => x.slot === 'OFF_HAND') && ['Dos manos', 'Two-Hand', 'A distancia', 'Ranged'].includes(mh.tip.invType);
+  const slots16 = ['HEAD', 'NECK', 'SHOULDER', 'BACK', 'CHEST', 'WRIST', 'HANDS', 'WAIST', 'LEGS', 'FEET', 'FINGER_1', 'FINGER_2', 'TRINKET_1', 'TRINKET_2', 'MAIN_HAND', 'OFF_HAND'];
+  const ilvlExact = items.length ? slots16.reduce((sum, sl) => sum + (sl === 'OFF_HAND' && twoH ? lvl('MAIN_HAND') : lvl(sl)), 0) / 16 : 0;
   // Blizzard da el número del rating en rating_normalized (antes rating); en velocidad y evitación solo viene rating_bonus
   const pct = (o) => (o ? { rating: o.rating_normalized ?? o.rating ?? 0, value: o.value ?? o.rating_bonus ?? 0 } : null);
   const stats = st ? {
@@ -1050,7 +1073,7 @@ async function armory(realmSlug, name, lang, region = bnetRegion()) {
     render: md?.assets?.find((a) => a.key === 'main-raw')?.value || md?.assets?.find((a) => a.key === 'main')?.value || md?.assets?.find((a) => a.key === 'inset')?.value || '',
     avatar: md?.assets?.find((a) => a.key === 'avatar')?.value || '', lastLogin: sum.last_login_timestamp || 0, gender: sum.gender?.type || '', faction: sum.faction?.type || '',
     guildRealm: sum.guild?.realm?.slug || '', guildRealmName: sum.guild?.realm?.name || '', realmSlug: sum.realm?.slug || realmSlug, region,
-    items, stats, at: Date.now(),
+    items, ilvlExact: Math.round(ilvlExact * 100) / 100, stats, at: Date.now(),
   };
 }
 

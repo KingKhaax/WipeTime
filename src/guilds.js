@@ -120,7 +120,7 @@ const Guilds = (() => {
       ...it.enchant.map((e) => `<i class="ench">${esc(cleanLine(e))}</i>`),
       ...it.gems.map((g) => `<i class="gem">${esc(cleanLine(g.name || g.stat || ''))}</i>`),
     ].join('');
-    return `<div class="arm-it" style="--q:${col}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
+    return `<div class="arm-it" style="--q:${col}" data-itip="${Cards.itemTipKey(it)}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
       <span class="arm-tx"><b title="${esc(it.name)}">${esc(it.name)}</b><small><em>${esc(it.ilvl || '')}</em> ${esc(slotLabel)}${it.set ? ` · ${esc(it.set)}` : ''}</small>${sub}</span></div>`;
   }
 
@@ -160,11 +160,11 @@ const Guilds = (() => {
     const bySlot = new Map(d.items.map((i) => [i.slot, i]));
     const col = (slots) => slots.map((sl) => slotHTML(bySlot, sl)).join('');
     const info = [
-      `<span><small>${LL('Nivel de objeto', 'Item level')}</small><b>${esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
+      `<span><small>${LL('Nivel de objeto', 'Item level')}</small><b>${d.ilvlExact ? esc(num(d.ilvlExact, 2)) : esc(d.ilvlEquipped || d.ilvlAvg || '—')}</b></span>`,
       d.ilvlAvg && d.ilvlAvg !== d.ilvlEquipped ? `<span><small>${LL('Media (inventario)', 'Average (bags)')}</small><b>${esc(d.ilvlAvg)}</b></span>` : '',
       specInfoHTML(d),
       `<span><small>${LL('Nivel', 'Level')}</small><b>${esc(d.level)}</b></span>`,
-      d.achievements ? `<span><small>${LL('Logros', 'Achievements')}</small><b>${esc(d.achievements)}</b></span>` : '',
+      d.achievements ? `<span><small>${LL('Logros', 'Achievements')}</small><b>${num(d.achievements, 0)}</b></span>` : '',
     ].join('');
     // parses personales y logs por jefe: la misma tabla que la ficha de personaje
     Profile.embed({ name: c.name, realmSlug: c.realmSlug, realmName: c.realmName, region: a.region || c.region || st.status?.region });

@@ -340,8 +340,8 @@ const Profile = (() => {
       const r = byEnc.get(e.id);
       const has = r && r.totalKills > 0;
       const a2 = r?.allStars;
-      return `<tr class="${has ? `pf-enc${st.openEnc === e.id ? ' open' : ''}` : 'none'}"${has ? ` data-pf="enc" data-e="${e.id}"` : ''}><td class="pf-boss"><span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="30" height="30" loading="lazy" alt=""></span><span>${esc(e.name)}</span></td>
-        <td>${has ? `<span class="pf-pct">${pct(r.rankPercent)}${specImg(r)}</span>` : '-'}</td><td class="n">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? r.totalKills : 0}</td>
+      return `<tr class="${has ? `pf-enc${st.openEnc === e.id ? ' open' : ''}` : 'none'}"${has ? ` data-pf="enc" data-e="${e.id}"` : ''}><td class="pf-boss"><div class="pf-bw"><span class="pf-bic"><img src="https://assets.rpglogs.com/img/warcraft/bosses/${e.id}-icon.jpg" width="28" height="28" loading="lazy" alt=""></span><span>${esc(e.name)}</span></div></td>
+        <td>${has ? `<span class="pf-pct">${pct(r.rankPercent)}${specImg(r)}</span>` : '-'}</td><td class="n pf-dps">${has ? num(r.bestAmount, 1) : '-'}</td><td class="n">${has ? num0(r.totalKills) : 0}</td>
         <td class="n">${has && r.fastestKill ? clock(r.fastestKill) : '-'}</td><td>${has ? pct(r.medianPercent) : '-'}</td>
         <td class="n">${has && a2 ? num(a2.points, 2) : '-'}</td>
         <td class="n" title="${a2 ? esc(`${num0(a2.total)} ${LL('jugadores', 'players')}`) : ''}">${has && a2 ? `<b style="color:${parseColor(a2.rankPercent)}">${num0(a2.rank)}</b>` : '-'}</td>
@@ -354,7 +354,7 @@ const Profile = (() => {
     return `<div class="pf-sum2"><div class="pf-sum2-t">${esc(diffName(effDiff()) || '')}</div>
       <div class="pf-sum2-l"><small>${LL('Mejor media', 'Best Perf. Avg')}</small><b style="color:${rankColor(zr.bestPerformanceAverage)}">${zr.bestPerformanceAverage != null ? num(zr.bestPerformanceAverage, 1) : '—'}</b></div>
       <div class="pf-sum2-r"><span>${LL('Media mediana', 'Median Perf. Avg')}: <b style="color:${rankColor(zr.medianPerformanceAverage)}">${zr.medianPerformanceAverage != null ? num(zr.medianPerformanceAverage, 1) : '—'}</b></span>
-        <span>${LL('Kills registradas', 'Kills Logged')}: <b>${kills}</b></span></div>
+        <span>${LL('Kills registradas', 'Kills Logged')}: <b>${num0(kills)}</b></span></div>
       <div class="pf-sum2-b">${LL('Puntos All Star', 'All Star Points')}: <b class="pf-as">${as ? num(as.points, 2) : '—'}</b>${as ? ` (<b style="color:${rankColor(as.rankPercent)}">${num0(as.rank)}</b>)` : ''}${partName(as?.partition) ? ` <span class="muted">(${esc(partName(as.partition))})</span>` : ''}${asSpec}</div></div>
       <div class="pf-tbl-w"><table class="pf-table"><thead><tr><th rowspan="2">${LL('Jefe', 'Boss')}</th><th rowspan="2">${LL('Mejor %', 'Best %')}</th><th rowspan="2">${LL(`${unit} máximo`, `Highest ${unit}`)}</th><th rowspan="2">Kills</th><th rowspan="2">${LL('Más rápida', 'Fastest')}</th><th rowspan="2">${LL('Med.', 'Med')}</th><th colspan="4">All Stars</th></tr>
         <tr><th>${LL('Puntos', 'Points')}</th><th>${LL('Mundo', 'World')}</th><th>${esc(regionName(st.q.region))}</th><th>${LL('Reino', 'Realm')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -364,10 +364,10 @@ const Profile = (() => {
     const a = st.arm;
     if (!a) return st.armErr ? `<div class="empty sm">${esc(st.armErr)}</div>` : `<div class="loading"><span class="spinner"></span>${t('loading')}</div>`;
     const items = [...a.items].filter((i) => !['SHIRT', 'TABARD'].includes(i.slot)).sort((x, y) => SLOT_ORDER.indexOf(x.slot) - SLOT_ORDER.indexOf(y.slot));
-    const ilvl = st.rio?.ilvl || a.ilvlEquipped;
+    const ilvl = a.ilvlExact ? num(a.ilvlExact, 2) : (st.rio?.ilvl || a.ilvlEquipped);
     const rows = items.map((it) => {
       const extra = [...it.enchant.map((e) => `<i class="ench">${esc(cleanLine(e))}</i>`), ...it.gems.map((g) => `<i class="gem">${esc(cleanLine(g.name || g.stat || ''))}</i>`)].join('');
-      return `<div class="pf-it" style="--q:${QCOLOR[it.quality] || '#fff'}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
+      return `<div class="pf-it" style="--q:${QCOLOR[it.quality] || '#fff'}" data-itip="${Cards.itemTipKey(it)}"><span class="arm-ic">${it.icon ? `<img src="${Cards.media(it.icon)}" alt="" loading="lazy">` : ''}</span>
         <span class="pf-itx"><b title="${esc(it.name)}">${esc(it.name)}</b>${extra}</span><em>${esc(it.ilvl || '')}</em></div>`;
     }).join('');
     return `<div class="pf-gear-h"><b>${LL('Equipo', 'Gear')}</b><span>${LL('Nivel de objeto', 'Item Level')}: <b>${esc(ilvl || '—')}</b></span></div>${rows}`;

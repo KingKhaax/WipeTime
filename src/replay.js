@@ -240,7 +240,7 @@ const Replay = (() => {
     const raw = S.fight;
     let data;
     try {
-      data = await load(raw, (n) => { const p = $('#rpProg'); if (p) p.textContent = t('replayLoading', { n: n.toLocaleString(locale()) }); });
+      data = await load(raw, (n) => { const p = $('#rpProg'); if (p) p.textContent = t('replayLoading', { n: num(n, 0) }); });
     } catch (e) {
       if (seq === S.seq) root.innerHTML = errorHTML(friendlyError(e));
       return;

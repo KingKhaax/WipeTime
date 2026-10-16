@@ -60,7 +60,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // ============================================================ formato
 const locale = () => langInfo().locale;
 function num(n, digits = 1) {
-  return new Intl.NumberFormat(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
+  return new Intl.NumberFormat(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: 'always' }).format(n);
 }
 function bigParts(n) {
   n = n || 0;
@@ -1601,12 +1601,12 @@ async function viewPlayer(f, id) {
   const takenTicks = td ? td.abil.reduce((x, e) => x + (e.tickCount || 0), 0) : 0;
   const stats = takenMode ? [
     `<div class="stat"><small>${t('takenTitle')}</small><b>${big(takenTotal)}</b><span>${plain(takenTotal / dur)}${t('perSec')}</span></div>`,
-    `<div class="stat"><small>${t('hits')}</small><b>${takenHits}</b></div>`,
-    `<div class="stat"><small>${LL('Ticks', 'Ticks')}</small><b>${takenTicks}</b></div>`,
+    `<div class="stat"><small>${t('hits')}</small><b>${num(takenHits, 0)}</b></div>`,
+    `<div class="stat"><small>${LL('Ticks', 'Ticks')}</small><b>${num(takenTicks, 0)}</b></div>`,
   ].join('') : [
     dmgEntry ? `<div class="stat"><small>${t('tabs.damage')}</small><b>${big(dmgEntry.total)}</b><span>${plain(dmgEntry.total / dur)}${t('perSec')}</span>${dps != null ? parsePill(dps, est) : ''}</div>` : '',
     healEntry?.total ? `<div class="stat"><small>${t('tabs.healing')}</small><b>${big(healEntry.total)}</b><span>${plain(healEntry.total / dur)}${t('perSec')}</span>${hps != null ? parsePill(hps, est) : ''}</div>` : '',
-    `<div class="stat"><small>${t('casts')}</small><b>${pd.casts.length}</b></div>`,
+    `<div class="stat"><small>${t('casts')}</small><b>${num(pd.casts.length, 0)}</b></div>`,
   ].join('');
 
   const ptabs = ['taken', 'abilities', 'healing', 'rotation', 'buffs'].map((k) =>
@@ -1656,8 +1656,8 @@ function takenTable(td, total, dur) {
       <span class="up"><span class="mbar"><span style="width:${(e.total / max) * 100}%;background:#e05a5a"></span></span>${plain(e.total)}</span>
       <span class="r">${num((e.total / sum) * 100, 1)} %</span>
       <span class="r">${plain(e.total / dur)}</span>
-      <span class="r">${e.hitCount || ''}</span>
-      <span class="r">${e.tickCount || ''}</span>
+      <span class="r">${e.hitCount ? num(e.hitCount, 0) : ''}</span>
+      <span class="r">${e.tickCount ? num(e.tickCount, 0) : ''}</span>
       <span class="ab muted">${esc(src)}</span></div>`;
   }).join('');
   const srcs = [...td.src].filter((e) => e.total > 0).sort((a, b) => b.total - a.total);
@@ -1687,8 +1687,8 @@ function abilitiesTable(entries, casts, dur, color) {
         <span class="up"><span class="mbar"><span style="width:${(e.total / max) * 100}%;background:${color}"></span></span>${plain(e.total)}</span>
         <span class="r">${num((e.total / total) * 100, 1)} %</span>
         <span class="r">${plain(e.total / dur)}</span>
-        <span class="r">${castCount.get(e.guid) || e.uses || ''}</span>
-        <span class="r">${hits || ''}</span>
+        <span class="r">${(castCount.get(e.guid) || e.uses) ? num(castCount.get(e.guid) || e.uses, 0) : ''}</span>
+        <span class="r">${hits ? num(hits, 0) : ''}</span>
         <span class="r">${hits ? num((crits / hits) * 100, 1) + ' %' : ''}</span></div>`;
     }).join('')}</div>`;
 }
@@ -1706,7 +1706,7 @@ function rotationHTML(f, casts) {
   const controls = `<div class="rot-ctl">
       <button class="chip ${S.rotMode === 'lanes' ? 'on' : ''}" data-action="rotmode" data-mode="lanes">${t('lanes')}</button>
       <button class="chip ${S.rotMode === 'sequence' ? 'on' : ''}" data-action="rotmode" data-mode="sequence">${t('sequence')}</button>
-      <span class="grow"></span><span class="muted">${t('totalCasts', { n: casts.length })}</span>
+      <span class="grow"></span><span class="muted">${t('totalCasts', { n: num(casts.length, 0) })}</span>
       ${S.rotMode === 'lanes' ? `<span class="muted">${t('zoom')}</span><button class="btn ghost sm" data-action="zoom" data-d="-1">−</button><button class="btn ghost sm" data-action="zoom" data-d="1">+</button>` : ''}
     </div>`;
 

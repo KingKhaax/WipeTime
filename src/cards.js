@@ -12,6 +12,7 @@ const Cards = (() => {
     256: 'priest-discipline', 257: 'priest-holy', 258: 'priest-shadow', 259: 'rogue-assassination', 260: 'rogue-outlaw', 261: 'rogue-subtlety',
     262: 'shaman-elemental', 263: 'shaman-enhancement', 264: 'shaman-restoration', 265: 'warlock-affliction', 266: 'warlock-demonology', 267: 'warlock-destruction',
     71: 'warrior-arms', 72: 'warrior-fury', 73: 'warrior-protection' };
+  const QCOLOR = { POOR: '#9d9d9d', COMMON: '#ffffff', UNCOMMON: '#1eff00', RARE: '#0070dd', EPIC: '#a335ee', LEGENDARY: '#ff8000', ARTIFACT: '#e6cc80', HEIRLOOM: '#00ccff' };
   const FACTION = { HORDE: '#ff4a4a', ALLIANCE: '#4a8dff' };
   const media = (u) => `wcmedia://m/${encodeURIComponent(u)}`;
   const charCache = new Map();
@@ -126,5 +127,69 @@ const Cards = (() => {
     } catch { /* imagen sin acceso a sus píxeles: se deja como estaba */ }
   }, true);
 
-  return { char, crest, charCardHTML, SPEC_KEY, crestHTML, portraitHTML, fillCrests, fillMe, slugOf, media, CLASS_KEY };
+  // ---- Tooltip de objeto (como el del juego): nombre, versión/dificultad, nivel de objeto, estadísticas, efectos, conjunto...
+  const tipReg = new Map();
+  let tipSeq = 0;
+  const itemTipKey = (it) => { const k = 'i' + (++tipSeq); tipReg.set(k, it); if (tipReg.size > 500) tipReg.delete(tipReg.keys().next().value); return k; };
+  const cleanTip = (x) => String(x ?? '').replace(/\|A:[^|]*\|a/g, '').replace(/\|c[0-9a-fA-F]{8}|\|cn[^:]*:|\|r/g, '').replace(/^Enchanted: /i, '').replace(/\s+/g, ' ').trim();
+  // números de 4 cifras o más con separador de miles (1.234)
+  const g = (x) => esc(String(x ?? "").replace(/\d{4,}/g, (m) => num(Number(m), 0)));
+  function itemTipHTML(it) {
+    const t = it.tip || {};
+    const q = QCOLOR[it.quality] || '#fff';
+    const row = (l, r) => `<div class="it-r"><span>${g(l)}</span><span>${g(r)}</span></div>`;
+    const out = [`<div class="it-n" style="color:${q}">${g(it.name)}</div>`];
+    if (t.nameDesc?.t) out.push(`<div style="color:${t.nameDesc.c || '#1eff00'}">${g(t.nameDesc.t)}</div>`);
+    if (t.level) out.push(`<div class="it-lv">${g(t.level)}</div>`);
+    if (t.binding) out.push(`<div>${g(t.binding)}</div>`);
+    if (t.unique) out.push(`<div>${g(t.unique)}</div>`);
+    if (t.invType || t.subclass) out.push(row(t.invType, t.subclass));
+    if (t.weapon) { out.push(row(t.weapon.dmg, t.weapon.speed)); if (t.weapon.dps) out.push(`<div>${g(t.weapon.dps)}</div>`); }
+    if (t.armor) out.push(`<div>${g(t.armor)}</div>`);
+    for (const s of t.stats || []) out.push(`<div style="color:${s.neg ? '#808080' : (s.c || '#fff')}">${g(s.t)}</div>`);
+    for (const e of t.enchants || []) out.push(`<div class="it-g">${g(cleanTip(e))}</div>`);
+    for (const sk of t.sockets || []) out.push(`<div class="it-s">${g(cleanTip(sk.stat || sk.gem) || sk.type)}</div>`);
+    for (const sp of t.spells || []) out.push(`<div class="it-g">${g(String(sp).replace(/\r?\n(\r?\n)?/g, ' '))}</div>`);
+    if (t.set?.name) {
+      const have = (t.set.items || []).filter((x) => x.eq).length;
+      out.push(`<div class="it-set"><div class="it-sn">${g(t.set.name)} (${have}/${(t.set.items || []).length})</div>${(t.set.items || []).map((x) => `<div class="${x.eq ? 'on' : 'off'}">${g(x.n)}</div>`).join('')}${(t.set.effects || []).map((e) => `<div class="it-e ${e.on ? 'on' : 'off'}">${g(e.t)}</div>`).join('')}</div>`);
+    }
+    if (t.flavor) out.push(`<div class="it-f">"${g(t.flavor)}"</div>`);
+    if (t.durability) out.push(`<div>${g(t.durability)}</div>`);
+    if (t.classes) out.push(`<div>${g(t.classes)}</div>`);
+    if (t.level_req) out.push(`<div>${g(t.level_req)}</div>`);
+    if (t.transmog) out.push(`<div class="it-t">${g(String(t.transmog).replace(/\n/g, ' '))}</div>`);
+    if (t.sell) out.push(`<div class="it-p">${LL('Precio de venta', 'Sell price')}: <b>${g(t.sell.g)}</b> <i class="g"></i> <b>${g(t.sell.s)}</b> <i class="s"></i> <b>${g(t.sell.c)}</b> <i class="c"></i></div>`);
+    return out.join('');
+  }
+  (() => {
+    let el = null, cur = null;
+    const hide = () => { cur = null; if (el) { el.classList.remove('on'); el.hidden = true; } };
+    document.addEventListener('mouseover', (ev) => {
+      const t = ev.target.closest?.('[data-itip]');
+      if (!t) { if (cur) hide(); return; }
+      if (t === cur) return;
+      const it = tipReg.get(t.dataset.itip);
+      if (!it?.tip) { hide(); return; }
+      cur = t;
+      if (!el) { el = document.createElement('div'); el.className = 'itemtip surface-dark'; document.body.appendChild(el); }
+      el.style.setProperty('--q', QCOLOR[it.quality] || '#fff');
+      el.innerHTML = itemTipHTML(it);
+      el.hidden = false;
+      el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); // reinicia la animación de entrada
+    });
+    document.addEventListener('mousemove', (ev) => {
+      if (!el || el.hidden) return;
+      const w = el.offsetWidth, h = el.offsetHeight;
+      let x = ev.clientX + 18, y = ev.clientY + 14;
+      if (x + w > window.innerWidth - 8) x = ev.clientX - w - 18;
+      if (y + h > window.innerHeight - 8) y = Math.max(8, window.innerHeight - h - 8);
+      el.style.left = Math.max(8, x) + 'px';
+      el.style.top = y + 'px';
+    });
+    document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('[data-itip]')) hide(); });
+    document.addEventListener('scroll', hide, true);
+  })();
+
+  return { char, crest, charCardHTML, SPEC_KEY, itemTipKey, itemTipHTML, crestHTML, portraitHTML, fillCrests, fillMe, slugOf, media, CLASS_KEY };
 })();
