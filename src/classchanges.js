@@ -367,10 +367,11 @@ const ClassChanges = (() => {
     let out = '';
     let last = 0;
     for (const m of raw.matchAll(NAME_RE)) {
-      const [id, es] = NAMES[m[1]];
+      const [id, es, icon] = NAMES[m[1]];
       const label = esc(spanish() ? es : m[1]);
       // id 0 = nombre traducido sin tooltip (árboles de héroe, banda, hechizos sin descripción)
-      out += esc(raw.slice(last, m.index)) + (id ? `<span class="cc-sp" data-spell="${id}">${label}</span>` : `<span class="cc-nm">${label}</span>`);
+      const ic = icon ? `<img class="cc-ic" src="${abilityIconUrl(icon)}" width="16" height="16" alt="" loading="lazy">` : '';
+      out += esc(raw.slice(last, m.index)) + (id ? `<span class="cc-sp" data-spell="${id}">${ic}${label}</span>` : `<span class="cc-nm">${label}</span>`);
       last = m.index + m[0].length;
     }
     return out + esc(raw.slice(last));

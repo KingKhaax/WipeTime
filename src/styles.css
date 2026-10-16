@@ -1951,6 +1951,7 @@ button.dbf-row:hover { background: var(--hover); }
 .cc-sp { cursor: help !important; border-bottom: 1px dotted currentColor; font-weight: 700; }
 .cc-sp:hover { border-bottom-style: solid; }
 .cc-nm { font-weight: 700; }
+.cc-ic { width: 16px; height: 16px; border-radius: 3px; vertical-align: -3px; margin-right: 4px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .55); }
 .cc-wrap { display: grid; grid-template-columns: 210px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100%; overflow: hidden; }
 .cc-side { padding: 14px 10px; border-right: 1px solid var(--line); overflow-y: auto; display: grid; align-content: start; gap: 4px; }
 .cc-side h2 { margin: 2px 8px 10px; font-size: 15px; }
