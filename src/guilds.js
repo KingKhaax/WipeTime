@@ -85,6 +85,7 @@ const Guilds = (() => {
       <h4 class="subh">${LL('Añadir un personaje', 'Add a character')}</h4>${charFormHTML()}
       <h4 class="subh">${LL('Añadir una guild', 'Add a guild')}</h4>${guildFormHTML()}
       <div class="bn-or"><span>${LL('o busca una guild a mano', 'or find a guild by hand')}</span></div>${manual}
+      ${typeof GuildCmp !== 'undefined' ? GuildCmp.html() : ''}
       ${bodyUnderMine ? '' : bodyDiv}`;
     if (st.sel) afterBody();
     Cards.fillCrests(main);

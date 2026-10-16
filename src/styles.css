@@ -2201,3 +2201,47 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .pf-dps { color: #b9f26a; }
 .pf-table tr.none td { color: var(--dim); }
 .pf-sum2 { max-width: 980px; padding: 12px 20px 10px; }
+
+/* ---------- Comparar guilds: trys por jefe ---------- */
+.gc-sec { margin-top: 26px; }
+.gc-hint { margin: 0 0 10px; }
+.gc-slots { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: start; }
+.gc-vs { align-self: center; font-weight: 800; letter-spacing: .12em; color: var(--muted); }
+.gc-slot { padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); border-top: 3px solid var(--gc, var(--accent)); background: var(--panel); min-width: 0; }
+.gc-slot.on { display: flex; align-items: center; gap: 12px; }
+.gc-gt { display: grid; min-width: 0; flex: 1; }
+.gc-gt b { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gc-gt small { color: var(--muted); }
+.gc-x { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-deep); color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; }
+.gc-x:hover { color: #ff8a8a; border-color: rgba(255, 93, 93, .5); }
+.gc-form { margin: 0; }
+.gc-form input[name="name"] { flex: 1 1 140px; min-width: 0; }
+.gc-form input[name="realm"] { flex: 1 1 120px; min-width: 0; }
+.gc-res { display: grid; gap: 6px; margin-top: 8px; max-height: 260px; overflow-y: auto; }
+.gc-ctl { margin: 14px 0 10px; }
+.gc-grp { padding: 6px 10px 2px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.gc-sum { margin: 4px 0 10px; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-size: 13.5px; }
+.gc-head, .gc-row { display: grid; grid-template-columns: minmax(180px, 1.3fr) 1fr 1fr minmax(140px, .9fr); gap: 0; align-items: stretch; }
+.gc-head { padding: 6px 12px; font-size: 12px; font-weight: 700; color: var(--muted); border: 1px solid var(--line-strong); border-bottom: 0; border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--panel-2) 75%, #000); }
+.gc-head span:not(:first-child) { text-align: center; }
+.gc-tbl { border: 1px solid var(--line-strong); border-radius: 0 0 8px 8px; overflow: hidden; background: var(--panel); }
+.gc-row { cursor: pointer; border-top: 1px solid var(--line); transition: background .2s; }
+.gc-row:first-child { border-top: 0; }
+.gc-row:hover { background: color-mix(in srgb, var(--panel) 82%, var(--accent) 12%); }
+.gc-row.open { background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.gc-boss { display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-weight: 600; color: #8fb7ff; }
+.gc-c, .gc-d { display: grid; justify-items: center; align-content: center; gap: 1px; padding: 8px 10px; border-left: 1px solid var(--line); text-align: center; }
+.gc-n { font-size: 24px; line-height: 1.1; color: var(--gc, var(--text)); font-variant-numeric: tabular-nums; }
+.gc-l { font-size: 12px; color: var(--text-2); }
+.gc-c small, .gc-d small { color: var(--muted); font-size: 11.5px; }
+.gc-c.none .gc-n { color: var(--dim); }
+.gc-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 12px 12px; background: var(--bg-deep); border-top: 1px solid var(--line); }
+.gc-dc { display: grid; gap: 3px; max-height: 340px; overflow-y: auto; padding-right: 4px; align-content: start; }
+.gc-t { display: grid; grid-template-columns: 54px 1fr 58px 44px; gap: 8px; align-items: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.gc-tn { color: var(--text-2); }
+.gc-tb { height: 8px; border-radius: 4px; background: var(--track, #1c2740); overflow: hidden; }
+.gc-tb i { display: block; height: 100%; border-radius: 4px; background: var(--gc, var(--accent)); }
+.gc-t.kill .gc-tb i { background: #3fb950; }
+.gc-t.kill b { color: #3fb950; }
+.gc-t em { color: var(--muted); font-style: normal; text-align: right; }
+@media (max-width: 900px) { .gc-slots { grid-template-columns: 1fr; } .gc-vs { justify-self: center; } .gc-head, .gc-row { grid-template-columns: 1.2fr 1fr 1fr; } .gc-head span:last-child, .gc-d { display: none; } .gc-detail { grid-template-columns: 1fr; } }
