@@ -286,7 +286,7 @@ const Profile = (() => {
     const mets = METRICS.map(([m, l]) => `<button type="button" class="chip ${st.metric === m ? 'on' : ''}" data-pf="metric" data-v="${m}">${l || LL('Daño a jefe', 'Boss Damage')}</button>`).join('');
     // Botones de parche dentro de la season (como en Warcraft Logs): Todo + uno por cada parche de la banda
     const parts = (zone?.partitions || []).filter((p) => p.name !== 'default');
-    const ptabs = parts.length > 1 ? `<div class="pf-ptabs"><button type="button" class="pf-ptab ${st.partition === -1 ? 'on' : ''}" data-pf="part" data-v="-1">${LL('Todo', 'All')}</button>${parts.map((p) => `<button type="button" class="pf-ptab ${st.partition === p.id ? 'on' : ''}" data-pf="part" data-v="${p.id}" title="${esc(p.name)}">${esc(p.compactName || p.name)}</button>`).join('')}</div>` : '';
+    const ptabs = parts.length > 1 ? `<div class="pf-ptabs"><button type="button" class="pf-ptab ${st.partition === -1 ? 'on' : ''}" data-pf="part" data-v="-1">${LL('Todos', 'All')}</button>${parts.map((p) => `<button type="button" class="pf-ptab ${st.partition === p.id ? 'on' : ''}" data-pf="part" data-v="${p.id}" title="${esc(p.name)}">${esc(p.compactName || p.name)}</button>`).join('')}</div>` : '';
     return `<div class="pf-ctl"><label>${LL('Season', 'Season')}<select data-pf-zone>${opts}</select></label>
       <span class="chips">${diffs}</span><span class="sep"></span><span class="chips">${mets}</span></div>${ptabs}`;
   }
