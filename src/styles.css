@@ -2156,7 +2156,7 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .arm-gear, .arm-info, .arm-stats, .pf-gear { user-select: none; -webkit-user-select: none; cursor: default; }
 .arm-it, .pf-it { position: relative; overflow: hidden; transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease, border-color .25s ease, background .25s ease; }
 .arm-it::after, .pf-it::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; pointer-events: none; opacity: 0; background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--gold-soft, #fff) 20%, transparent), transparent); transform: skewX(-18deg); }
-.arm-it:not(.empty):hover, .pf-it:hover { transform: translateY(-2px); border-color: var(--gold, var(--accent)); background: color-mix(in srgb, var(--gold, var(--accent)) 9%, var(--panel)); box-shadow: 0 8px 22px rgba(0, 0, 0, .4), 0 0 0 1px var(--gold-line, rgba(47, 183, 192, .32)), 0 0 22px -8px var(--gold, var(--accent)); }
+.arm-it:not(.empty):hover, .pf-it:hover { border-color: var(--gold, var(--accent)); background: color-mix(in srgb, var(--gold, var(--accent)) 9%, var(--panel)); box-shadow: 0 8px 22px rgba(0, 0, 0, .4), 0 0 0 1px var(--gold-line, rgba(47, 183, 192, .32)), 0 0 22px -8px var(--gold, var(--accent)); }
 .arm-it:not(.empty):hover::after, .pf-it:hover::after { opacity: 1; left: 130%; transition: left .7s ease, opacity .2s; }
 .arm-it:not(.empty):hover .arm-ic, .pf-it:hover .arm-ic { box-shadow: 0 0 0 1px var(--q, #fff), 0 0 14px -2px var(--q, #fff); }
 

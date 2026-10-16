@@ -163,11 +163,14 @@ const Cards = (() => {
     return out.join('');
   }
   (() => {
-    let el = null, cur = null;
-    const hide = () => { cur = null; if (el) { el.classList.remove('on'); el.hidden = true; } };
+    let el = null, cur = null, off = 0;
+    const hide = () => { clearTimeout(off); cur = null; if (el) { el.classList.remove('on'); el.hidden = true; } };
+    // al salir se espera un instante: si el puntero vuelve a entrar al mismo objeto (borde, hijos) el tooltip no parpadea
+    const hideSoon = () => { clearTimeout(off); off = setTimeout(hide, 80); };
     document.addEventListener('mouseover', (ev) => {
       const t = ev.target.closest?.('[data-itip]');
-      if (!t) { if (cur) hide(); return; }
+      if (!t) { if (cur) hideSoon(); return; }
+      clearTimeout(off);
       if (t === cur) return;
       const it = tipReg.get(t.dataset.itip);
       if (!it?.tip) { hide(); return; }
@@ -187,7 +190,7 @@ const Cards = (() => {
       el.style.left = Math.max(8, x) + 'px';
       el.style.top = y + 'px';
     });
-    document.addEventListener('mouseout', (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest?.('[data-itip]')) hide(); });
+    document.addEventListener('mouseout', (ev) => { if (cur && (!ev.relatedTarget || !ev.relatedTarget.closest?.('[data-itip]'))) hideSoon(); });
     document.addEventListener('scroll', hide, true);
   })();
 
