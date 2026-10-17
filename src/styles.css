@@ -2403,3 +2403,8 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .arm-weapons { gap: 8px 8px; }
 .arm-it .arm-tx b, .arm-it .arm-tx i { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: clip; }
 .arm-it .arm-tx i { display: -webkit-box; }
+
+/* Versión: mismo formato que NinjaLoot (píldora con borde del color del estado) */
+.ver-badge, .ver-badge.ok, .ver-badge.bad { border: 1px solid currentColor; border-radius: 999px; padding: 5px 13px; font-family: inherit; font-weight: 700; font-size: 13px; line-height: normal; background: transparent; animation: none; box-shadow: none; }
+.ver-badge.ok { color: #3fcf6a; } .ver-badge.bad { color: #ee5a45; } .ver-badge:not(.ok):not(.bad) { color: var(--muted); }
+.ver-badge:hover, .ver-badge.ok:hover, .ver-badge.bad:hover { background: color-mix(in srgb, currentColor 14%, transparent); border-color: currentColor; }
