@@ -2408,3 +2408,7 @@ button.brand .brand-logo { width: 36px; height: 36px; border-radius: 9px; }
 .ver-badge, .ver-badge.ok, .ver-badge.bad { border: 1px solid currentColor; border-radius: 999px; padding: 5px 13px; font-family: inherit; font-weight: 700; font-size: 13px; line-height: normal; background: transparent; animation: none; box-shadow: none; }
 .ver-badge.ok { color: #3fcf6a; } .ver-badge.bad { color: #ee5a45; } .ver-badge:not(.ok):not(.bad) { color: var(--muted); }
 .ver-badge:hover, .ver-badge.ok:hover, .ver-badge.bad:hover { background: color-mix(in srgb, currentColor 14%, transparent); border-color: currentColor; }
+
+/* Barra superior: Idioma, Exportar y Ajustes sin cuadrado gris (la caja solo aparece al pasar el ratón) */
+.top-actions .home-btn#langBtn, .top-actions .home-btn#exportBtn, #settingsBtn { background: transparent; border-color: transparent; box-shadow: none; }
+.top-actions .home-btn#langBtn:hover, .top-actions .home-btn#exportBtn:hover, #settingsBtn:hover { background: var(--panel-2); border-color: transparent; }
