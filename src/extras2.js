@@ -654,7 +654,7 @@ const Extras2 = (() => {
         + topCard(LL('Top 5 DPS de la noche', 'Top 5 DPS of the night'), LL(`Daño medio por segundo en ${d.pulls} intentos`, `Average damage per second over ${d.pulls} pulls`), d.dps, (v) => plain(v))
         + topCard(LL('Top 3 sanadores de la noche', 'Top 3 healers of the night'), LL('Sanación media por segundo', 'Average healing per second'), d.heal, (v) => plain(v))
         + topCard(LL('Top 5 cortes de la noche', 'Top 5 interrupts of the night'), LL('Hechizos enemigos interrumpidos en todos los intentos', 'Enemy spells interrupted across every pull'), d.ints, (v) => `${v} ${v === 1 ? LL('corte', 'interrupt') : LL('cortes', 'interrupts')}`)
-        + topCard(LL('Top 5 disfrutones de la noche', 'Top 5 PI enjoyers of the night'), LL('Infusiones de poder recibidas (sin contar sacerdotes)', 'Power Infusions received (priests excluded)'), d.pi, (v) => `${v} PI`)
+        + topCard(LL('Top 5 disfrutones de la noche', 'Top 5 PI enjoyers of the night'), LL('PIs recibidos (sin contar sacerdotes)', 'PIs received (priests excluded)'), d.pi, (v) => `${v} PI`)
         + topCard(LL('Top 5 dispels de la noche', 'Top 5 dispels of the night'), LL('Efectos disipados en todos los intentos', 'Effects dispelled across every pull'), d.disp, (v) => `${v} dispel${v === 1 ? '' : 's'}`);
     } catch (e) {
       console.warn('nightTops', e);
